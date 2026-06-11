@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Traits\BelongsToUser;
 use Illuminate\Database\Eloquent\Model;
 
 class OdpRoute extends Model
 {
-    protected $fillable = ['odc_id', 'name', 'description', 'color', 'coordinates'];
+    use BelongsToUser;
+
+    protected $fillable = ['user_id', 'odc_id', 'name', 'description', 'color', 'coordinates'];
 
     protected function casts(): array
     {

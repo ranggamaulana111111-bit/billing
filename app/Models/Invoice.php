@@ -2,14 +2,15 @@
 
 namespace App\Models;
 
+use App\Models\Traits\BelongsToUser;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Invoice extends Model
 {
-    use HasFactory;
+    use HasFactory, BelongsToUser;
 
-    protected $fillable = ['invoice_code', 'customer_id', 'amount', 'payment_status', 'paid_at', 'payment_method', 'midtrans_order_id'];
+    protected $fillable = ['user_id', 'invoice_code', 'customer_id', 'amount', 'payment_status', 'paid_at', 'payment_method', 'midtrans_order_id'];
 
     protected function casts(): array
     {

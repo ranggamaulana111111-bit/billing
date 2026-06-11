@@ -61,7 +61,21 @@ class MidtransController extends Controller
 
     public function notification(Request $request)
     {
-        $midtrans = new MidtransService;
+        $rawBody = $request->getContent();
+        $data = json_decode($rawBody, true);
+        $orderId = $data['order_id'] ?? null;
+
+        if (! $orderId) {
+            return response('OK', 200);
+        }
+
+        $invoice = Invoice::allUsers()->where('midtrans_order_id', $orderId)->first();
+
+        if (! $invoice) {
+            return response('OK', 200);
+        }
+
+        $midtrans = new MidtransService($invoice->user_id);
 
         if (! $midtrans->isConfigured()) {
             return response('Midtrans not configured', 500);
@@ -73,11 +87,7 @@ class MidtransController extends Controller
             return response('OK', 200);
         }
 
-        $orderId = $notif['order_id'];
-
-        $invoice = Invoice::where('midtrans_order_id', $orderId)->first();
-
-        if (! $invoice || $invoice['payment_status'] === 'paid') {
+        if ($invoice['payment_status'] === 'paid') {
             return response('OK', 200);
         }
 
@@ -96,7 +106,7 @@ class MidtransController extends Controller
     {
         $orderId = $request->get('order_id');
 
-        $invoice = Invoice::where('midtrans_order_id', $orderId)->first();
+        $invoice = Invoice::allUsers()->where('midtrans_order_id', $orderId)->first();
 
         if ($invoice && $invoice->payment_status === 'paid') {
             return redirect()->route('invoices.index')->with('success', 'Pembayaran via Midtrans berhasil!');

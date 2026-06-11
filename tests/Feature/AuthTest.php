@@ -83,11 +83,13 @@ class AuthTest extends TestCase
     {
         $user = User::factory()->create();
         $route = OdpRoute::create([
+            'user_id' => $user->id,
             'name' => 'Route A',
             'color' => '#2563eb',
             'coordinates' => [[-6.2, 106.8]],
         ]);
         $odp = OdpPoint::create([
+            'user_id' => $user->id,
             'odp_route_id' => $route->id,
             'name' => 'ODP-01',
             'address' => 'Kp. Kumpay',
@@ -96,7 +98,7 @@ class AuthTest extends TestCase
             'port_capacity' => 8,
             'port_used' => 1,
         ]);
-        Customer::factory()->create(['odp_point_id' => $odp->id]);
+        Customer::factory()->create(['user_id' => $user->id, 'odp_point_id' => $odp->id]);
 
         $response = $this->actingAs($user)->get('/dashboard');
 

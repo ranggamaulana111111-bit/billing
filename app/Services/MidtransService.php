@@ -13,10 +13,10 @@ class MidtransService
 
     protected bool $isProduction;
 
-    public function __construct()
+    public function __construct(?int $userId = null)
     {
-        $this->serverKey = Setting::get('midtrans_server_key');
-        $this->isProduction = (bool) Setting::get('midtrans_is_production', false);
+        $this->serverKey = Setting::get('midtrans_server_key', null, $userId);
+        $this->isProduction = (bool) Setting::get('midtrans_is_production', false, $userId);
     }
 
     public function isConfigured(): bool

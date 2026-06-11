@@ -61,7 +61,7 @@ class PackageTest extends TestCase
 
     public function test_update_package(): void
     {
-        $package = Package::factory()->create(['name' => 'Old Name']);
+        $package = Package::factory()->create(['user_id' => $this->user->id, 'name' => 'Old Name']);
 
         $this->actingAs($this->user)->put("/packages/{$package->id}", [
             'name' => 'New Name',
@@ -76,8 +76,8 @@ class PackageTest extends TestCase
 
     public function test_index_can_search_and_filter_packages(): void
     {
-        Package::factory()->create(['name' => 'Home Fiber 10', 'is_active' => true]);
-        Package::factory()->create(['name' => 'Legacy Radio', 'is_active' => false]);
+        Package::factory()->create(['user_id' => $this->user->id, 'name' => 'Home Fiber 10', 'is_active' => true]);
+        Package::factory()->create(['user_id' => $this->user->id, 'name' => 'Legacy Radio', 'is_active' => false]);
 
         $this->actingAs($this->user)
             ->get('/packages?search=Home&status=active')
@@ -88,7 +88,7 @@ class PackageTest extends TestCase
 
     public function test_destroy_package(): void
     {
-        $package = Package::factory()->create();
+        $package = Package::factory()->create(['user_id' => $this->user->id]);
 
         $this->actingAs($this->user)->delete("/packages/{$package->id}")->assertRedirect('/packages');
         $this->assertDatabaseMissing('packages', ['id' => $package->id]);
@@ -96,8 +96,8 @@ class PackageTest extends TestCase
 
     public function test_destroy_package_in_use_is_blocked(): void
     {
-        $package = Package::factory()->create();
-        Customer::factory()->create(['package_id' => $package->id]);
+        $package = Package::factory()->create(['user_id' => $this->user->id]);
+        Customer::factory()->create(['user_id' => $this->user->id, 'package_id' => $package->id]);
 
         $this->actingAs($this->user)
             ->delete("/packages/{$package->id}")

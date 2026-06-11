@@ -17,12 +17,12 @@ class MikrotikService
 
     protected int $port;
 
-    public function __construct()
+    public function __construct(?int $userId = null)
     {
-        $this->host = Setting::get('mikrotik_host');
-        $this->user = Setting::get('mikrotik_user');
-        $this->pass = Setting::get('mikrotik_password');
-        $this->port = (int) (Setting::get('mikrotik_port', '80'));
+        $this->host = Setting::get('mikrotik_host', null, $userId);
+        $this->user = Setting::get('mikrotik_user', null, $userId);
+        $this->pass = Setting::get('mikrotik_password', null, $userId);
+        $this->port = (int) (Setting::get('mikrotik_port', '80', $userId));
     }
 
     public function isConfigured(): bool

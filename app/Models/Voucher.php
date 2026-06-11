@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Models\Traits\BelongsToUser;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
 class Voucher extends Model
 {
-    protected $fillable = ['username', 'password', 'duration_hours', 'status', 'used_at', 'expires_at'];
+    use BelongsToUser;
+
+    protected $fillable = ['user_id', 'username', 'password', 'duration_hours', 'status', 'used_at', 'expires_at'];
 
     protected function casts(): array
     {

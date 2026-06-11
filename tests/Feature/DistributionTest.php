@@ -116,6 +116,7 @@ class DistributionTest extends TestCase
     public function test_update_route(): void
     {
         $route = OdpRoute::create([
+            'user_id' => $this->user->id,
             'name' => 'Route Lama',
             'color' => '#2563eb',
             'coordinates' => [],
@@ -134,6 +135,7 @@ class DistributionTest extends TestCase
     public function test_destroy_route_without_points(): void
     {
         $route = OdpRoute::create([
+            'user_id' => $this->user->id,
             'name' => 'Route Hapus',
             'color' => '#2563eb',
             'coordinates' => [],
@@ -147,7 +149,7 @@ class DistributionTest extends TestCase
     public function test_destroy_route_with_points_is_blocked(): void
     {
         $route = $this->createRoute();
-        OdpPoint::create($this->pointPayload($route));
+        OdpPoint::create($this->pointPayload($route, ['user_id' => $this->user->id]));
 
         $this->actingAs($this->user)
             ->delete("/distribution/routes/{$route->id}")
@@ -173,7 +175,7 @@ class DistributionTest extends TestCase
     public function test_store_point_rejects_duplicate_name(): void
     {
         $route = $this->createRoute();
-        OdpPoint::create($this->pointPayload($route));
+        OdpPoint::create($this->pointPayload($route, ['user_id' => $this->user->id]));
 
         $this->actingAs($this->user)
             ->post('/distribution/points', $this->pointPayload($route))
@@ -183,7 +185,7 @@ class DistributionTest extends TestCase
     public function test_update_point(): void
     {
         $route = $this->createRoute();
-        $point = OdpPoint::create($this->pointPayload($route));
+        $point = OdpPoint::create($this->pointPayload($route, ['user_id' => $this->user->id]));
 
         $this->actingAs($this->user)->put("/distribution/points/{$point->id}", $this->pointPayload($route, [
             'name' => 'ODP-Update',
@@ -197,7 +199,7 @@ class DistributionTest extends TestCase
     public function test_destroy_point_without_customers(): void
     {
         $route = $this->createRoute();
-        $point = OdpPoint::create($this->pointPayload($route));
+        $point = OdpPoint::create($this->pointPayload($route, ['user_id' => $this->user->id]));
 
         $this->actingAs($this->user)->delete("/distribution/points/{$point->id}")->assertRedirect();
 
@@ -207,9 +209,9 @@ class DistributionTest extends TestCase
     public function test_destroy_point_with_customers_is_blocked(): void
     {
         $route = $this->createRoute();
-        $point = OdpPoint::create($this->pointPayload($route));
-        $package = Package::factory()->create();
-        Customer::factory()->create(['package_id' => $package->id, 'odp_point_id' => $point->id]);
+        $point = OdpPoint::create($this->pointPayload($route, ['user_id' => $this->user->id]));
+        $package = Package::factory()->create(['user_id' => $this->user->id]);
+        $customer = Customer::factory()->create(['user_id' => $this->user->id, 'package_id' => $package->id, 'odp_point_id' => $point->id]);
 
         $this->actingAs($this->user)
             ->delete("/distribution/points/{$point->id}")
@@ -228,6 +230,7 @@ class DistributionTest extends TestCase
     private function createRoute(array $override = []): OdpRoute
     {
         return OdpRoute::create(array_merge([
+            'user_id' => $this->user->id,
             'name' => 'Route Test',
             'color' => '#2563eb',
             'coordinates' => [],
@@ -237,6 +240,7 @@ class DistributionTest extends TestCase
     private function odcPayload(array $override = []): array
     {
         return array_merge([
+            'user_id' => $this->user->id,
             'name' => 'ODC Test',
             'address' => 'Kp. ODC',
             'latitude' => -6.476,
@@ -250,6 +254,7 @@ class DistributionTest extends TestCase
     private function pointPayload(OdpRoute $route, array $override = []): array
     {
         return array_merge([
+            'user_id' => $this->user->id,
             'odp_route_id' => $route->id,
             'name' => 'ODP-Test',
             'address' => 'Kp. Test',

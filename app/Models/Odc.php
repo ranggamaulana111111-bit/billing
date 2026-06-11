@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Models\Traits\BelongsToUser;
 use Illuminate\Database\Eloquent\Model;
 
 class Odc extends Model
 {
+    use BelongsToUser;
+
     protected $fillable = [
-        'name', 'address', 'latitude', 'longitude', 'status', 'capacity', 'notes',
+        'user_id', 'name', 'address', 'latitude', 'longitude', 'status', 'capacity', 'notes',
     ];
 
     public function routes()

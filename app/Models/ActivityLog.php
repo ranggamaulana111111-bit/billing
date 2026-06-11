@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Traits\BelongsToUser;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 
 class ActivityLog extends Model
 {
+    use BelongsToUser;
+
     protected $fillable = ['user_id', 'action', 'details'];
 
     public function user()

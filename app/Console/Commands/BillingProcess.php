@@ -6,6 +6,7 @@ use App\Models\ActivityLog;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\Setting;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
@@ -14,119 +15,138 @@ class BillingProcess extends Command
 {
     protected $signature = 'billing:process';
 
-    protected $description = 'Generate invoice bulanan & kirim WA reminder otomatis';
+    protected $description = 'Generate invoice bulanan & kirim WA reminder otomatis per tenant';
 
     public function handle()
     {
         $today = Carbon::today();
-        $month = $today->format('m');
-        $year = $today->format('Y');
         $day = (int) $today->format('d');
 
         $this->info("=== Billing Process: {$today->format('d/m/Y')} ===");
 
-        $customers = Customer::with('package')->get();
+        $users = User::all();
 
-        if ($customers->isEmpty()) {
-            $this->warn('Tidak ada pelanggan.');
+        if ($users->isEmpty()) {
+            $this->warn('Tidak ada user.');
 
             return 0;
         }
 
-        $generated = 0;
-        $reminders = 0;
+        $globalGenerated = 0;
+        $globalReminders = 0;
 
-        foreach ($customers as $customer) {
-            if (! $customer->package) {
-                $this->warn("Pelanggan {$customer->name} tidak punya paket, skip.");
+        foreach ($users as $user) {
+            $this->info("--- Tenant: {$user->name} ({$user->email}) ---");
+
+            $month = $today->format('m');
+            $year = $today->format('Y');
+
+            $customers = Customer::where('user_id', $user->id)->with('package')->get();
+
+            if ($customers->isEmpty()) {
+                $this->warn("  Tidak ada pelanggan untuk {$user->name}.");
 
                 continue;
             }
 
-            $dueDay = $customer->due_date ? (int) Carbon::parse($customer->due_date)->format('d') : null;
+            $generated = 0;
+            $reminders = 0;
 
-            // Generate invoice bulan ini jika belum ada
-            $existing = Invoice::where('customer_id', $customer->id)
-                ->whereYear('created_at', $year)
-                ->whereMonth('created_at', $month)
-                ->exists();
+            foreach ($customers as $customer) {
+                if (! $customer->package) {
+                    $this->warn("  Pelanggan {$customer->name} tidak punya paket, skip.");
 
-            if (! $existing) {
-                $invoiceCode = 'INV-'.str_pad($customer->id, 4, '0', STR_PAD_LEFT).'-'.$month;
-                $counter = 1;
-                while (Invoice::where('invoice_code', $invoiceCode)->exists()) {
-                    $invoiceCode = 'INV-'.str_pad($customer->id, 4, '0', STR_PAD_LEFT).'-'.$month.'-'.$counter;
-                    $counter++;
+                    continue;
                 }
 
-                Invoice::create([
-                    'invoice_code' => $invoiceCode,
-                    'customer_id' => $customer->id,
-                    'amount' => $customer->package->price,
-                    'payment_status' => 'unpaid',
-                    'created_at' => $today,
-                ]);
+                $dueDay = $customer->due_date ? (int) Carbon::parse($customer->due_date)->format('d') : null;
 
-                $generated++;
-                $this->info("Invoice {$invoiceCode} untuk {$customer->name}");
+                $existing = Invoice::where('user_id', $user->id)
+                    ->where('customer_id', $customer->id)
+                    ->whereYear('created_at', $year)
+                    ->whereMonth('created_at', $month)
+                    ->exists();
+
+                if (! $existing) {
+                    $invoiceCode = 'INV-'.str_pad($customer->id, 4, '0', STR_PAD_LEFT).'-'.$month;
+                    $counter = 1;
+                    while (Invoice::where('invoice_code', $invoiceCode)->exists()) {
+                        $invoiceCode = 'INV-'.str_pad($customer->id, 4, '0', STR_PAD_LEFT).'-'.$month.'-'.$counter;
+                        $counter++;
+                    }
+
+                    Invoice::create([
+                        'user_id' => $user->id,
+                        'invoice_code' => $invoiceCode,
+                        'customer_id' => $customer->id,
+                        'amount' => $customer->package->price,
+                        'payment_status' => 'unpaid',
+                        'created_at' => $today,
+                    ]);
+
+                    $generated++;
+                    $this->info("  Invoice {$invoiceCode} untuk {$customer->name}");
+                }
+
+                $unpaidInvoice = Invoice::where('user_id', $user->id)
+                    ->where('customer_id', $customer->id)
+                    ->where('payment_status', 'unpaid')
+                    ->latest()
+                    ->first();
+
+                if (! $unpaidInvoice || ! $customer->phone) {
+                    continue;
+                }
+
+                $shouldRemind = false;
+                $reminderType = '';
+
+                if ($dueDay) {
+                    $daysUntilDue = $dueDay - $day;
+
+                    if ($daysUntilDue === 3) {
+                        $shouldRemind = true;
+                        $reminderType = 'H-3';
+                    }
+                    if ($daysUntilDue === 1) {
+                        $shouldRemind = true;
+                        $reminderType = 'H-1';
+                    }
+                    if ($daysUntilDue === 0) {
+                        $shouldRemind = true;
+                        $reminderType = 'Jatuh Tempo';
+                    }
+                    if (in_array(abs($daysUntilDue), [1, 3, 7]) && $daysUntilDue < 0) {
+                        $shouldRemind = true;
+                        $reminderType = 'Telat '.abs($daysUntilDue).' hari';
+                    }
+                }
+
+                if ($shouldRemind) {
+                    $this->sendWa($user->id, $customer, $unpaidInvoice, $reminderType, $dueDay);
+                    $reminders++;
+                }
             }
 
-            // Cek apakah perlu kirim reminder
-            $unpaidInvoice = Invoice::where('customer_id', $customer->id)
-                ->where('payment_status', 'unpaid')
-                ->latest()
-                ->first();
+            $this->newLine();
+            $this->info("  Tenant {$user->name}: Invoice baru: {$generated}, Reminder: {$reminders}");
 
-            if (! $unpaidInvoice || ! $customer->phone) {
-                continue;
-            }
-
-            $shouldRemind = false;
-            $reminderType = '';
-
-            if ($dueDay) {
-                $daysUntilDue = $dueDay - $day;
-
-                // H-3
-                if ($daysUntilDue === 3) {
-                    $shouldRemind = true;
-                    $reminderType = 'H-3';
-                }
-                // H-1
-                if ($daysUntilDue === 1) {
-                    $shouldRemind = true;
-                    $reminderType = 'H-1';
-                }
-                // Hari H (jatuh tempo)
-                if ($daysUntilDue === 0) {
-                    $shouldRemind = true;
-                    $reminderType = 'Jatuh Tempo';
-                }
-                // Telat 1, 3, 7 hari
-                if (in_array(abs($daysUntilDue), [1, 3, 7]) && $daysUntilDue < 0) {
-                    $shouldRemind = true;
-                    $reminderType = 'Telat '.abs($daysUntilDue).' hari';
-                }
-            }
-
-            if ($shouldRemind) {
-                $this->sendWa($customer, $unpaidInvoice, $reminderType, $dueDay);
-                $reminders++;
-            }
+            $globalGenerated += $generated;
+            $globalReminders += $reminders;
         }
 
         $this->newLine();
-        $this->info("Selesai. Invoice baru: {$generated}, Reminder: {$reminders}");
+        $this->info("Selesai. Total invoice baru: {$globalGenerated}, Total reminder: {$globalReminders}");
 
         ActivityLog::create([
             'action' => 'Billing Otomatis',
-            'details' => "Generate {$generated} invoice, kirim {$reminders} reminder WA",
+            'details' => "Generate {$globalGenerated} invoice, kirim {$globalReminders} reminder WA (semua tenant)",
         ]);
 
         return 0;
     }
 
-    private function sendWa(Customer $customer, Invoice $invoice, string $type, ?int $dueDay): void
+    private function sendWa(int $userId, Customer $customer, Invoice $invoice, string $type, ?int $dueDay): void
     {
         $packageName = $customer->package->name ?? '-';
         $amount = 'Rp '.number_format($invoice->amount, 0, ',', '.');
@@ -155,17 +175,25 @@ class BillingProcess extends Command
             .'━━━ *RabegNet* ━━━';
 
         try {
+            $token = Setting::get('fonnte_token', null, $userId);
+
+            if (! $token) {
+                $this->warn("  Token WA tidak dikonfigurasi untuk tenant ID {$userId}, skip WA");
+
+                return;
+            }
+
             Http::withHeaders([
-                'Authorization' => Setting::get('fonnte_token') ?: config('services.fonnte.token'),
+                'Authorization' => $token,
             ])->post('https://api.fonnte.com/send', [
                 'target' => $customer->phone,
                 'message' => $message,
                 'countryCode' => '62',
             ]);
 
-            $this->info("WA reminder {$type} ke {$customer->name} ({$customer->phone})");
+            $this->info("  WA reminder {$type} ke {$customer->name} ({$customer->phone})");
         } catch (\Exception $e) {
-            $this->error("Gagal WA ke {$customer->name}: {$e->getMessage()}");
+            $this->error("  Gagal WA ke {$customer->name}: {$e->getMessage()}");
         }
     }
 }

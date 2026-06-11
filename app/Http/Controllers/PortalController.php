@@ -12,10 +12,12 @@ class PortalController extends Controller
 {
     public function index()
     {
+        $firstUser = \App\Models\User::orderBy('id')->first();
+        $uid = $firstUser?->id;
         $company = [
-            'name' => Setting::get('company_name', 'RabegNet'),
-            'address' => Setting::get('company_address', ''),
-            'phone' => Setting::get('company_phone', ''),
+            'name' => Setting::get('company_name', 'RabegNet', $uid),
+            'address' => Setting::get('company_address', '', $uid),
+            'phone' => Setting::get('company_phone', '', $uid),
         ];
 
         return view('portal.index', compact('company'));
@@ -29,20 +31,20 @@ class PortalController extends Controller
 
         $phone = $request->input('phone');
 
-        $customer = Customer::where('phone', $phone)->first();
+        $customer = Customer::allUsers()->where('phone', $phone)->first();
 
         if (! $customer) {
             return back()->with('error', 'Nomor telepon tidak ditemukan.')->withInput();
         }
 
-        $invoices = Invoice::where('customer_id', $customer->id)
+        $invoices = Invoice::allUsers()->where('customer_id', $customer->id)
             ->orderBy('created_at', 'desc')
             ->get();
 
         $company = [
-            'name' => Setting::get('company_name', 'RabegNet'),
-            'address' => Setting::get('company_address', ''),
-            'phone' => Setting::get('company_phone', ''),
+            'name' => Setting::get('company_name', 'RabegNet', $customer->user_id),
+            'address' => Setting::get('company_address', '', $customer->user_id),
+            'phone' => Setting::get('company_phone', '', $customer->user_id),
         ];
 
         $midtransConfigured = (new MidtransService)->isConfigured();
@@ -52,11 +54,13 @@ class PortalController extends Controller
 
     public function bayar(Invoice $invoice)
     {
+        $invoice = Invoice::allUsers()->findOrFail($invoice->id);
+
         if ($invoice->payment_status === 'paid') {
             return redirect()->route('portal.index')->with('error', 'Invoice ini sudah lunas.');
         }
 
-        $midtrans = new MidtransService;
+        $midtrans = new MidtransService($customer->user_id);
 
         if (! $midtrans->isConfigured()) {
             return back()->with('error', 'Pembayaran online belum tersedia.');
