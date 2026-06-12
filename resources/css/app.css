@@ -1394,6 +1394,23 @@ a { color: var(--primary); }
 }
 .auth-card .form-control-lg { min-height: 50px; font-size: 0.95rem; }
 
+.hr-text {
+    display: flex;
+    align-items: center;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+.hr-text::before,
+.hr-text::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border-light);
+}
+.hr-text::before { margin-right: 1rem; }
+.hr-text::after { margin-left: 1rem; }
+
 /* ════════════════════════════════════════════
    ANIMATIONS — Motion system
    ════════════════════════════════════════════ */

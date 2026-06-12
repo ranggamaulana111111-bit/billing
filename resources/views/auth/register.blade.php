@@ -46,6 +46,17 @@
             <button type="submit" class="btn btn-primary btn-lg w-100 fw-semibold">Daftar</button>
         </form>
 
+        <div class="hr-text my-3">atau</div>
+
+        <div class="d-grid gap-2">
+            <a href="{{ route('auth.redirect', 'google') }}" class="btn btn-outline-danger btn-lg fw-semibold d-flex align-items-center justify-content-center gap-2">
+                <i class="fa-brands fa-google"></i> Daftar dengan Google
+            </a>
+            <a href="{{ route('auth.redirect', 'github') }}" class="btn btn-outline-dark btn-lg fw-semibold d-flex align-items-center justify-content-center gap-2">
+                <i class="fa-brands fa-github"></i> Daftar dengan GitHub
+            </a>
+        </div>
+
         <p class="text-center mt-4 mb-0 small">
             Sudah punya akun?
             <a href="{{ route('login') }}">Masuk</a>
