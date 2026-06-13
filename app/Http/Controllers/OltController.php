@@ -265,4 +265,27 @@ class OltController extends Controller
 
         return back()->with('success', 'Port berhasil disinkronkan.');
     }
+
+    public function monitoring()
+    {
+        $onus = Onu::with('oltPort.olt', 'customer')->get();
+        $olts = Olt::withCount('ports')->get();
+
+        $offlineOnus = $onus->where('status', '!=', 'online');
+        $weakSignalOnus = $onus->filter(fn ($o) => $o->rx_power !== null && $o->rx_power < -27);
+        $totalOnline = $onus->where('status', 'online')->count();
+        $totalOffline = $offlineOnus->count();
+        $totalWeak = $weakSignalOnus->count();
+
+        return view('olt.monitoring', compact(
+            'onus', 'olts',
+            'offlineOnus', 'weakSignalOnus',
+            'totalOnline', 'totalOffline', 'totalWeak'
+        ));
+    }
+
+    public static function isAdmin(): bool
+    {
+        return auth()->check() && auth()->user()->role === 'admin';
+    }
 }

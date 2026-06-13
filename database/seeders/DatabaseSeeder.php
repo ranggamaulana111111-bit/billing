@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
                 'name' => 'Admin',
                 'email' => 'admin@rabegnet.id',
                 'password' => bcrypt('admin123'),
+                'role' => 'admin',
             ]);
         }
 
@@ -28,6 +29,7 @@ class DatabaseSeeder extends Seeder
                 'name' => 'Test User',
                 'email' => 'test@example.com',
                 'password' => bcrypt('password'),
+                'role' => 'teknisi',
             ]);
         }
 

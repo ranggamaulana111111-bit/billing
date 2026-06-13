@@ -124,6 +124,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/olts/{olt}/onu/{onu}', [OltController::class, 'removeOnu'])->name('olt.onu.remove');
     Route::post('/olts/{olt}/ports', [OltController::class, 'syncPorts'])->name('olt.ports.sync');
     Route::post('/onu/{onu}/link-customer', [OltController::class, 'linkCustomer'])->name('olt.onu.link');
+    Route::get('/olts-monitoring', [OltController::class, 'monitoring'])->name('olt.monitoring');
 
     Route::get('/vouchers', [VoucherController::class, 'index'])->name('vouchers.index');
     Route::get('/vouchers/create', [VoucherController::class, 'create'])->name('vouchers.create');

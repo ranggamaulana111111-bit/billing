@@ -42,7 +42,10 @@
                         <a href="{{ route('mikrotik.dashboard') }}"><i class="fa-solid fa-router"></i><span>Monitor MikroTik</span></a>
                     </li>
                     <li class="{{ request()->routeIs('monitoring.*') ? 'active' : '' }}">
-                        <a href="{{ route('monitoring.index') }}"><i class="fa-solid fa-chart-line"></i><span>Monitoring</span></a>
+                        <a href="{{ route('monitoring.index') }}"><i class="fa-solid fa-chart-line"></i><span>Monitoring BW</span></a>
+                    </li>
+                    <li class="{{ request()->routeIs('olt.monitoring') ? 'active' : '' }}">
+                        <a href="{{ route('olt.monitoring') }}"><i class="fa-solid fa-tower-broadcast"></i><span>Monitor Gangguan</span></a>
                     </li>
 
                     <p>Layanan</p>
