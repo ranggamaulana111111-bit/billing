@@ -9,6 +9,12 @@
         <p class="section-subtitle mb-0 mt-1">Manajemen perangkat OLT dan ONU</p>
     </div>
     <div class="page-actions mt-2 mt-md-0 d-flex gap-2">
+        <a href="{{ route('olt.export') }}" class="btn btn-outline-success px-3 py-2">
+            <i class="fa-solid fa-download me-1"></i>Export OLT
+        </a>
+        <a href="{{ route('onu.export') }}" class="btn btn-outline-success px-3 py-2">
+            <i class="fa-solid fa-download me-1"></i>Export ONU
+        </a>
         <a href="{{ route('olt.create') }}" class="btn btn-primary px-3 py-2">
             <i class="fa-solid fa-plus me-1"></i>Tambah OLT
         </a>

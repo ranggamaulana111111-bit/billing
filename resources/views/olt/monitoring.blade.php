@@ -12,6 +12,14 @@ $isAdmin = auth()->user()->role === 'admin';
         <h2 class="mb-0"><i class="fa-solid fa-tower-broadcast me-2" style="color:var(--primary);"></i>Monitor Gangguan</h2>
         <p class="section-subtitle mb-0 mt-1">Pemantauan ONU offline & sinyal lemah</p>
     </div>
+    <div class="page-actions d-flex gap-2">
+        <a href="{{ route('onu.export', ['status' => 'offline']) }}" class="btn btn-outline-danger px-3 py-2">
+            <i class="fa-solid fa-download me-1"></i>Export ONU Offline
+        </a>
+        <a href="{{ route('onu.search') }}" class="btn btn-outline-primary px-3 py-2">
+            <i class="fa-solid fa-search me-1"></i>Cari ONU
+        </a>
+    </div>
 </div>
 
 {{-- STATS CARDS --}}

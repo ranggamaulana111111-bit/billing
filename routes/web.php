@@ -125,6 +125,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/olts/{olt}/ports', [OltController::class, 'syncPorts'])->name('olt.ports.sync');
     Route::post('/onu/{onu}/link-customer', [OltController::class, 'linkCustomer'])->name('olt.onu.link');
     Route::get('/olts-monitoring', [OltController::class, 'monitoring'])->name('olt.monitoring');
+    Route::get('/olts/map', [OltController::class, 'map'])->name('olt.map');
+    Route::get('/olts/export', [OltController::class, 'exportOlt'])->name('olt.export');
+    Route::get('/onus/export', [OltController::class, 'exportOnu'])->name('onu.export');
+    Route::get('/onus/search', [OltController::class, 'searchOnu'])->name('onu.search');
 
     Route::get('/vouchers', [VoucherController::class, 'index'])->name('vouchers.index');
     Route::get('/vouchers/create', [VoucherController::class, 'create'])->name('vouchers.create');
