@@ -3,12 +3,13 @@
 namespace App\Models;
 
 use App\Models\Traits\BelongsToUser;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
 class Voucher extends Model
 {
-    use BelongsToUser;
+    use BelongsToUser, HasFactory;
 
     protected $fillable = ['user_id', 'username', 'password', 'duration_hours', 'status', 'used_at', 'expires_at'];
 

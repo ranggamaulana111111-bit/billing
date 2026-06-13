@@ -17,7 +17,7 @@ class VoucherFactory extends Factory
         return [
             'username' => fake()->unique()->bothify('????####'),
             'password' => fake()->bothify('######'),
-            'duration_minutes' => fake()->randomElement([60, 120, 480, 1440, 43200]),
+            'duration_hours' => fake()->randomElement([1, 2, 8, 24, 720]),
             'status' => 'active',
         ];
     }
