@@ -2,6 +2,13 @@
 
 @section('title', $olt->name)
 
+@push('styles')
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+    #map-show { height: 220px; border-radius: 12px; z-index: 0; }
+</style>
+@endpush
+
 @section('content')
 <div class="page-header d-flex flex-wrap justify-content-between align-items-center">
     <div>
@@ -78,6 +85,23 @@
         </div>
     </div>
 </div>
+
+{{-- MINI MAP --}}
+@if($olt->latitude && $olt->longitude)
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-header bg-white d-flex align-items-center gap-2">
+        <div style="width:8px;height:8px;border-radius:50%;background:var(--primary);"></div>
+        <span>Lokasi OLT</span>
+        <small class="text-muted">{{ $olt->latitude }}, {{ $olt->longitude }}</small>
+        <a href="{{ route('olt.edit', $olt) }}" class="btn btn-sm btn-outline-secondary ms-auto">
+            <i class="fa-solid fa-pen me-1"></i>Ubah Lokasi
+        </a>
+    </div>
+    <div class="card-body p-0">
+        <div id="map-show"></div>
+    </div>
+</div>
+@endif
 
 {{-- PORTS --}}
 @forelse($olt->ports as $port)
@@ -161,3 +185,31 @@
     </div>
 @endforelse
 @endsection
+
+@push('scripts')
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+@if($olt->latitude && $olt->longitude)
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var lat = {{ $olt->latitude }};
+    var lng = {{ $olt->longitude }};
+
+    var map = L.map('map-show').setView([lat, lng], 16);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap'
+    }).addTo(map);
+
+    L.marker([lat, lng], {
+        icon: L.divIcon({
+            className: 'custom-marker',
+            html: '<div style="width:24px;height:24px;background:var(--primary);border:3px solid #fff;border-radius:6px;box-shadow:0 2px 10px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;"><i class="fa-solid fa-tower-cell"></i></div>',
+            iconSize: [24, 24],
+            iconAnchor: [12, 12]
+        })
+    }).addTo(map);
+});
+</script>
+@endif
+@endpush

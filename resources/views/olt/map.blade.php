@@ -22,7 +22,12 @@
 <div class="page-header d-flex flex-wrap justify-content-between align-items-center">
     <div>
         <h2 class="mb-0"><i class="fa-solid fa-map-location-dot me-2" style="color:var(--primary);"></i>Map OLT</h2>
-        <p class="section-subtitle mb-0 mt-1">Visualisasi sebaran perangkat OLT</p>
+        <p class="section-subtitle mb-0 mt-1">Visualisasi sebaran perangkat OLT — klik peta saat tambah/edit OLT untuk set lokasi</p>
+    </div>
+    <div class="page-actions mt-2 mt-md-0 d-flex gap-2">
+        <a href="{{ route('olt.create') }}" class="btn btn-primary px-3 py-2">
+            <i class="fa-solid fa-plus me-1"></i>Tambah OLT
+        </a>
     </div>
 </div>
 
@@ -189,8 +194,13 @@
                         </div>
                         <div style="margin-top:8px;">
                             <a href="/olts/${olt.id}" style="font-size:12px;">&rarr; Detail OLT</a>
-                        </div>
-                    </div>
+    </div>
+    <div class="page-actions mt-2 mt-md-0 d-flex gap-2">
+        <a href="{{ route('olt.create') }}" class="btn btn-primary px-3 py-2">
+            <i class="fa-solid fa-plus me-1"></i>Tambah OLT
+        </a>
+    </div>
+</div>
                 `, { className: 'custom-popup' });
 
                 markerBounds.push([olt.latitude, olt.longitude]);

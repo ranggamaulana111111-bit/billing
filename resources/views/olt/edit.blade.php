@@ -2,12 +2,22 @@
 
 @section('title', 'Edit OLT')
 
+@push('styles')
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+    #map-edit { height: 320px; border-radius: 12px; z-index: 0; }
+</style>
+@endpush
+
 @section('content')
 <div class="page-header d-flex flex-wrap justify-content-between align-items-center">
     <div>
         <h2 class="mb-0"><i class="fa-solid fa-pen me-2" style="color:var(--primary);"></i>Edit OLT</h2>
     </div>
     <div class="page-actions mt-2 mt-md-0">
+        <a href="{{ route('olt.map') }}" class="btn btn-outline-primary px-3 py-2 me-2">
+            <i class="fa-solid fa-map-location-dot me-1"></i>Map OLT
+        </a>
         <a href="{{ route('olt.show', $olt) }}" class="btn btn-outline-primary px-3 py-2">
             <i class="fa-solid fa-eye me-1"></i>Detail
         </a>
@@ -86,18 +96,20 @@
                         <option value="inactive" {{ old('status', $olt->status) === 'inactive' ? 'selected' : '' }}>Inactive</option>
                     </select>
                 </div>
-                <div class="col-md-2">
-                    <label class="form-label">Latitude</label>
-                    <input type="number" step="any" name="latitude" class="form-control" value="{{ old('latitude', $olt->latitude) }}">
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label">Longitude</label>
-                    <input type="number" step="any" name="longitude" class="form-control" value="{{ old('longitude', $olt->longitude) }}">
-                </div>
-
                 <div class="col-md-12">
-                    <label class="form-label">Lokasi</label>
-                    <input type="text" name="location" class="form-control" value="{{ old('location', $olt->location) }}">
+                    <label class="form-label">Lokasi <span class="text-muted small">(klik peta untuk set koordinat)</span></label>
+                    <div class="row g-2 mb-2">
+                        <div class="col-md-4">
+                            <input type="number" step="any" name="latitude" id="lat" class="form-control" placeholder="Latitude" value="{{ old('latitude', $olt->latitude) }}">
+                        </div>
+                        <div class="col-md-4">
+                            <input type="number" step="any" name="longitude" id="lng" class="form-control" placeholder="Longitude" value="{{ old('longitude', $olt->longitude) }}">
+                        </div>
+                        <div class="col-md-4">
+                            <input type="text" name="location" class="form-control" placeholder="Nama lokasi (alamat)" value="{{ old('location', $olt->location) }}">
+                        </div>
+                    </div>
+                    <div id="map-edit"></div>
                 </div>
                 <div class="col-md-12">
                     <label class="form-label">Catatan</label>
@@ -114,3 +126,63 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var latInput = document.getElementById('lat');
+    var lngInput = document.getElementById('lng');
+    var defaultLat = parseFloat(latInput.value) || -6.476;
+    var defaultLng = parseFloat(lngInput.value) || 106.014;
+
+    var map = L.map('map-edit').setView([defaultLat, defaultLng], defaultLat !== -6.476 ? 15 : 14);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap'
+    }).addTo(map);
+
+    var marker;
+
+    function placeMarker(lat, lng) {
+        if (marker) map.removeLayer(marker);
+        marker = L.marker([lat, lng], { draggable: true }).addTo(map);
+        latInput.value = lat.toFixed(6);
+        lngInput.value = lng.toFixed(6);
+
+        marker.on('dragend', function() {
+            var pos = marker.getLatLng();
+            latInput.value = pos.lat.toFixed(6);
+            lngInput.value = pos.lng.toFixed(6);
+        });
+    }
+
+    if (latInput.value && lngInput.value && defaultLat !== -6.476) {
+        placeMarker(defaultLat, defaultLng);
+    }
+
+    map.on('click', function(e) {
+        placeMarker(e.latlng.lat, e.latlng.lng);
+    });
+
+    latInput.addEventListener('change', function() {
+        var lat = parseFloat(this.value);
+        var lng = parseFloat(lngInput.value);
+        if (!isNaN(lat) && !isNaN(lng)) {
+            map.setView([lat, lng], 15);
+            placeMarker(lat, lng);
+        }
+    });
+
+    lngInput.addEventListener('change', function() {
+        var lat = parseFloat(latInput.value);
+        var lng = parseFloat(this.value);
+        if (!isNaN(lat) && !isNaN(lng)) {
+            map.setView([lat, lng], 15);
+            placeMarker(lat, lng);
+        }
+    });
+});
+</script>
+@endpush
