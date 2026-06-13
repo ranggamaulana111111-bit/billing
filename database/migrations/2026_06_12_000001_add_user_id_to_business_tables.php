@@ -48,7 +48,7 @@ return new class extends Migration
             Schema::table('settings', function (Blueprint $table) {
                 $table->dropUnique('settings_key_unique');
             });
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
         }
 
         Schema::table('settings', function (Blueprint $table) {
@@ -65,7 +65,7 @@ return new class extends Migration
         foreach ($others as $uid) {
             $existing = DB::table('settings')->where('user_id', $uid)->pluck('key')->toArray();
             foreach ($rows as $row) {
-                if (!in_array($row->key, $existing, true)) {
+                if (! in_array($row->key, $existing, true)) {
                     DB::table('settings')->insert([
                         'user_id' => $uid,
                         'key' => $row->key,

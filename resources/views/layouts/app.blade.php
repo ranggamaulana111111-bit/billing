@@ -75,6 +75,9 @@
                     <li class="{{ request()->routeIs('distribution.*') ? 'active' : '' }}">
                         <a href="{{ route('distribution.index') }}"><i class="fa-solid fa-map-location-dot"></i><span>Distribusi ODP</span></a>
                     </li>
+                    <li class="{{ request()->routeIs('olt.*') ? 'active' : '' }}">
+                        <a href="{{ route('olt.index') }}"><i class="fa-solid fa-tower-cell"></i><span>OLT</span></a>
+                    </li>
                     <li class="{{ request()->routeIs('settings.*') ? 'active' : '' }}">
                         <a href="{{ route('settings.index') }}"><i class="fa-solid fa-gear"></i><span>Pengaturan</span></a>
                     </li>

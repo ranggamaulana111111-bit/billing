@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Package extends Model
 {
-    use HasFactory, BelongsToUser;
+    use BelongsToUser, HasFactory;
 
     protected $fillable = ['user_id', 'name', 'speed', 'description', 'price', 'billing_cycle', 'mikrotik_profile', 'is_active'];
 

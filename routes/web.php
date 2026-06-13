@@ -13,6 +13,7 @@ use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\LogController;
 use App\Http\Controllers\MidtransController;
 use App\Http\Controllers\MikrotikController;
+use App\Http\Controllers\OltController;
 use App\Http\Controllers\PackageController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PortalController;
@@ -108,6 +109,21 @@ Route::middleware('auth')->group(function () {
     Route::post('/distribution/points', [DistributionController::class, 'storePoint'])->name('distribution.points.store');
     Route::put('/distribution/points/{odpPoint}', [DistributionController::class, 'updatePoint'])->name('distribution.points.update');
     Route::delete('/distribution/points/{odpPoint}', [DistributionController::class, 'destroyPoint'])->name('distribution.points.destroy');
+
+    // ── OLT ──
+    Route::get('/olts', [OltController::class, 'index'])->name('olt.index');
+    Route::get('/olts/create', [OltController::class, 'create'])->name('olt.create');
+    Route::post('/olts', [OltController::class, 'store'])->name('olt.store');
+    Route::get('/olts/{olt}', [OltController::class, 'show'])->name('olt.show');
+    Route::get('/olts/{olt}/edit', [OltController::class, 'edit'])->name('olt.edit');
+    Route::put('/olts/{olt}', [OltController::class, 'update'])->name('olt.update');
+    Route::delete('/olts/{olt}', [OltController::class, 'destroy'])->name('olt.destroy');
+    Route::post('/olts/{olt}/test', [OltController::class, 'testConnection'])->name('olt.test');
+    Route::post('/olts/{olt}/scan', [OltController::class, 'scanOnus'])->name('olt.scan');
+    Route::post('/olts/{olt}/onu/{onu}/reboot', [OltController::class, 'rebootOnu'])->name('olt.onu.reboot');
+    Route::delete('/olts/{olt}/onu/{onu}', [OltController::class, 'removeOnu'])->name('olt.onu.remove');
+    Route::post('/olts/{olt}/ports', [OltController::class, 'syncPorts'])->name('olt.ports.sync');
+    Route::post('/onu/{onu}/link-customer', [OltController::class, 'linkCustomer'])->name('olt.onu.link');
 
     Route::get('/vouchers', [VoucherController::class, 'index'])->name('vouchers.index');
     Route::get('/vouchers/create', [VoucherController::class, 'create'])->name('vouchers.create');

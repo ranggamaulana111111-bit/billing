@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Invoice extends Model
 {
-    use HasFactory, BelongsToUser;
+    use BelongsToUser, HasFactory;
 
     protected $fillable = ['user_id', 'invoice_code', 'customer_id', 'amount', 'payment_status', 'paid_at', 'payment_method', 'midtrans_order_id'];
 

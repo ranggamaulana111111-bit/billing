@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\Setting;
+use App\Models\User;
 use App\Services\MidtransService;
 use Illuminate\Http\Request;
 
@@ -12,7 +13,7 @@ class PortalController extends Controller
 {
     public function index()
     {
-        $firstUser = \App\Models\User::orderBy('id')->first();
+        $firstUser = User::orderBy('id')->first();
         $uid = $firstUser?->id;
         $company = [
             'name' => Setting::get('company_name', 'RabegNet', $uid),
