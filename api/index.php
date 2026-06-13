@@ -11,7 +11,6 @@ require __DIR__.'/../vendor/autoload.php';
 $app = require __DIR__.'/../bootstrap/app.php';
 
 $app->make(Kernel::class)->call('migrate', ['--force' => true]);
-$app->make(Kernel::class)->call('db:seed', ['--force' => true]);
 
 $kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);
 $response = $kernel->handle($request = Request::capture());
