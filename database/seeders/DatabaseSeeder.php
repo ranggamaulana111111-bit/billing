@@ -16,7 +16,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         if (! User::where('email', 'admin@rabegnet.id')->exists()) {
-            User::factory()->create([
+            User::create([
                 'name' => 'Admin',
                 'email' => 'admin@rabegnet.id',
                 'password' => bcrypt('admin123'),
@@ -24,7 +24,7 @@ class DatabaseSeeder extends Seeder
         }
 
         if (! User::where('email', 'test@example.com')->exists()) {
-            User::factory()->create([
+            User::create([
                 'name' => 'Test User',
                 'email' => 'test@example.com',
                 'password' => bcrypt('password'),
