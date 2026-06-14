@@ -3,6 +3,13 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Daftar tagihan internet {{ $customer->name }} di {{ $company['name'] }}. Lihat status pembayaran dan bayar online.">
+    <meta name="robots" content="noindex, follow">
+    <meta property="og:title" content="Tagihan Saya ~ {{ $company['name'] }}">
+    <meta property="og:description" content="Daftar tagihan internet dan pembayaran online.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ url()->current() }}">
+    <link rel="canonical" href="{{ url()->current() }}">
     <title>Tagihan Saya ~ {{ $company['name'] }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">

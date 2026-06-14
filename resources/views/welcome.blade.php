@@ -1,6 +1,9 @@
 @extends('layouts.app')
 
-@section('title', config('app.name', 'E-Billing'))
+@section('title', 'RabegNet — Billing ISP, Tagihan Online, Manajemen Jaringan')
+
+@section('meta_description', 'RabegNet Billing — sistem billing ISP all-in-one. Kelola pelanggan, tagihan, pembayaran online via Midtrans, voucher WiFi, monitoring MikroTik, dan manajemen OLT Huawei/ZTE/FiberHome. Solusi tepat untuk operasional ISP Anda.')
+@section('meta_keywords', 'billing ISP, RabegNet, tagihan internet, pembayaran online ISP, manajemen pelanggan, voucher WiFi, monitoring MikroTik, manajemen OLT, sistem billing Indonesia, software ISP')
 
 @section('content')
 <div class="landing-shell">

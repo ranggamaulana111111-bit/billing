@@ -3,6 +3,28 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="@yield('meta_description', 'RabegNet Billing — Sistem billing ISP untuk manajemen pelanggan, tagihan, pembayaran online, voucher WiFi, monitoring MikroTik, dan manajemen OLT. Solusi operasional ISP yang rapi dan terintegrasi.')">
+    <meta name="keywords" content="@yield('meta_keywords', 'billing ISP, RabegNet, tagihan internet, pembayaran online, voucher WiFi, MikroTik, OLT, ISP management,印尼, billing system')">
+    <meta name="robots" content="index, follow">
+    <meta name="language" content="Indonesian">
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="RabegNet Billing">
+    <meta property="og:title" content="@yield('title', config('app.name', 'RabegNet'))">
+    <meta property="og:description" content="@yield('meta_description', 'Sistem billing ISP untuk manajemen pelanggan, tagihan, pembayaran online, voucher WiFi, dan monitoring jaringan.')">
+    <meta property="og:url" content="{{ url()->current() }}">
+    <meta property="og:image" content="{{ asset('images/og-image.svg') }}">
+    <meta property="og:locale" content="id_ID">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="@yield('title', config('app.name', 'RabegNet'))">
+    <meta name="twitter:description" content="@yield('meta_description', 'Sistem billing ISP untuk manajemen pelanggan, tagihan, pembayaran online, voucher WiFi, dan monitoring jaringan.')">
+
+    <!-- Canonical -->
+    <link rel="canonical" href="{{ url()->current() }}">
+
     <title>@yield('title', config('app.name', 'RabegNet')) ~ RabegNet Billing</title>
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
