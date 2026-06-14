@@ -33,13 +33,7 @@ class MikrotikService
     protected function client(): PendingRequest
     {
         return Http::withBasicAuth($this->user, $this->pass)
-            ->withOptions([
-                'verify' => false,
-                'curl' => [
-                    CURLOPT_SSL_VERIFYPEER => false,
-                    CURLOPT_SSL_VERIFYHOST => false,
-                ],
-            ])
+            ->withoutVerifying()
             ->timeout(30)
             ->throw();
     }
