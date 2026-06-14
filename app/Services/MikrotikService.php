@@ -40,7 +40,9 @@ class MikrotikService
 
     protected function restUrl(string $path): string
     {
-        return "https://{$this->host}:{$this->port}/rest{$path}";
+        $scheme = $this->port === 443 ? 'https' : 'http';
+
+        return "{$scheme}://{$this->host}:{$this->port}/rest{$path}";
     }
 
     protected function safeGet(string $path, array $query = []): array
