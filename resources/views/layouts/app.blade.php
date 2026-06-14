@@ -6,6 +6,7 @@
     <meta name="description" content="@yield('meta_description', 'RabegNet Billing — Sistem billing ISP untuk manajemen pelanggan, tagihan, pembayaran online, voucher WiFi, monitoring MikroTik, dan manajemen OLT. Solusi operasional ISP yang rapi dan terintegrasi.')">
     <meta name="keywords" content="@yield('meta_keywords', 'billing ISP, RabegNet, tagihan internet, pembayaran online, voucher WiFi, MikroTik, OLT, ISP management,印尼, billing system')">
     <meta name="robots" content="index, follow">
+    <meta name="google-site-verification" content="8psHkpnmvIBG7wwjyZBspYTvVtRchzNfJBSdwNSwCo0" />
     <meta name="language" content="Indonesian">
 
     <!-- Open Graph -->
