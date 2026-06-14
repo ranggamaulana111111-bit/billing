@@ -10,4 +10,4 @@ Artisan::command('inspire', function () {
 
 Schedule::command('billing:process')->dailyAt('08:00');
 Schedule::command('voucher:sync-mikrotik')->everyFiveMinutes();
-Schedule::command('olt:poll')->everyFifteenMinutes();
+Schedule::command('olt:poll')->everyFifteenMinutes()->withoutOverlapping();
