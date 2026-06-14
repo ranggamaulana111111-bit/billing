@@ -34,15 +34,19 @@ class MikrotikService
     {
         return Http::withBasicAuth($this->user, $this->pass)
             ->withOptions(['verify' => false])
-            ->baseUrl("http://{$this->host}:{$this->port}/rest")
             ->timeout(10)
             ->throw();
+    }
+
+    protected function restUrl(string $path): string
+    {
+        return "https://{$this->host}:{$this->port}/rest{$path}";
     }
 
     protected function safeGet(string $path, array $query = []): array
     {
         try {
-            return $this->client()->get($path, $query)->json();
+            return $this->client()->get($this->restUrl($path), $query)->json();
         } catch (\Exception $e) {
             Log::error("MikroTik GET {$path} gagal: ".$e->getMessage());
 
@@ -55,7 +59,7 @@ class MikrotikService
     public function testConnection(): array
     {
         try {
-            $res = $this->client()->get('/system/resource')->json();
+            $res = $this->client()->get($this->restUrl('/system/resource'))->json();
 
             return [
                 'success' => true,
@@ -118,7 +122,7 @@ class MikrotikService
                 $data['limit-uptime'] = "{$limitUptimeHours}h";
             }
 
-            $this->client()->put('/ip/hotspot/user', $data);
+            $this->client()->put($this->restUrl('/ip/hotspot/user'), $data);
 
             return ['success' => true, 'message' => "User {$username} ditambahkan ke MikroTik"];
         } catch (\Exception $e) {
@@ -131,13 +135,13 @@ class MikrotikService
     public function removeHotspotUser(string $username): array
     {
         try {
-            $users = $this->client()->get('/ip/hotspot/user', ['name' => $username])->json();
+            $users = $this->client()->get($this->restUrl('/ip/hotspot/user'), ['name' => $username])->json();
             if (empty($users)) {
                 return ['success' => false, 'message' => "User {$username} tidak ditemukan di MikroTik"];
             }
             $id = $users[0]['.id'] ?? null;
             if ($id) {
-                $this->client()->delete("/ip/hotspot/user/{$id}");
+                $this->client()->delete($this->restUrl("/ip/hotspot/user/{$id}"));
             }
 
             return ['success' => true, 'message' => "User {$username} dihapus dari MikroTik"];
@@ -173,7 +177,7 @@ class MikrotikService
     public function disconnectHotspotSession(string $sessionId): array
     {
         try {
-            $this->client()->delete("/ip/hotspot/active/{$sessionId}");
+            $this->client()->delete($this->restUrl("/ip/hotspot/active/{$sessionId}"));
 
             return ['success' => true, 'message' => 'Sesi berhasil diputuskan'];
         } catch (\Exception $e) {
@@ -192,7 +196,7 @@ class MikrotikService
     {
         try {
             $data = array_merge(['name' => $name], $params);
-            $this->client()->put('/ip/hotspot/user/profile', $data);
+            $this->client()->put($this->restUrl('/ip/hotspot/user/profile'), $data);
 
             return ['success' => true, 'message' => "Profile {$name} dibuat"];
         } catch (\Exception $e) {
@@ -203,7 +207,7 @@ class MikrotikService
     public function removeHotspotProfile(string $profileId): array
     {
         try {
-            $this->client()->delete("/ip/hotspot/user/profile/{$profileId}");
+            $this->client()->delete($this->restUrl("/ip/hotspot/user/profile/{$profileId}"));
 
             return ['success' => true, 'message' => 'Profile berhasil dihapus'];
         } catch (\Exception $e) {
@@ -214,13 +218,13 @@ class MikrotikService
     public function setHotspotUserProfile(string $username, string $profile): array
     {
         try {
-            $users = $this->client()->get('/ip/hotspot/user', ['name' => $username])->json();
+            $users = $this->client()->get($this->restUrl('/ip/hotspot/user'), ['name' => $username])->json();
             if (empty($users)) {
                 return ['success' => false, 'message' => "User {$username} tidak ditemukan"];
             }
             $id = $users[0]['.id'] ?? null;
             if ($id) {
-                $this->client()->patch("/ip/hotspot/user/{$id}", ['profile' => $profile]);
+                $this->client()->patch($this->restUrl("/ip/hotspot/user/{$id}"), ['profile' => $profile]);
             }
 
             return ['success' => true, 'message' => "Profile {$profile} diterapkan ke {$username}"];
@@ -247,7 +251,7 @@ class MikrotikService
             if ($profile) {
                 $data['profile'] = $profile;
             }
-            $this->client()->put('/ppp/secret', $data);
+            $this->client()->put($this->restUrl('/ppp/secret'), $data);
 
             return ['success' => true, 'message' => "PPP secret {$username} ditambahkan"];
         } catch (\Exception $e) {
@@ -258,7 +262,7 @@ class MikrotikService
     public function removePppSecret(string $secretId): array
     {
         try {
-            $this->client()->delete("/ppp/secret/{$secretId}");
+            $this->client()->delete($this->restUrl("/ppp/secret/{$secretId}"));
 
             return ['success' => true, 'message' => 'PPP secret berhasil dihapus'];
         } catch (\Exception $e) {
@@ -274,7 +278,7 @@ class MikrotikService
     public function disconnectPppSession(string $sessionId): array
     {
         try {
-            $this->client()->delete("/ppp/active/{$sessionId}");
+            $this->client()->delete($this->restUrl("/ppp/active/{$sessionId}"));
 
             return ['success' => true, 'message' => 'Sesi PPP berhasil diputuskan'];
         } catch (\Exception $e) {
@@ -297,7 +301,7 @@ class MikrotikService
     public function addSimpleQueue(string $name, string $target, string $maxLimit, string $parent = 'all'): array
     {
         try {
-            $this->client()->put('/queue/simple', [
+            $this->client()->put($this->restUrl('/queue/simple'), [
                 'name' => $name,
                 'target' => $target,
                 'max-limit' => $maxLimit,
@@ -313,7 +317,7 @@ class MikrotikService
     public function removeSimpleQueue(string $queueId): array
     {
         try {
-            $this->client()->delete("/queue/simple/{$queueId}");
+            $this->client()->delete($this->restUrl("/queue/simple/{$queueId}"));
 
             return ['success' => true, 'message' => 'Queue berhasil dihapus'];
         } catch (\Exception $e) {
@@ -326,7 +330,7 @@ class MikrotikService
     public function createBackup(string $name): array
     {
         try {
-            $this->client()->post('/system/backup', ['name' => $name]);
+            $this->client()->post($this->restUrl('/system/backup'), ['name' => $name]);
 
             return ['success' => true, 'message' => "Backup {$name} berhasil dibuat"];
         } catch (\Exception $e) {
