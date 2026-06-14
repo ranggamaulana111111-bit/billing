@@ -20,7 +20,7 @@ class DistributionTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->user = User::factory()->create();
+        $this->user = User::factory()->admin()->create();
     }
 
     public function test_index_requires_auth(): void

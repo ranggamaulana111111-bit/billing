@@ -52,12 +52,12 @@ Semua model utama menggunakan trait `BelongsToUser` yang menerapkan:
 
 Setiap user (tenant) melihat data mereka sendiri.
 
-### Role System (Belum Aktif Sepenuhnya)
+### Role System (Aktif)
 
 - Kolom `users.role` — default `teknisi`
 - Middleware `IsAdmin` (alias `admin`) — hanya `role === 'admin'` lolos
 - Middleware `IsTeknisiOrAdmin` (alias `teknisi`) — role `admin` atau `teknisi` lolos
-- **Belum dipasang ke route mana pun** — semua user lihat akses yang sama
+- **Route split**: `teknisi` middleware sebagai base auth untuk semua user; `admin` middleware khusus route sensitif (settings, backup, packages CRUD, voucher CRUD, reports, export, distribution CRUD)
 
 ### OLT Multi-Brand Driver Pattern
 
@@ -258,7 +258,7 @@ Schedule::command('olt:poll')->everyFifteenMinutes();
 |---------|--------|
 | `billing:process` | Generate invoice bulanan + kirim WA reminder per tenant |
 | `voucher:sync-mikrotik` | Sync status voucher (active → used/expired) + push ke MikroTik |
-| `olt:poll` | Poll semua OLT aktif, update status & Rx/Tx ONU |
+| `olt:poll` | Poll semua OLT aktif via job per-OLT (`PollOltJob`), update status & Rx/Tx ONU. Default sync (`dispatchSync`), `--queue` flag untuk async via worker. `withoutOverlapping()` |
 
 ---
 
@@ -281,65 +281,108 @@ GET  /portal/finish      → portal finish
 POST /midtrans/notification   → midtrans webhook
 ```
 
-### Authenticated Routes (auth middleware)
+### Authenticated Routes — Teknisi & Admin (`teknisi` middleware)
 ```
 GET  /dashboard                          → Dashboard
-GET  /customers                          → Customer CRUD
-POST /customers                          → ...
-GET  /invoices                           → Invoice CRUD
-POST /invoices                           → ...
-GET  /packages                           → Package CRUD
-POST /packages                           → ...
-GET  /payments/{invoice}                 → Payment
-POST /payments/{invoice}                 → ...
-GET  /payments/history/{invoice}         → Payment history
-GET  /vouchers                           → Voucher CRUD
-POST /vouchers                           → ...
-GET  /vouchers/{voucher}/print           → Print voucher
+GET  /customers                          → Customer list (CRUD)
+POST /customer                           → Create customer
+GET  /customer/{id}/edit                 → Edit customer
+PUT  /customer/{id}                      → Update customer
+DELETE /customer/{id}                    → Hapus customer
+POST /customer/{id}/suspend              → Suspend customer
+POST /customer/{id}/activate             → Activate customer
+GET  /invoices                           → Invoice list
+GET  /invoices/create                    → Create invoice
+POST /invoices                           → Store invoice
+GET  /invoice/{id}/edit                  → Edit invoice
+PUT  /invoice/{id}                       → Update invoice
+DELETE /invoice/{id}                     → Hapus invoice
+GET  /invoice/paid/{id}                  → Mark paid
+GET  /invoice/print/{id}                 → Print invoice
+GET  /invoice/pdf/{id}                   → Download PDF
+GET  /invoice/reminder/{id}              → Kirim WA reminder
+GET  /invoice/email-reminder/{id}        → Kirim email reminder
+GET  /payment/create/{invoice}           → Create payment
+POST /payments                           → Store payment
+GET  /payment/history/{invoice}          → Payment history
+DELETE /payment/{id}                     → Hapus payment
+GET  /packages                           → Package list (read-only for teknisi)
+GET  /vouchers                           → Voucher list
+GET  /vouchers/{id}/print                → Print voucher
 POST /vouchers/print-batch               → Print batch
-POST /vouchers/quick-print               → Quick print
-POST /vouchers/{voucher}/mark-used       → Mark used
-POST /vouchers/sync-mikrotik             → Sync MikroTik
-GET  /olts                               → OLT CRUD
-POST /olts                               → ...
+POST /vouchers/{id}/used                 → Mark used
+GET  /olts                               → OLT list (CRUD)
+GET  /olts/create                        → Create OLT
+POST /olts                               → Store OLT
+GET  /olts/{olt}                         → Show OLT detail
+GET  /olts/{olt}/edit                    → Edit OLT
+PUT  /olts/{olt}                         → Update OLT
+DELETE /olts/{olt}                       → Hapus OLT
+POST /olts/{olt}/test                    → Test SSH koneksi
+POST /olts/{olt}/scan                    → Scan ONU
+POST /olts/{olt}/onu/{onu}/reboot        → Reboot ONU
+DELETE /olts/{olt}/onu/{onu}             → Remove ONU
+POST /olts/{olt}/ports                   → Sync ports
+POST /onu/{onu}/link-customer            → Link ONU ke customer
+GET  /olts-monitoring                    → Monitoring ONU
 GET  /olts/map                           → Map OLT
-GET  /olts/monitoring                    → Monitoring
 GET  /olts/export                        → Export CSV OLT
 GET  /onus/export                        → Export CSV ONU
 GET  /onus/search                        → Search ONU
-POST /olts/{olt}/test-connection         → Test SSH
-POST /olts/{olt}/scan                    → Scan ONU
-POST /olts/{olt}/reboot-onu/{onu}        → Reboot ONU
-POST /olts/{olt}/remove-onu/{onu}        → Remove ONU
-POST /onus/{onu}/link-customer           → Link ONU ke customer
-POST /olts/{olt}/sync-ports              → Sync ports
-GET  /mikrotik/dashboard                 → MikroTik dashboard
-GET  /mikrotik/profiles                  → Hotspot profiles
-POST /mikrotik/profiles                  → ...
+GET  /mikrotik                           → MikroTik dashboard
+GET  /mikrotik/profiles                  → Hotspot profiles (read-only)
 GET  /mikrotik/active                    → Active sessions
-GET  /mikrotik/ppp                       → PPP secrets
-POST /mikrotik/ppp                       → ...
-GET  /mikrotik/queues                    → Simple queues
-POST /mikrotik/queues                    → ...
-POST /mikrotik/backup                    → Backup
-GET  /mikrotik/monitoring                → Monitoring BW
-GET  /reports                            → Reports index
-GET  /settings                           → Settings
-POST /settings                           → ...
-POST /settings/test-mikrotik             → Test connection
-GET  /distribution                       → ODC/ODP/Route CRUD
-POST /distribution/odc                   → ...
+POST /mikrotik/active/disconnect/{id}    → Disconnect hotspot
+POST /mikrotik/active/ppp-disconnect/{id} → Disconnect PPP
+GET  /mikrotik/ppp                       → PPP secrets (read-only)
+GET  /mikrotik/queues                    → Simple queues (read-only)
+GET  /monitoring                         → Monitoring BW
 GET  /logs                               → Activity log
+GET  /distribution                       → ODC/ODP/Route (read-only)
+GET  /midtrans/pay/{invoice}             → Pay via Midtrans
+GET  /midtrans/finish                    → Midtrans finish
+GET  /api/odp-routes                     → JSON API routes
+GET  /api/odp-points                     → JSON API points
+```
+
+### Admin-Only Routes (`admin` middleware)
+```
+GET  /settings                           → Settings
+POST /settings                           → Update settings
+GET  /settings/test-mikrotik             → Test MikroTik
+GET  /reports                            → Reports index
+POST /mikrotik/profiles                  → Create profile
+DELETE /mikrotik/profiles/{id}           → Hapus profile
+POST /mikrotik/ppp                       → Create PPP secret
+DELETE /mikrotik/ppp/{id}                → Hapus PPP secret
+POST /mikrotik/queues                    → Create queue
+DELETE /mikrotik/queues/{id}             → Hapus queue
+POST /mikrotik/backup                    → Trigger backup
+POST /distribution/odcs                  → Create ODC
+PUT  /distribution/odcs/{id}             → Update ODC
+DELETE /distribution/odcs/{id}           → Hapus ODC
+POST /distribution/routes                → Create route
+PUT  /distribution/routes/{id}           → Update route
+DELETE /distribution/routes/{id}         → Hapus route
+POST /distribution/points                → Create ODP point
+PUT  /distribution/points/{id}           → Update ODP point
+DELETE /distribution/points/{id}         → Hapus ODP point
+POST /vouchers                           → Create voucher
+GET  /vouchers/create                    → Create voucher form
+POST /vouchers/quick-print               → Quick print
+DELETE /vouchers/{id}                    → Hapus voucher
+POST /vouchers/sync-mikrotik             → Sync ke MikroTik
+POST /packages                           → Create package
+PUT  /packages/{id}                      → Update package
+DELETE /packages/{id}                    → Hapus package
+POST /packages/mass-bill                 → Mass billing
+POST /customers/sync-pppoe               → Sync PPPoE
 GET  /backups                            → Backup index
+GET  /backups/download/{filename}        → Download backup
+DELETE /backups/{filename}               → Hapus backup
+POST /backups/database                   → Create backup
 GET  /export/invoices                    → Export CSV invoices
 GET  /export/payments                    → Export CSV payments
-GET  /api/odp-routes/{odc}              → JSON API
-GET  /api/odp-points/{route}             → JSON API
-POST /invoices/{invoice}/paid            → Mark paid
-GET  /invoice/{invoice}/print            → Print invoice
-GET  /invoice/{invoice}/pdf              → Download PDF
-POST /invoice/{invoice}/reminder         → Kirim WA reminder
-POST /invoice/{invoice}/email-reminder   → Kirim email reminder
 ```
 
 ---
@@ -398,8 +441,9 @@ interface OltConnector {
   - Auth: login, register, dashboard, logout
   - Customer: CRUD, suspend, activate
   - Invoice: CRUD, mark paid, print
-  - Package: CRUD, search, destroy protection
-  - Distribution: ODC/Route/Point CRUD, destroy protection
+  - Package: CRUD (via user admin), search, destroy protection
+  - Distribution: ODC/Route/Point CRUD (via user admin), destroy protection
+- **Factory**: `UserFactory` default role `teknisi` + `admin()` state untuk test admin-only routes
 - **Code style**: Laravel Pint (default rules)
 
 ---
@@ -469,8 +513,9 @@ User (tenant)
 
 ## 12. Catatan & Issues Terbuka
 
-- **Role middleware belum aktif** — middleware `admin`/`teknisi` sudah didaftarkan tapi belum dipasang ke route
-- **VoucherFactory** — sudah diperbaiki (`duration_minutes` → `duration_hours`), tapi factory hanya relevan untuk testing
+- **Role middleware aktif** — route dipisah: `teknisi` sebagai base auth, `admin` untuk route sensitif
+- **UserFactory** — default role `teknisi`, method `admin()` untuk testing
+- **OLT polling pakai Job per-OLT** — `PollOltJob` dengan timeout 120s, tries=2, internal try/catch — OLT gagal tidak blokir yang lain
 - **Kolom `price` di vouchers** — belum ada, perlu migration
 - **6 halaman hotspot statis** — belum dibuat (`public/hotspot/*.html`)
 - **Export CSV voucher** — belum ada
