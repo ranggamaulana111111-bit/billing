@@ -19,6 +19,7 @@ d*.log
 /storage/*.key
 /storage/pail
 /vendor
+/skills
 Homestead.json
 Homestead.yaml
 Thumbs.db
