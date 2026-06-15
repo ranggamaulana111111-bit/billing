@@ -3,6 +3,7 @@
 namespace App\Services\Olt\Factory;
 
 use App\Services\Olt\Contracts\OltConnector;
+use App\Services\Olt\Drivers\CDataConnector;
 use App\Services\Olt\Drivers\FiberHomeConnector;
 use App\Services\Olt\Drivers\HuaweiConnector;
 use App\Services\Olt\Drivers\ZteConnector;
@@ -16,6 +17,7 @@ class OltConnectorFactory
             'huawei' => new HuaweiConnector,
             'zte' => new ZteConnector,
             'fiberhome' => new FiberHomeConnector,
+            'cdata' => new CDataConnector,
             default => throw new InvalidArgumentException("Unsupported OLT brand: {$brand}"),
         };
     }

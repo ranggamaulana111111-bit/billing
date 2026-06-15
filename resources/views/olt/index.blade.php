@@ -104,17 +104,32 @@
                                     <span class="badge bg-danger">Inactive</span>
                                 @endif
                             </td>
-                            <td>{{ $olt->last_polled_at ? $olt->last_polled_at->diffForHumans() : '-' }}</td>
+                            <td>
+                                @if($olt->last_polled_at)
+                                    <span class="badge" style="background:{{ $olt->last_polled_at->diffInMinutes() < 30 ? '#f0fdf4' : '#fef3c7' }};color:{{ $olt->last_polled_at->diffInMinutes() < 30 ? '#059669' : '#d97706' }};">
+                                        <i class="fa-solid fa-circle me-1" style="font-size:0.5rem;vertical-align:middle;"></i>
+                                        {{ $olt->last_polled_at->diffForHumans() }}
+                                    </span>
+                                @else
+                                    <span class="badge bg-secondary">Belum pernah</span>
+                                @endif
+                            </td>
                             <td class="text-end">
-                                <a href="{{ route('olt.show', $olt) }}" class="btn btn-sm btn-outline-primary" title="Detail">
+                                <form action="{{ route('olt.test', $olt) }}" method="POST" class="d-inline">
+                                    @csrf
+                                    <button type="submit" class="btn btn-sm btn-outline-success px-2" title="Test Connection">
+                                        <i class="fa-solid fa-plug"></i>
+                                    </button>
+                                </form>
+                                <a href="{{ route('olt.show', $olt) }}" class="btn btn-sm btn-outline-primary px-2" title="Detail">
                                     <i class="fa-solid fa-eye"></i>
                                 </a>
-                                <a href="{{ route('olt.edit', $olt) }}" class="btn btn-sm btn-outline-secondary" title="Edit">
+                                <a href="{{ route('olt.edit', $olt) }}" class="btn btn-sm btn-outline-secondary px-2" title="Edit">
                                     <i class="fa-solid fa-pen"></i>
                                 </a>
                                 <form action="{{ route('olt.destroy', $olt) }}" method="POST" class="d-inline" onsubmit="return confirm('Hapus OLT ini?')">
                                     @csrf @method('DELETE')
-                                    <button class="btn btn-sm btn-outline-danger" title="Hapus"><i class="fa-solid fa-trash"></i></button>
+                                    <button class="btn btn-sm btn-outline-danger px-2" title="Hapus"><i class="fa-solid fa-trash"></i></button>
                                 </form>
                             </td>
                         </tr>

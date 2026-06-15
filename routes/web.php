@@ -20,7 +20,12 @@ use App\Http\Controllers\PortalController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\SitemapController;
+use App\Http\Controllers\MikrotikRouterController;
+use App\Http\Controllers\PublicVoucherController;
 use App\Http\Controllers\VoucherController;
+use App\Http\Controllers\VoucherProfileController;
+use App\Http\Controllers\VoucherReportController;
+use App\Http\Controllers\VoucherTemplateController;
 use Illuminate\Support\Facades\Route;
 
 // ── HOTSPOT STATIC PAGES ──
@@ -58,6 +63,12 @@ Route::post('/portal', [PortalController::class, 'lookup'])->name('portal.lookup
 Route::get('/portal/bayar/{invoice}', [PortalController::class, 'bayar'])->name('portal.bayar');
 Route::get('/portal/finish', [PortalController::class, 'finish'])->name('portal.finish');
 
+// ── VOUCHER PUBLIC ──
+Route::get('/vouchers/public', [PublicVoucherController::class, 'index'])->name('vouchers.public');
+Route::post('/vouchers/public/generate', [PublicVoucherController::class, 'generate'])->name('vouchers.public.generate');
+Route::get('/vouchers/check', [PublicVoucherController::class, 'check'])->name('vouchers.check');
+Route::post('/vouchers/check-status', [PublicVoucherController::class, 'checkStatus'])->name('vouchers.check-status');
+
 // ── TEKNISI & ADMIN: all authenticated users ──
 Route::middleware(['auth', 'teknisi'])->group(function () {
 
@@ -89,6 +100,8 @@ Route::middleware(['auth', 'teknisi'])->group(function () {
     Route::get('/payment/history/{invoice}', [PaymentController::class, 'history'])->name('payment.history');
     Route::delete('/payment/{payment}', [PaymentController::class, 'destroy'])->name('payment.destroy');
 
+    Route::get('/vouchers/report', [VoucherReportController::class, 'index'])->name('vouchers.report');
+
     Route::get('/mikrotik', [MikrotikController::class, 'dashboard'])->name('mikrotik.dashboard');
     Route::get('/mikrotik/profiles', [MikrotikController::class, 'profiles'])->name('mikrotik.profiles');
     Route::get('/mikrotik/active', [MikrotikController::class, 'activeSessions'])->name('mikrotik.active');
@@ -118,6 +131,7 @@ Route::middleware(['auth', 'teknisi'])->group(function () {
     Route::post('/onu/{onu}/link-customer', [OltController::class, 'linkCustomer'])->name('olt.onu.link');
     Route::get('/olts-monitoring', [OltController::class, 'monitoring'])->name('olt.monitoring');
     Route::get('/olts/map', [OltController::class, 'map'])->name('olt.map');
+    Route::get('/olts/{olt}/live', [OltController::class, 'liveData'])->name('olt.live');
     Route::get('/olts/export', [OltController::class, 'exportOlt'])->name('olt.export');
     Route::get('/onus/export', [OltController::class, 'exportOnu'])->name('onu.export');
     Route::get('/onus/search', [OltController::class, 'searchOnu'])->name('onu.search');
@@ -155,8 +169,20 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::post('/mikrotik/queues', [MikrotikController::class, 'storeQueue'])->name('mikrotik.queues.store');
     Route::delete('/mikrotik/queues/{queueId}', [MikrotikController::class, 'destroyQueue'])->name('mikrotik.queues.destroy');
     Route::post('/mikrotik/backup', [MikrotikController::class, 'backup'])->name('mikrotik.backup');
+    Route::get('/mikrotik/live', [MikrotikController::class, 'liveData'])->name('mikrotik.live');
 
-    Route::get('/distribution', [DistributionController::class, 'index'])->name('distribution.index');
+    // ── VOUCHER PROFILES ──
+    Route::get('/voucher-profiles', [VoucherProfileController::class, 'index'])->name('voucher-profiles.index');
+    Route::post('/voucher-profiles', [VoucherProfileController::class, 'store'])->name('voucher-profiles.store');
+    Route::put('/voucher-profiles/{voucherProfile}', [VoucherProfileController::class, 'update'])->name('voucher-profiles.update');
+    Route::delete('/voucher-profiles/{voucherProfile}', [VoucherProfileController::class, 'destroy'])->name('voucher-profiles.destroy');
+
+    // ── MIKROTIK ROUTERS ──
+    Route::get('/mikrotik-routers', [MikrotikRouterController::class, 'index'])->name('mikrotik-routers.index');
+    Route::post('/mikrotik-routers', [MikrotikRouterController::class, 'store'])->name('mikrotik-routers.store');
+    Route::put('/mikrotik-routers/{mikrotikRouter}', [MikrotikRouterController::class, 'update'])->name('mikrotik-routers.update');
+    Route::delete('/mikrotik-routers/{mikrotikRouter}', [MikrotikRouterController::class, 'destroy'])->name('mikrotik-routers.destroy');
+    Route::post('/mikrotik-routers/{mikrotikRouter}/test', [MikrotikRouterController::class, 'test'])->name('mikrotik-routers.test');
     Route::post('/distribution/odcs', [DistributionController::class, 'storeOdc'])->name('distribution.odcs.store');
     Route::put('/distribution/odcs/{odc}', [DistributionController::class, 'updateOdc'])->name('distribution.odcs.update');
     Route::delete('/distribution/odcs/{odc}', [DistributionController::class, 'destroyOdc'])->name('distribution.odcs.destroy');
@@ -179,6 +205,12 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::post('/packages/mass-bill', [PackageController::class, 'massBill'])->name('packages.mass-bill');
 
     Route::post('/customers/sync-pppoe', [CustomerController::class, 'syncPppoe'])->name('customers.sync-pppoe');
+
+    Route::get('/voucher-templates/{template}/preview', [VoucherTemplateController::class, 'preview'])->name('voucher-templates.preview');
+    Route::get('/voucher-templates/{template}/preview/{page?}', [VoucherTemplateController::class, 'preview'])->name('voucher-templates.preview-page');
+    Route::post('/voucher-templates', [VoucherTemplateController::class, 'store'])->name('voucher-templates.store');
+    Route::put('/voucher-templates/{template}', [VoucherTemplateController::class, 'update'])->name('voucher-templates.update');
+    Route::delete('/voucher-templates/{template}', [VoucherTemplateController::class, 'destroy'])->name('voucher-templates.destroy');
 
     Route::get('/backups', [BackupController::class, 'index'])->name('backups.index');
     Route::get('/backups/download/{filename}', [BackupController::class, 'download'])->name('backups.download');

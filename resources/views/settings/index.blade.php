@@ -246,7 +246,7 @@
                             @error('mikrotik_host') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label fw-semibold">Port</label>
+                             <label class="form-label fw-semibold">Port</label>
                             <input type="number" name="mikrotik_port" class="form-control @error('mikrotik_port') is-invalid @enderror"
                                    value="{{ old('mikrotik_port', $settings['mikrotik_port'] ?? '80') }}" placeholder="80">
                             @error('mikrotik_port') <div class="invalid-feedback">{{ $message }}</div> @enderror

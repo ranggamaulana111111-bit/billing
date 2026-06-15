@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\ActivityLog;
 use App\Models\Customer;
 use App\Models\Invoice;
+use App\Models\MikrotikRouter;
 use App\Models\OdpPoint;
 use App\Models\Package;
 use App\Models\Setting;
@@ -113,6 +114,8 @@ class CustomerController extends Controller
     {
         $customer->update(['status' => 'suspended', 'suspended_at' => now()]);
 
+        $this->syncPppStatus($customer, true);
+
         ActivityLog::log('Suspend Pelanggan', 'Menonaktifkan sementara: '.$customer->name);
 
         return back()->with('success', 'Pelanggan '.$customer->name.' ditangguhkan.');
@@ -122,6 +125,8 @@ class CustomerController extends Controller
     {
         $customer->update(['status' => 'active', 'suspended_at' => null]);
 
+        $this->syncPppStatus($customer, false);
+
         ActivityLog::log('Aktifkan Pelanggan', 'Mengaktifkan kembali: '.$customer->name);
 
         return back()->with('success', 'Pelanggan '.$customer->name.' diaktifkan kembali.');
@@ -129,32 +134,86 @@ class CustomerController extends Controller
 
     public function syncPppoe()
     {
-        $mikrotik = new MikrotikService;
-        if (! $mikrotik->isConfigured()) {
-            return back()->with('error', 'MikroTik belum dikonfigurasi.');
+        $routers = MikrotikRouter::where('is_active', true)->get();
+
+        if ($routers->isEmpty()) {
+            $mikrotik = new MikrotikService;
+            if (! $mikrotik->isConfigured()) {
+                return back()->with('error', 'MikroTik belum dikonfigurasi.');
+            }
+            $this->doSyncPppoe($mikrotik);
+
+            return back()->with('success', 'Sinkronisasi PPPoE selesai.');
         }
 
-        $customers = Customer::where('status', 'active')->get();
+        foreach ($routers as $router) {
+            $mikrotik = new MikrotikService($router);
+            $this->doSyncPppoe($mikrotik);
+        }
+
+        return back()->with('success', 'Sinkronisasi PPPoE dengan semua router selesai.');
+    }
+
+    protected function syncPppStatus(Customer $customer, bool $suspended): void
+    {
+        if (! $customer->pppoe_username) {
+            return;
+        }
+
+        $routers = MikrotikRouter::where('is_active', true)->get();
+
+        if ($routers->isNotEmpty()) {
+            foreach ($routers as $router) {
+                $mikrotik = new MikrotikService($router);
+                if ($suspended) {
+                    $mikrotik->disablePppSecret($customer->pppoe_username);
+                } else {
+                    $mikrotik->enablePppSecret($customer->pppoe_username);
+                }
+            }
+        } else {
+            $mikrotik = new MikrotikService;
+            if ($mikrotik->isConfigured()) {
+                if ($suspended) {
+                    $mikrotik->disablePppSecret($customer->pppoe_username);
+                } else {
+                    $mikrotik->enablePppSecret($customer->pppoe_username);
+                }
+            }
+        }
+    }
+
+    protected function doSyncPppoe(MikrotikService $mikrotik): void
+    {
+        $activeCustomers = Customer::where('status', 'active')->get();
         $synced = 0;
         $skipped = 0;
 
-        foreach ($customers as $customer) {
+        foreach ($activeCustomers as $customer) {
             if (! $customer->pppoe_username) {
                 $skipped++;
-
                 continue;
             }
 
-            $password = $customer->pppoe_username.'123';
-            $result = $mikrotik->addPppSecret($customer->pppoe_username, $password);
+            $existing = $mikrotik->getPppSecretByUsername($customer->pppoe_username);
 
-            if ($result['success']) {
-                $synced++;
+            if ($existing) {
+                $mikrotik->enablePppSecret($customer->pppoe_username);
+            } else {
+                $password = $customer->pppoe_username.'123';
+                $mikrotik->addPppSecret($customer->pppoe_username, $password);
             }
+            $synced++;
         }
 
-        ActivityLog::log('Sync PPPoE', "Sinkronisasi PPPoE: {$synced} ditambahkan, {$skipped} dilewati");
+        $suspendedCustomers = Customer::where('status', 'suspended')->get();
+        foreach ($suspendedCustomers as $customer) {
+            if (! $customer->pppoe_username) {
+                continue;
+            }
+            $mikrotik->disablePppSecret($customer->pppoe_username);
+        }
 
-        return back()->with('success', "Sinkronisasi selesai. {$synced} user PPPoE ditambahkan, {$skipped} dilewati (tanpa username).");
+        ActivityLog::log('Sync PPPoE', "Sinkronisasi PPPoE: {$synced} aktif, {$skipped} dilewati");
     }
 }

@@ -47,6 +47,52 @@
                         @error('count')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
                     </div>
 
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Profile Paket <small class="text-muted">(opsional)</small></label>
+                        <select name="profile_id" class="form-select form-select-lg">
+                            <option value="">Tanpa Profile</option>
+                            @foreach($profiles as $profile)
+                                <option value="{{ $profile->id }}" {{ old('profile_id') == $profile->id ? 'selected' : '' }}>
+                                    {{ $profile->name }} - Rp {{ number_format($profile->price, 0, ',', '.') }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('profile_id')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Prefix Username <small class="text-muted">(opsional)</small></label>
+                        <input type="text" name="prefix" class="form-control form-control-lg" placeholder="Contoh: RBN" maxlength="10" value="{{ old('prefix') }}">
+                        <div class="form-text mt-1">Huruf/angka tanpa spasi. Contoh: <code>RBN</code> -> <code>RBNA3XK9M2Q</code></div>
+                        @error('prefix')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Router MikroTik <small class="text-muted">(opsional)</small></label>
+                        <select name="router_id" class="form-select form-select-lg">
+                            <option value="">Router Default</option>
+                            @foreach($routers as $router)
+                                <option value="{{ $router->id }}" {{ old('router_id') == $router->id ? 'selected' : '' }}>
+                                    {{ $router->name }} ({{ $router->host }})
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('router_id')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Template Landing Page <small class="text-muted">(opsional)</small></label>
+                        <select name="template_id" class="form-select form-select-lg">
+                            <option value="">Tanpa Template</option>
+                            @foreach($templates as $tpl)
+                                <option value="{{ $tpl->id }}" {{ old('template_id') == $tpl->id ? 'selected' : '' }}>
+                                    {{ $tpl->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('template_id')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
+                    </div>
+
                     <div class="d-grid">
                         <button type="submit" class="btn btn-primary btn-lg py-3">
                             <i class="fa-solid fa-wand-magic-sparkles me-2"></i>Generate Voucher

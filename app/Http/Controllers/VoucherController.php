@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\ActivityLog;
+use App\Models\MikrotikRouter;
 use App\Models\Setting;
 use App\Models\Voucher;
+use App\Models\VoucherProfile;
 use App\Services\MikrotikService;
 use Illuminate\Http\Request;
 
@@ -12,10 +14,13 @@ class VoucherController extends Controller
 {
     public function index(Request $request)
     {
+        $tab = $request->get('tab', 'vouchers');
+
         Voucher::where('status', 'active')
             ->where('expires_at', '<', now())
             ->update(['status' => 'expired']);
 
+        // ── TAB 1: Voucher list ──
         $search = $request->get('search');
         $filterStatus = $request->get('status');
 
@@ -41,16 +46,67 @@ class VoucherController extends Controller
             'expired' => Voucher::where('status', 'expired')->count(),
         ];
 
-        $mikrotikConnected = (new MikrotikService)->isConfigured();
+        $activeRouters = MikrotikRouter::where('is_active', true)->get();
+        $mikrotikConnected = $activeRouters->isNotEmpty() || (new MikrotikService)->isConfigured();
 
-        return view('vouchers.index', compact('vouchers', 'stats', 'search', 'filterStatus', 'mikrotikConnected'));
+        // ── TAB 2: Report ──
+        $reportQuery = Voucher::with('profile');
+
+        if ($request->filled('report_profile_id')) {
+            $reportQuery->where('voucher_profile_id', $request->report_profile_id);
+        }
+
+        if ($request->filled('report_status')) {
+            $reportQuery->where('status', $request->report_status);
+        }
+
+        if ($request->filled('date_from')) {
+            $reportQuery->whereDate('created_at', '>=', $request->date_from);
+        }
+
+        if ($request->filled('date_to')) {
+            $reportQuery->whereDate('created_at', '<=', $request->date_to);
+        }
+
+        $reportVouchers = $reportQuery->latest()->paginate(20, ['*'], 'report_page')->withQueryString();
+
+        $reportStats = [
+            'total' => Voucher::count(),
+            'active' => Voucher::where('status', 'active')->count(),
+            'used' => Voucher::where('status', 'used')->count(),
+            'expired' => Voucher::where('status', 'expired')->count(),
+            'revenue' => Voucher::where('status', 'used')->sum('price'),
+        ];
+
+        $reportProfiles = VoucherProfile::orderBy('name')->pluck('name', 'id');
+
+        // ── TAB 3: Profiles ──
+        $profiles = VoucherProfile::orderBy('name')->get();
+
+        // ── TAB 4: Routers ──
+        $routers = MikrotikRouter::orderBy('name')->get();
+
+        // ── TAB 5: Templates ──
+        $templates = \App\Models\VoucherTemplate::orderBy('name')->get();
+
+        return view('vouchers.index', compact(
+            'tab',
+            'vouchers', 'stats', 'search', 'filterStatus', 'mikrotikConnected', 'activeRouters',
+            'reportVouchers', 'reportStats', 'reportProfiles',
+            'profiles',
+            'routers',
+            'templates',
+        ));
     }
 
     public function create()
     {
-        $mikrotikConnected = (new MikrotikService)->isConfigured();
+        $profiles = \App\Models\VoucherProfile::where('is_active', true)->get();
+        $routers = MikrotikRouter::where('is_active', true)->get();
+        $templates = \App\Models\VoucherTemplate::where('is_active', true)->get();
+        $mikrotikConnected = $routers->isNotEmpty() || (new MikrotikService)->isConfigured();
 
-        return view('vouchers.create', compact('mikrotikConnected'));
+        return view('vouchers.create', compact('mikrotikConnected', 'profiles', 'routers', 'templates'));
     }
 
     public function store(Request $request)
@@ -59,31 +115,76 @@ class VoucherController extends Controller
             'duration' => 'required|integer|min:1|max:720',
             'duration_unit' => 'required|in:hours,days',
             'count' => 'required|integer|min:1|max:100',
+            'profile_id' => 'nullable|exists:voucher_profiles,id',
+            'router_id' => 'nullable|exists:mikrotik_routers,id',
+            'template_id' => 'nullable|exists:voucher_templates,id',
+            'prefix' => 'nullable|string|max:10|alpha_num',
         ]);
 
         $hours = $validated['duration_unit'] === 'days'
             ? $validated['duration'] * 24
             : $validated['duration'];
 
-        $vouchers = Voucher::generate($hours, $validated['count']);
+        $extra = [];
+        if ($validated['profile_id']) {
+            $profile = \App\Models\VoucherProfile::find($validated['profile_id']);
+            if ($profile) {
+                $extra = [
+                    'voucher_profile_id' => $profile->id,
+                    'price' => $profile->price,
+                    'prefix' => $validated['prefix'] ?? '',
+                    'speed' => $profile->speed,
+                    'quota_limit' => $profile->quota_limit,
+                    'validity_days' => $profile->validity_days,
+                    'shared_users' => $profile->shared_users,
+                ];
+            }
+        }
+        if ($validated['router_id']) {
+            $extra['router_id'] = $validated['router_id'];
+        }
+        if ($validated['template_id']) {
+            $extra['voucher_template_id'] = $validated['template_id'];
+        }
 
-        $mikrotik = new MikrotikService;
+        $vouchers = Voucher::generate($hours, $validated['count'], $extra ?: null);
+
         $pushed = 0;
         $failed = 0;
 
-        if ($mikrotik->isConfigured()) {
-            foreach ($vouchers as $voucher) {
-                $result = $mikrotik->addHotspotUser(
-                    $voucher->username,
-                    $voucher->password,
-                    'all',
-                    $hours
-                );
-
-                if ($result['success']) {
-                    $pushed++;
-                } else {
-                    $failed++;
+        if ($validated['router_id']) {
+            $router = MikrotikRouter::find($validated['router_id']);
+            if ($router) {
+                $mikrotik = new MikrotikService($router);
+                foreach ($vouchers as $voucher) {
+                    $result = $mikrotik->addHotspotUser(
+                        $voucher->username,
+                        $voucher->password,
+                        null,
+                        $hours
+                    );
+                    if ($result['success']) {
+                        $pushed++;
+                    } else {
+                        $failed++;
+                    }
+                }
+            }
+        } else {
+            $mikrotik = new MikrotikService;
+            if ($mikrotik->isConfigured()) {
+                foreach ($vouchers as $voucher) {
+                    $result = $mikrotik->addHotspotUser(
+                        $voucher->username,
+                        $voucher->password,
+                        null,
+                        $hours
+                    );
+                    if ($result['success']) {
+                        $pushed++;
+                    } else {
+                        $failed++;
+                    }
                 }
             }
         }
@@ -111,18 +212,54 @@ class VoucherController extends Controller
             'duration' => 'required|integer|min:1|max:720',
             'duration_unit' => 'required|in:hours,days',
             'count' => 'required|integer|min:1|max:100',
+            'profile_id' => 'nullable|exists:voucher_profiles,id',
+            'router_id' => 'nullable|exists:mikrotik_routers,id',
+            'template_id' => 'nullable|exists:voucher_templates,id',
+            'prefix' => 'nullable|string|max:10|alpha_num',
         ]);
 
         $hours = $validated['duration_unit'] === 'days'
             ? $validated['duration'] * 24
             : $validated['duration'];
 
-        $vouchers = Voucher::generate($hours, $validated['count']);
+        $extra = [];
+        if ($validated['profile_id']) {
+            $profile = \App\Models\VoucherProfile::find($validated['profile_id']);
+            if ($profile) {
+                $extra = [
+                    'voucher_profile_id' => $profile->id,
+                    'price' => $profile->price,
+                    'prefix' => $validated['prefix'] ?? '',
+                    'speed' => $profile->speed,
+                    'quota_limit' => $profile->quota_limit,
+                    'validity_days' => $profile->validity_days,
+                    'shared_users' => $profile->shared_users,
+                ];
+            }
+        }
+        if ($validated['router_id']) {
+            $extra['router_id'] = $validated['router_id'];
+        }
+        if ($validated['template_id']) {
+            $extra['voucher_template_id'] = $validated['template_id'];
+        }
 
-        $mikrotik = new MikrotikService;
-        if ($mikrotik->isConfigured()) {
-            foreach ($vouchers as $voucher) {
-                $mikrotik->addHotspotUser($voucher->username, $voucher->password, null, $hours);
+        $vouchers = Voucher::generate($hours, $validated['count'], $extra ?: null);
+
+        if ($validated['router_id']) {
+            $router = MikrotikRouter::find($validated['router_id']);
+            if ($router) {
+                $mikrotik = new MikrotikService($router);
+                foreach ($vouchers as $voucher) {
+                    $mikrotik->addHotspotUser($voucher->username, $voucher->password, null, $hours);
+                }
+            }
+        } else {
+            $mikrotik = new MikrotikService;
+            if ($mikrotik->isConfigured()) {
+                foreach ($vouchers as $voucher) {
+                    $mikrotik->addHotspotUser($voucher->username, $voucher->password, null, $hours);
+                }
             }
         }
 
@@ -162,16 +299,24 @@ class VoucherController extends Controller
 
     public function destroy(Voucher $voucher)
     {
-        $mikrotik = new MikrotikService;
-        if ($mikrotik->isConfigured()) {
-            $mikrotik->removeHotspotUser($voucher->username);
+        if ($voucher->router_id) {
+            $router = MikrotikRouter::find($voucher->router_id);
+            if ($router) {
+                $mikrotik = new MikrotikService($router);
+                $mikrotik->removeHotspotUser($voucher->username);
+            }
+        } else {
+            $mikrotik = new MikrotikService;
+            if ($mikrotik->isConfigured()) {
+                $mikrotik->removeHotspotUser($voucher->username);
+            }
         }
 
         $voucher->delete();
 
         ActivityLog::log('Hapus Voucher', 'Voucher '.$voucher->username.' dihapus');
 
-        return back()->with('success', 'Voucher dihapus'.($mikrotik->isConfigured() ? ' (termasuk dari MikroTik)' : '').'.');
+        return back()->with('success', 'Voucher dihapus.');
     }
 
     public function markUsed(Voucher $voucher)
@@ -188,14 +333,29 @@ class VoucherController extends Controller
 
     public function syncMikrotik()
     {
-        $mikrotik = new MikrotikService;
+        $routers = MikrotikRouter::where('is_active', true)->get();
 
-        if (! $mikrotik->isConfigured()) {
-            return back()->with('error', 'Konfigurasi MikroTik belum lengkap.');
+        if ($routers->isEmpty()) {
+            $mikrotik = new MikrotikService;
+            if (! $mikrotik->isConfigured()) {
+                return back()->with('error', 'Tidak ada router aktif dan konfigurasi MikroTik belum lengkap.');
+            }
+            $this->doSync($mikrotik);
+
+            return back()->with('success', 'Sinkronasi selesai.');
         }
 
+        foreach ($routers as $router) {
+            $mikrotik = new MikrotikService($router);
+            $this->doSync($mikrotik);
+        }
+
+        return back()->with('success', 'Sinkronasi dengan semua router selesai.');
+    }
+
+    protected function doSync(MikrotikService $mikrotik): void
+    {
         $synced = 0;
-        $expired = 0;
         $activeVouchers = Voucher::where('status', 'active')->get();
 
         foreach ($activeVouchers as $voucher) {
@@ -203,7 +363,6 @@ class VoucherController extends Controller
 
             if ($user) {
                 $sessions = $mikrotik->getUserActiveSessions($voucher->username);
-
                 if (! empty($sessions)) {
                     $voucher->update([
                         'status' => 'used',
@@ -215,7 +374,7 @@ class VoucherController extends Controller
                 $mikrotik->addHotspotUser(
                     $voucher->username,
                     $voucher->password,
-                    'all',
+                    null,
                     $voucher->duration_hours
                 );
                 $synced++;
@@ -226,10 +385,6 @@ class VoucherController extends Controller
             ->where('expires_at', '<', now())
             ->update(['status' => 'expired']);
 
-        $total = $synced + $expired;
-
         ActivityLog::log('Sync MikroTik', "Sinkronasi: {$synced} voucher diselaraskan, {$expiredVouchers} kadaluarsa");
-
-        return back()->with('success', "Sinkronasi selesai. {$synced} voucher diselaraskan.".($expiredVouchers > 0 ? " {$expiredVouchers} kadaluarsa." : ''));
     }
 }

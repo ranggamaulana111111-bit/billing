@@ -31,7 +31,7 @@ class OltController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'brand' => 'required|in:huawei,zte,fiberhome',
+            'brand' => 'required|in:huawei,zte,fiberhome,cdata',
             'model' => 'nullable|string|max:255',
             'ip_address' => 'required|string|max:45',
             'ssh_port' => 'required|integer|min:1|max:65535',
@@ -71,7 +71,7 @@ class OltController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'brand' => 'required|in:huawei,zte,fiberhome',
+            'brand' => 'required|in:huawei,zte,fiberhome,cdata',
             'model' => 'nullable|string|max:255',
             'ip_address' => 'required|string|max:45',
             'ssh_port' => 'required|integer|min:1|max:65535',
@@ -274,7 +274,7 @@ class OltController extends Controller
             );
         }
 
-        ActivityLog::log('Sinkron port', "OLT: {$olt->name} — " . count($validated['ports']) . " port");
+        ActivityLog::log('Sinkron port', "OLT: {$olt->name} — ".count($validated['ports']).' port');
 
         return back()->with('success', 'Port berhasil disinkronkan.');
     }
@@ -295,6 +295,57 @@ class OltController extends Controller
             'offlineOnus', 'weakSignalOnus',
             'totalOnline', 'totalOffline', 'totalWeak'
         ));
+    }
+
+    // ── LIVE DATA API ──
+
+    public function liveData(Olt $olt)
+    {
+        $olt->load('ports.onus.customer');
+
+        // simple ping: measure SSH port connection time
+        $ping = null;
+        try {
+            $start = microtime(true);
+            $sock = @fsockopen($olt->ip_address, $olt->ssh_port, $errno, $errstr, 3);
+            if ($sock) {
+                $ping = round((microtime(true) - $start) * 1000, 1);
+                fclose($sock);
+            }
+        } catch (\Exception $e) {
+            $ping = null;
+        }
+
+        $ports = $olt->ports->map(fn ($port) => [
+            'id' => $port->id,
+            'slot' => $port->slot_number,
+            'port' => $port->port_number,
+            'type' => $port->port_type,
+            'status' => $port->status,
+            'onus' => $port->onus->map(fn ($onu) => [
+                'id' => $onu->id,
+                'onu_id' => $onu->onu_id,
+                'serial_number' => $onu->serial_number,
+                'status' => $onu->status,
+                'rx_power' => $onu->rx_power,
+                'tx_power' => $onu->tx_power,
+                'customer_name' => $onu->customer?->name,
+                'customer_id' => $onu->customer_id,
+                'last_seen_at' => $onu->last_seen_at?->diffForHumans(),
+            ]),
+        ]);
+
+        $totalOnus = $olt->ports->sum(fn ($p) => $p->onus->count());
+        $onlineOnus = $olt->ports->sum(fn ($p) => $p->onus->where('status', 'online')->count());
+        $totalPorts = $olt->ports->count();
+
+        return response()->json([
+            'ping' => $ping,
+            'total_onus' => $totalOnus,
+            'online_onus' => $onlineOnus,
+            'total_ports' => $totalPorts,
+            'ports' => $ports,
+        ]);
     }
 
     public static function isAdmin(): bool
@@ -336,14 +387,14 @@ class OltController extends Controller
 
         $csv = "Nama,Brand,IP Address,Port SSH,Port SNMP,Lokasi,Status,Last Polled\n";
         foreach ($olts as $olt) {
-            $csv .= "{$olt->name},{$olt->brand},{$olt->ip_address},{$olt->ssh_port},{$olt->snmp_port}," . str_replace(',', ';', $olt->location ?? '') . ",{$olt->status},{$olt->last_polled_at}\n";
+            $csv .= "{$olt->name},{$olt->brand},{$olt->ip_address},{$olt->ssh_port},{$olt->snmp_port},".str_replace(',', ';', $olt->location ?? '').",{$olt->status},{$olt->last_polled_at}\n";
         }
 
-        ActivityLog::log('Export OLT', count($olts) . " OLT di-export");
+        ActivityLog::log('Export OLT', count($olts).' OLT di-export');
 
         return Response::make($csv, 200, [
             'Content-Type' => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="olts-' . now()->format('Ymd') . '.csv"',
+            'Content-Disposition' => 'attachment; filename="olts-'.now()->format('Ymd').'.csv"',
         ]);
     }
 
@@ -352,7 +403,7 @@ class OltController extends Controller
         $query = Onu::with('oltPort.olt', 'customer');
 
         if ($oltId = $request->olt_id) {
-            $query->whereHas('oltPort', fn($q) => $q->where('olt_id', $oltId));
+            $query->whereHas('oltPort', fn ($q) => $q->where('olt_id', $oltId));
         }
         if ($status = $request->status) {
             $query->where('status', $status);
@@ -362,14 +413,14 @@ class OltController extends Controller
 
         $csv = "OLT,Port,ONU ID,Serial,Vendor,Status,Rx Power,Tx Power,Pelanggan,Last Seen\n";
         foreach ($onus as $onu) {
-            $csv .= "{$onu->oltPort?->olt?->name},{$onu->oltPort?->port_name},{$onu->onu_id},{$onu->serial_number},{$onu->vendor},{$onu->status},{$onu->rx_power},{$onu->tx_power}," . str_replace(',', ';', $onu->customer?->name ?? '') . ",{$onu->last_seen_at}\n";
+            $csv .= "{$onu->oltPort?->olt?->name},{$onu->oltPort?->port_name},{$onu->onu_id},{$onu->serial_number},{$onu->vendor},{$onu->status},{$onu->rx_power},{$onu->tx_power},".str_replace(',', ';', $onu->customer?->name ?? '').",{$onu->last_seen_at}\n";
         }
 
-        ActivityLog::log('Export ONU', count($onus) . " ONU di-export");
+        ActivityLog::log('Export ONU', count($onus).' ONU di-export');
 
         return Response::make($csv, 200, [
             'Content-Type' => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="onus-' . now()->format('Ymd') . '.csv"',
+            'Content-Disposition' => 'attachment; filename="onus-'.now()->format('Ymd').'.csv"',
         ]);
     }
 
@@ -380,9 +431,9 @@ class OltController extends Controller
         if ($search = $request->q) {
             $query->where(function ($q) use ($search) {
                 $q->where('onu_id', 'LIKE', "%{$search}%")
-                  ->orWhere('serial_number', 'LIKE', "%{$search}%")
-                  ->orWhere('notes', 'LIKE', "%{$search}%")
-                  ->orWhereHas('customer', fn($c) => $c->where('name', 'LIKE', "%{$search}%"));
+                    ->orWhere('serial_number', 'LIKE', "%{$search}%")
+                    ->orWhere('notes', 'LIKE', "%{$search}%")
+                    ->orWhereHas('customer', fn ($c) => $c->where('name', 'LIKE', "%{$search}%"));
             });
         }
 
@@ -391,7 +442,7 @@ class OltController extends Controller
         }
 
         if ($oltId = $request->olt_id) {
-            $query->whereHas('oltPort', fn($q) => $q->where('olt_id', $oltId));
+            $query->whereHas('oltPort', fn ($q) => $q->where('olt_id', $oltId));
         }
 
         $onus = $query->paginate(20)->withQueryString();

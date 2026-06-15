@@ -45,6 +45,7 @@
                         <option value="huawei" {{ old('brand') === 'huawei' ? 'selected' : '' }}>Huawei</option>
                         <option value="zte" {{ old('brand') === 'zte' ? 'selected' : '' }}>ZTE</option>
                         <option value="fiberhome" {{ old('brand') === 'fiberhome' ? 'selected' : '' }}>FiberHome</option>
+                        <option value="cdata" {{ old('brand') === 'cdata' ? 'selected' : '' }}>C-Data</option>
                     </select>
                 </div>
                 <div class="col-md-3">

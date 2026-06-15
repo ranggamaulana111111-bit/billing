@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\ActivityLog;
+use App\Models\MikrotikRouter;
 use App\Models\Voucher;
 use App\Services\MikrotikService;
 use Illuminate\Console\Command;
@@ -15,18 +16,36 @@ class SyncVoucherMikrotik extends Command
 
     public function handle()
     {
-        $mikrotik = new MikrotikService;
-
-        if (! $mikrotik->isConfigured()) {
-            $this->warn('MikroTik tidak dikonfigurasi.');
-
-            return;
-        }
-
         Voucher::where('status', 'active')
             ->where('expires_at', '<', now())
             ->update(['status' => 'expired']);
 
+        $routers = MikrotikRouter::where('is_active', true)->get();
+
+        if ($routers->isEmpty()) {
+            $this->warn('Tidak ada router aktif. Coba fallback ke konfigurasi setting...');
+
+            $mikrotik = new MikrotikService;
+            if ($mikrotik->isConfigured()) {
+                $this->processRouter($mikrotik);
+            } else {
+                $this->warn('MikroTik tidak dikonfigurasi.');
+            }
+
+            return;
+        }
+
+        foreach ($routers as $router) {
+            $this->info("Memproses router: {$router->name} ({$router->host})");
+            $mikrotik = new MikrotikService($router);
+            $this->processRouter($mikrotik);
+        }
+
+        $this->info('Sinkronasi selesai.');
+    }
+
+    protected function processRouter(MikrotikService $mikrotik): void
+    {
         $activeVouchers = Voucher::where('status', 'active')->get();
         $markedUsed = 0;
         $pushed = 0;
@@ -40,7 +59,7 @@ class SyncVoucherMikrotik extends Command
                     'used_at' => now(),
                 ]);
                 $markedUsed++;
-                $this->info("{$voucher->username} → used (ada session aktif)");
+                $this->info("{$voucher->username} -> used (ada session aktif)");
             }
         }
 
@@ -53,11 +72,11 @@ class SyncVoucherMikrotik extends Command
                 $mikrotik->addHotspotUser(
                     $voucher->username,
                     $voucher->password,
-                    'all',
+                    null,
                     $voucher->duration_hours
                 );
                 $pushed++;
-                $this->info("{$voucher->username} → push ulang ke MikroTik");
+                $this->info("{$voucher->username} -> push ulang ke MikroTik");
             }
         }
 

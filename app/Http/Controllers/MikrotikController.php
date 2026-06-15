@@ -301,4 +301,58 @@ class MikrotikController extends Controller
             'totalBandwidthRx', 'totalBandwidthTx'
         ));
     }
+
+    // ── LIVE DATA API ──
+
+    public function liveData()
+    {
+        if (! $this->mikrotik->isConfigured()) {
+            return response()->json(['error' => 'MikroTik not configured'], 400);
+        }
+
+        $interfaces = $this->mikrotik->getInterfaces();
+        $sessions = $this->mikrotik->getActiveHotspotSessions();
+        $pppActive = $this->mikrotik->getPppActive();
+        $ping = $this->mikrotik->getLatency();
+
+        $totalRx = 0;
+        $totalTx = 0;
+        foreach ($sessions as $s) {
+            $totalRx += (int) ($s['bytes-in'] ?? 0);
+            $totalTx += (int) ($s['bytes-out'] ?? 0);
+        }
+        foreach ($pppActive as $p) {
+            $totalRx += (int) ($p['bytes-in'] ?? 0);
+            $totalTx += (int) ($p['bytes-out'] ?? 0);
+        }
+
+        return response()->json([
+            'ping' => $ping,
+            'total_rx' => $totalRx,
+            'total_tx' => $totalTx,
+            'hotspot_count' => count($sessions),
+            'ppp_count' => count($pppActive),
+            'interfaces' => collect($interfaces)->map(fn ($i) => [
+                'name' => $i['name'] ?? '-',
+                'type' => $i['type'] ?? '-',
+                'running' => ($i['running'] ?? '') === 'true',
+                'tx_byte' => (int) ($i['tx-byte'] ?? 0),
+                'rx_byte' => (int) ($i['rx-byte'] ?? 0),
+            ])->values(),
+            'sessions' => collect($sessions)->map(fn ($s) => [
+                'user' => $s['user'] ?? '-',
+                'address' => $s['address'] ?? '-',
+                'bytes_in' => (int) ($s['bytes-in'] ?? 0),
+                'bytes_out' => (int) ($s['bytes-out'] ?? 0),
+                'uptime' => $s['uptime'] ?? '-',
+            ])->values(),
+            'ppp' => collect($pppActive)->map(fn ($p) => [
+                'user' => $p['name'] ?? '-',
+                'address' => $p['address'] ?? '-',
+                'bytes_in' => (int) ($p['bytes-in'] ?? 0),
+                'bytes_out' => (int) ($p['bytes-out'] ?? 0),
+                'uptime' => $p['uptime'] ?? '-',
+            ])->values(),
+        ]);
+    }
 }

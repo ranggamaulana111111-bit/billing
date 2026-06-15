@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\MikrotikRouter;
 use App\Models\Setting;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
@@ -17,12 +18,32 @@ class MikrotikService
 
     protected int $port;
 
-    public function __construct(?int $userId = null)
+    protected ?string $hotspotServer;
+
+    public function __construct(MikrotikRouter|int|null $router = null)
     {
-        $this->host = Setting::get('mikrotik_host', null, $userId);
-        $this->user = Setting::get('mikrotik_user', null, $userId);
-        $this->pass = Setting::get('mikrotik_password', null, $userId);
-        $this->port = (int) (Setting::get('mikrotik_port', '80', $userId));
+        if ($router instanceof MikrotikRouter) {
+            $this->host = $router->host;
+            $this->user = $router->username;
+            $this->pass = $router->password;
+            $this->port = (int) $router->port;
+            $this->hotspotServer = $router->hotspot_server;
+        } elseif ($router !== null) {
+            $router = MikrotikRouter::find($router);
+            if ($router) {
+                $this->host = $router->host;
+                $this->user = $router->username;
+                $this->pass = $router->password;
+                $this->port = (int) $router->port;
+                $this->hotspotServer = $router->hotspot_server;
+            }
+        } else {
+            $this->host = Setting::get('mikrotik_host');
+            $this->user = Setting::get('mikrotik_user');
+            $this->pass = Setting::get('mikrotik_password');
+            $this->port = (int) (Setting::get('mikrotik_port', '80'));
+            $this->hotspotServer = Setting::get('mikrotik_hotspot_server', 'all');
+        }
     }
 
     public function isConfigured(): bool
@@ -111,7 +132,7 @@ class MikrotikService
 
     public function addHotspotUser(string $username, string $password, ?string $server = null, ?int $limitUptimeHours = null): array
     {
-        $server = $server ?: Setting::get('mikrotik_hotspot_server', 'all');
+        $server = $server ?: $this->hotspotServer ?: Setting::get('mikrotik_hotspot_server', 'all');
 
         try {
             $data = [
@@ -272,6 +293,48 @@ class MikrotikService
         }
     }
 
+    public function getPppSecretByUsername(string $username): ?array
+    {
+        $secrets = $this->safeGet('/ppp/secret', ['name' => $username]);
+
+        return $secrets[0] ?? null;
+    }
+
+    public function setPppSecretDisabled(string $username, bool $disabled = true): array
+    {
+        try {
+            $secret = $this->getPppSecretByUsername($username);
+            if (! $secret) {
+                return ['success' => false, 'message' => "PPP secret {$username} tidak ditemukan"];
+            }
+
+            $id = $secret['.id'] ?? null;
+            if (! $id) {
+                return ['success' => false, 'message' => 'ID PPP secret tidak ditemukan'];
+            }
+
+            $this->client()->patch($this->restUrl("/ppp/secret/{$id}"), [
+                'disabled' => $disabled ? 'yes' : 'no',
+            ]);
+
+            $label = $disabled ? 'dinonaktifkan' : 'diaktifkan';
+
+            return ['success' => true, 'message' => "PPP secret {$username} {$label}"];
+        } catch (\Exception $e) {
+            return ['success' => false, 'message' => $e->getMessage()];
+        }
+    }
+
+    public function disablePppSecret(string $username): array
+    {
+        return $this->setPppSecretDisabled($username, true);
+    }
+
+    public function enablePppSecret(string $username): array
+    {
+        return $this->setPppSecretDisabled($username, false);
+    }
+
     public function getPppActive(): array
     {
         return $this->safeGet('/ppp/active');
@@ -340,8 +403,26 @@ class MikrotikService
         }
     }
 
-    // ── LOG ──
+    // ── LATENCY / PING ──
 
+    public function getLatency(): ?float
+    {
+        if (! $this->isConfigured()) {
+            return null;
+        }
+
+        try {
+            $start = microtime(true);
+            $this->safeGet('/system/resource');
+
+            return round((microtime(true) - $start) * 1000, 1);
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+
+    // ── LOG ──
+    
     public function getLog(int $count = 50): array
     {
         return $this->safeGet('/log', ['.top' => $count]);

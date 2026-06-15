@@ -47,6 +47,7 @@
                         <option value="huawei" {{ old('brand', $olt->brand) === 'huawei' ? 'selected' : '' }}>Huawei</option>
                         <option value="zte" {{ old('brand', $olt->brand) === 'zte' ? 'selected' : '' }}>ZTE</option>
                         <option value="fiberhome" {{ old('brand', $olt->brand) === 'fiberhome' ? 'selected' : '' }}>FiberHome</option>
+                        <option value="cdata" {{ old('brand', $olt->brand) === 'cdata' ? 'selected' : '' }}>C-Data</option>
                     </select>
                 </div>
                 <div class="col-md-3">

@@ -18,7 +18,10 @@
             @if($olt->location) &mdash; {{ $olt->location }} @endif
         </p>
     </div>
-    <div class="page-actions mt-2 mt-md-0 d-flex gap-2">
+    <div class="page-actions mt-2 mt-md-0 d-flex gap-2 align-items-center">
+        <span class="badge bg-success me-2" id="live-badge" style="font-size:0.65rem;">
+            <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#fff;margin-right:4px;animation:pulse 1.5s infinite;"></span>LIVE
+        </span>
         <form action="{{ route('olt.test', $olt) }}" method="POST" class="d-inline">
             @csrf
             <button class="btn btn-outline-success px-3 py-2" title="Test Koneksi">
@@ -48,11 +51,19 @@
 @endif
 
 <div class="row g-4 mb-4">
+    <div class="col-md-3 fade-in" style="animation-delay:0s">
+        <div class="card shadow-sm border-0">
+            <div class="card-body text-center py-3">
+                <small class="text-muted">Ping</small>
+                <h4 class="fw-bold mb-0" id="olt-ping">-</h4>
+            </div>
+        </div>
+    </div>
     <div class="col-md-3 fade-in" style="animation-delay:0.05s">
         <div class="card stat-card stat-card-gradient-blue text-white">
             <div class="stat-bg"><i class="fa-solid fa-network-wired"></i></div>
             <div class="card-body position-relative">
-                <div class="stat-number">{{ $totalPorts }}</div>
+                <div class="stat-number" id="olt-total-port">{{ $totalPorts }}</div>
                 <div class="stat-label">Total Port</div>
             </div>
         </div>
@@ -61,7 +72,7 @@
         <div class="card stat-card stat-card-gradient-green text-white">
             <div class="stat-bg"><i class="fa-solid fa-wifi"></i></div>
             <div class="card-body position-relative">
-                <div class="stat-number">{{ $totalOnus }}</div>
+                <div class="stat-number" id="olt-total-onu">{{ $totalOnus }}</div>
                 <div class="stat-label">Total ONU</div>
             </div>
         </div>
@@ -70,17 +81,8 @@
         <div class="card stat-card text-white" style="background:linear-gradient(135deg,#22c55e,#16a34a);min-height:130px;border-radius:16px;overflow:hidden;">
             <div class="stat-bg"><i class="fa-solid fa-circle-check"></i></div>
             <div class="card-body position-relative">
-                <div class="stat-number">{{ $onlineOnus }}</div>
+                <div class="stat-number" id="olt-online-onu">{{ $onlineOnus }}</div>
                 <div class="stat-label">ONU Online</div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3 fade-in" style="animation-delay:0.2s">
-        <div class="card stat-card text-white" style="background:linear-gradient(135deg,#ef4444,#dc2626);min-height:130px;border-radius:16px;overflow:hidden;">
-            <div class="stat-bg"><i class="fa-solid fa-clock"></i></div>
-            <div class="card-body position-relative">
-                <div class="stat-number">{{ $olt->last_polled_at ? $olt->last_polled_at->diffForHumans() : 'Tidak pernah' }}</div>
-                <div class="stat-label">Last Polled</div>
             </div>
         </div>
     </div>
@@ -116,7 +118,7 @@
                     <span class="badge bg-danger">Inactive</span>
                 @endif
             </span>
-            <span class="text-muted small">{{ $port->onus->count() }} ONU</span>
+            <span class="text-muted small" id="onu-count-{{ $port->id }}">{{ $port->onus->count() }} ONU</span>
         </div>
         @if($port->onus->isNotEmpty())
             <div class="table-responsive">
@@ -132,7 +134,7 @@
                             <th class="text-end">Aksi</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="onu-tbody-{{ $port->id }}">
                         @foreach($port->onus as $onu)
                             <tr>
                                 <td><code>{{ $onu->onu_id }}</code></td>
@@ -174,6 +176,7 @@
             </div>
         @else
             <div class="card-body text-muted text-center py-3">Tidak ada ONU di port ini.</div>
+            <span id="onu-count-{{ $port->id }}" style="display:none;">0 ONU</span>
         @endif
     </div>
 @empty
@@ -188,6 +191,91 @@
 
 @push('scripts')
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+</style>
+<script>
+(function() {
+    const $ = (sel, ctx) => (ctx || document).querySelector(sel);
+    const $$ = (sel, ctx) => (ctx || document).querySelectorAll(sel);
+
+    function esc(s) {
+        if (s == null || s === '') return '-';
+        var d = document.createElement('div');
+        d.textContent = s;
+        return d.innerHTML;
+    }
+
+    var csrfToken = '{{ csrf_token() }}';
+    var oltId = {{ $olt->id }};
+
+    function fetchLive() {
+        fetch('{{ route("olt.live", $olt) }}')
+            .then(r => r.json())
+            .then(d => {
+                var pingEl = $('#olt-ping');
+                if (pingEl) pingEl.textContent = d.ping !== null ? d.ping + ' ms' : '-';
+                var totalOnuEl = $('#olt-total-onu');
+                if (totalOnuEl) totalOnuEl.textContent = d.total_onus;
+                var onlineOnuEl = $('#olt-online-onu');
+                if (onlineOnuEl) onlineOnuEl.textContent = d.online_onus;
+
+                d.ports.forEach(function(p) {
+                    var tbody = $('#onu-tbody-' + p.id);
+                    if (!tbody) return;
+
+                    if (p.onus.length) {
+                        tbody.innerHTML = p.onus.map(function(o) {
+                            var statusBadge = o.status === 'online'
+                                ? '<span class="badge bg-success">Online</span>'
+                                : '<span class="badge bg-secondary">Offline</span>';
+                            var rxClass = (o.rx_power !== null && o.rx_power < -27) ? 'text-danger' : '';
+                            var rxVal = o.rx_power !== null ? o.rx_power + ' dBm' : '-';
+                            var txVal = o.tx_power !== null ? o.tx_power + ' dBm' : '-';
+                            var customerHtml = o.customer_name
+                                ? '<a href="{{ route("customers.index") }}?search=' + encodeURIComponent(o.customer_name) + '" class="text-decoration-none">' + esc(o.customer_name) + '</a>'
+                                : '<span class="text-muted">Belum ditautkan</span>';
+                            var csrfInput = '<input type="hidden" name="_token" value="' + csrfToken + '">';
+
+                            return '<tr>' +
+                                '<td><code>' + esc(o.onu_id) + '</code></td>' +
+                                '<td><code>' + esc(o.serial_number) + '</code></td>' +
+                                '<td>' + statusBadge + '</td>' +
+                                '<td class="' + rxClass + '">' + rxVal + '</td>' +
+                                '<td>' + txVal + '</td>' +
+                                '<td>' + customerHtml + '</td>' +
+                                '<td class="text-end">' +
+                                '  <form action="/olts/' + oltId + '/onu/' + o.id + '/reboot" method="POST" class="d-inline" onsubmit="return confirm(\'Reboot ONU ' + esc(o.onu_id) + '?\')">' + csrfInput + '<button class="btn btn-sm btn-outline-warning" title="Reboot"><i class="fa-solid fa-rotate"></i></button></form>' +
+                                '  <form action="/olts/' + oltId + '/onu/' + o.id + '" method="POST" class="d-inline" onsubmit="return confirm(\'Hapus ONU ' + esc(o.onu_id) + '?\')">' + csrfInput + '<input type="hidden" name="_method" value="DELETE"><button class="btn btn-sm btn-outline-danger" title="Hapus"><i class="fa-solid fa-trash"></i></button></form>' +
+                                '</td>' +
+                            '</tr>';
+                        }).join('');
+                    } else {
+                        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3">Tidak ada ONU di port ini.</td></tr>';
+                    }
+
+                    var countEl = $('#onu-count-' + p.id);
+                    if (countEl) countEl.textContent = p.onus.length + ' ONU';
+                });
+            })
+            .catch(function() {});
+    }
+
+                    // Update ONU count badge
+                    var countEl = $('#onu-count-' + p.id);
+                    if (countEl) countEl.textContent = p.onus.length + ' ONU';
+                });
+            })
+            .catch(function() {});
+    }
+
+    // Initial load after 1s
+    setTimeout(fetchLive, 1000);
+
+    // Poll every 5 seconds
+    setInterval(fetchLive, 5000);
+})();
+</script>
 @if($olt->latitude && $olt->longitude)
 <script>
 document.addEventListener('DOMContentLoaded', function() {
