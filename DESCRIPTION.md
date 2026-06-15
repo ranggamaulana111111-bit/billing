@@ -10,7 +10,7 @@ Sistem billing ISP terintegrasi untuk manajemen pelanggan, tagihan, pembayaran, 
 |-------|-----------|
 | Backend | Laravel 12 (PHP ^8.2) |
 | Database | SQLite (lokal / dev), MySQL Aiven via SSL (production) |
-| Frontend | Bootstrap 5.3, Font Awesome 6, Leaflet 1.9, Chart.js 4 |
+| Frontend | Bootstrap 5.3, Font Awesome 6, Leaflet 1.9, Chart.js 4, Alpine.js |
 | Asset Bundler | Vite + laravel-vite-plugin |
 | CSS | Tailwind CSS v4 (via `@import 'tailwindcss'`), CSS custom |
 | Deployment | Vercel + GitHub Actions (push main trigger) |
@@ -25,7 +25,7 @@ Sistem billing ISP terintegrasi untuk manajemen pelanggan, tagihan, pembayaran, 
 
 ## 2. Arsitektur
 
-### Database — 25 Migrations
+### Database — 34 Migrations
 
 ```
 users ─┬── customers ──────┬── invoices ───┬── payments
@@ -33,7 +33,9 @@ users ─┬── customers ──────┬── invoices ───┬�
        │                    ├── onus ───────┘
        │                    └── odp_points
        ├── packages                         
-       ├── vouchers
+       ├── vouchers ────────┬── voucher_profiles
+       │                    ├── mikrotik_routers
+       │                    └── voucher_templates
        ├── settings
        ├── activity_logs
        ├── olts ─── olt_ports ─── onus
@@ -57,18 +59,19 @@ Setiap user (tenant) melihat data mereka sendiri.
 - Kolom `users.role` — default `teknisi`
 - Middleware `IsAdmin` (alias `admin`) — hanya `role === 'admin'` lolos
 - Middleware `IsTeknisiOrAdmin` (alias `teknisi`) — role `admin` atau `teknisi` lolos
-- **Route split**: `teknisi` middleware sebagai base auth untuk semua user; `admin` middleware khusus route sensitif (settings, backup, packages CRUD, voucher CRUD, reports, export, distribution CRUD)
+- **Route split**: `teknisi` middleware sebagai base auth untuk semua user; `admin` middleware khusus route sensitif (settings, backup, packages CRUD, voucher CRUD, voucher-profiles, mikrotik-routers, voucher-templates, reports, export, distribution CRUD)
 
 ### OLT Multi-Brand Driver Pattern
 
 ```
 OltConnector (interface)
-├── HuaweiConnector  → CLI: system-view, display ont info, display ont optical-info
-├── ZteConnector     → CLI: enable, configure terminal, show onu unquiet, show onu optical-info
-└── FiberHomeConnector → CLI: show ont list, show ont optic
+├── HuaweiConnector    → CLI: system-view, display ont info, display ont optical-info
+├── ZteConnector       → CLI: enable, configure terminal, show onu unquiet, show onu optical-info
+├── FiberHomeConnector → CLI: show ont list, show ont optic
+└── CDataConnector     → CLI: enable + config, show ont list, show ont optic
 ```
 
-Factory `OltConnectorFactory::make($brand)` memilih driver sesuai brand.
+Factory `OltConnectorFactory::make($brand)` memilih driver sesuai brand (huawei, zte, fiberhome, cdata).
 
 ---
 
@@ -134,11 +137,20 @@ Factory `OltConnectorFactory::make($brand)` memilih driver sesuai brand.
 - Push ke MikroTik hotspot user otomatis
 - Sync dari MikroTik — deteksi session aktif → mark used
 - Sinkronisasi otomatis via schedule `voucher:sync-mikrotik` (tiap 5 menit)
-- **Belum ada**: kolom `price`, profile/server selector, export CSV, 6 halaman hotspot statis
+- **Voucher Profiles**: Pre-defined template (speed, price, quota, masa aktif) — reusable
+- **MikroTik Router selector**: Generate voucher untuk router tertentu
+- **Voucher Template selector**: Pilih template halaman hotspot untuk voucher
+- **Kolom `price`, `prefix`, `speed`, `quota_limit`, `validity_days`, `shared_users`** — sudah ada di tabel vouchers
+- **Traffic tracking**: Download, upload, total traffic per voucher
+- **IP/MAC binding**: Catat IP dan MAC address pengguna
+- **Last login**: Timestamp login terakhir
+- **Report**: Filterable report (by profile, status, date range) + revenue stats
+- **Public voucher check**: Halaman publik cek status voucher (via username + password)
+- **Public self-service**: Halaman publik untuk pembelian voucher mandiri
 
 ### 3.8 OLT Management
 
-- **CRUD OLT**: Multi-brand (Huawei, ZTE, FiberHome)
+- **CRUD OLT**: Multi-brand (Huawei, ZTE, FiberHome, C-Data)
 - **Field**: nama, brand, model, IP, port SSH/SNMP, username, password (encrypted), lokasi, lat/lng, status
 - **Test koneksi**: SSH ke OLT, display version/system info
 - **Scan ONU**: Scan semua port → update/create ONU dengan serial, status, Rx/Tx power
@@ -147,6 +159,7 @@ Factory `OltConnectorFactory::make($brand)` memilih driver sesuai brand.
 - **Link ONU ke customer**: Binding ONU ke pelanggan
 - **Sync ports**: Tambah port OLT manual
 - **Show detail**: Per-port ONU dashboard dengan mini map
+- **Live data API**: JSON endpoint data real-time (ping, port/ONU status per OLT)
 - **Polling otomatis**: `olt:poll` tiap 15 menit — update status ONU
 
 ### 3.9 Monitoring Gangguan
@@ -183,6 +196,8 @@ Factory `OltConnectorFactory::make($brand)` memilih driver sesuai brand.
 ### 3.13 Manajemen MikroTik
 
 - Dashboard: system resource, identity, health, uptime
+- **Multi-Router**: Kelola banyak router MikroTik (nama, host, port, kredensial)
+- **Test koneksi**: REST API roundtrip per router
 - **Hotspot Profiles**: CRUD
 - **Hotspot Active Sessions**: Lihat + disconnect session
 - **PPP Secrets**: CRUD (PPPoE user management)
@@ -190,6 +205,7 @@ Factory `OltConnectorFactory::make($brand)` memilih driver sesuai brand.
 - **Simple Queues**: CRUD (bandwidth management)
 - **Backup**: Trigger backup dari panel
 - **Monitoring**: Interface traffic real-time, log sistem, interface list
+- **Live data API**: JSON endpoint untuk data real-time (latency, interfaces, resources)
 
 ### 3.14 Laporan (Reports)
 
@@ -244,6 +260,40 @@ Factory `OltConnectorFactory::make($brand)` memilih driver sesuai brand.
 - Export Customers
 - Export Packages
 
+### 3.21 Voucher Profiles
+
+- Pre-defined konfigurasi voucher reusable
+- Field: nama, speed, price, time_limit (jam), quota_limit (MB), validity_days, shared_users
+- Status aktif/nonaktif
+- Proteksi delete: profile dengan voucher tidak bisa dihapus
+- Relasi dengan Voucher: satu profile punya banyak voucher
+
+### 3.22 MikroTik Routers
+
+- Multi-router management — ganti single config dengan banyak router
+- Field: nama, host, port, username, password, hotspot_server
+- Test koneksi REST API dari panel
+- Status aktif/nonaktif
+- Relasi dengan Voucher: satu router punya banyak voucher
+- Proteksi delete: router dengan voucher tidak bisa dihapus
+
+### 3.23 Voucher Templates (Hotspot Pages)
+
+- Kelola 6 halaman hotspot MikroTik dari database
+- Halaman: login, status, redirect, error, alive, logout
+- Auto-write ke `public/hotspot/` saat template disimpan
+- Preview halaman dari panel admin
+- Import dari file HTML existing via `hotspot:import` command
+- Relasi dengan Voucher: satu template bisa dipakai banyak voucher
+
+### 3.24 Public Voucher Self-Service
+
+- Halaman publik cek status voucher (input username + password)
+- Tampilkan detail: nama, status, sisa waktu, traffic
+- Halaman pembelian voucher mandiri (pilih profile + jumlah)
+- Generate & bayar langsung dari halaman publik (jika diaktifkan)
+- Redirect ke halaman hasil setelah generate
+
 ---
 
 ## 4. Scheduled Tasks (Console)
@@ -259,6 +309,7 @@ Schedule::command('olt:poll')->everyFifteenMinutes();
 | `billing:process` | Generate invoice bulanan + kirim WA reminder per tenant |
 | `voucher:sync-mikrotik` | Sync status voucher (active → used/expired) + push ke MikroTik |
 | `olt:poll` | Poll semua OLT aktif via job per-OLT (`PollOltJob`), update status & Rx/Tx ONU. Default sync (`dispatchSync`), `--queue` flag untuk async via worker. `withoutOverlapping()` |
+| `hotspot:import` | Import file HTML dari `public/hotspot/*.html` ke database sebagai VoucherTemplate baru |
 
 ---
 
@@ -266,19 +317,24 @@ Schedule::command('olt:poll')->everyFifteenMinutes();
 
 ### Public Routes
 ```
-GET  /                   → welcome
-GET  /login              → login form
-POST /login              → login action
-POST /logout             → logout
-GET  /register           → register form
-POST /register           → register action
-GET  /auth/{provider}    → socialite redirect
-GET  /auth/{provider}/callback → socialite callback
-GET  /portal             → portal index (cek tagihan)
-POST /portal             → portal lookup
-GET  /portal/bayar/{invoice} → portal bayar
-GET  /portal/finish      → portal finish
-POST /midtrans/notification   → midtrans webhook
+GET  /                              → welcome
+GET  /login                         → login form
+POST /login                         → login action
+POST /logout                        → logout
+GET  /register                      → register form
+POST /register                      → register action
+GET  /auth/{provider}               → socialite redirect
+GET  /auth/{provider}/callback      → socialite callback
+GET  /portal                        → portal index (cek tagihan)
+POST /portal                        → portal lookup
+GET  /portal/bayar/{invoice}        → portal bayar
+GET  /portal/finish                 → portal finish
+POST /midtrans/notification         → midtrans webhook
+GET  /vouchers/public               → voucher public self-service
+POST /vouchers/public/generate      → generate voucher publik
+GET  /vouchers/check                → cek status voucher form
+POST /vouchers/check-status         → cek status voucher action
+GET  /hotspot/{page}                → serve hotspot static page
 ```
 
 ### Authenticated Routes — Teknisi & Admin (`teknisi` middleware)
@@ -383,6 +439,20 @@ DELETE /backups/{filename}               → Hapus backup
 POST /backups/database                   → Create backup
 GET  /export/invoices                    → Export CSV invoices
 GET  /export/payments                    → Export CSV payments
+GET  /voucher-profiles                   → Voucher profile list
+POST /voucher-profiles                   → Create profile
+PUT  /voucher-profiles/{voucherProfile}  → Update profile
+DELETE /voucher-profiles/{voucherProfile} → Hapus profile
+GET  /mikrotik-routers                   → Router list
+POST /mikrotik-routers                   → Create router
+PUT  /mikrotik-routers/{mikrotikRouter}  → Update router
+DELETE /mikrotik-routers/{mikrotikRouter} → Hapus router
+POST /mikrotik-routers/{mikrotikRouter}/test → Test koneksi router
+POST /voucher-templates                  → Create template
+PUT  /voucher-templates/{template}       → Update template
+DELETE /voucher-templates/{template}     → Hapus template
+GET  /voucher-templates/{template}/preview   → Preview template
+GET  /voucher-templates/{template}/preview/{page?} → Preview page
 ```
 
 ---
@@ -407,15 +477,15 @@ interface OltConnector {
 
 ### Perintah CLI per Brand
 
-| Aksi | Huawei | ZTE | FiberHome |
-|------|--------|-----|-----------|
-| Masuk mode | `system-view` | `enable` → `configure terminal` | (langsung) |
-| Info sistem | `display version` | `show system information` | `show system-info` |
-| Daftar ONU | `display ont info {slot} {port}` | `show onu unquiet interface gpon-olt_{slot}/{port}` | `show ont list slot {slot} port {port}` |
-| Rx/Tx power | `display ont optical-info {s} {p} {o}` | `show onu optical-info {s} {p} {o}` | `show ont optic slot {s} port {p} ont {o}` |
-| Reboot ONU | `interface gpon {s}/{p}` → `ont reset {o}` | `interface gpon-olt_{s}/{p}` → `onu reset {o}` | `ont reset slot {s} port {p} ont {o}` |
-| Hapus ONU | `interface gpon {s}/{p}` → `ont delete {o}` | `interface gpon-olt_{s}/{p}` → `no onu {o}` | `ont delete slot {s} port {p} ont {o}` |
-| Provision | `ont add {o} {sn}` + `ont port native-vlan` | `onu {o} type ont sn {sn}` | `ont add slot {s} port {p} sn {sn}` |
+| Aksi | Huawei | ZTE | FiberHome | C-Data |
+|------|--------|-----|-----------|--------|
+| Masuk mode | `system-view` | `enable` → `configure terminal` | (langsung) | `enable` → `config` |
+| Info sistem | `display version` | `show system information` | `show system-info` | `show version` |
+| Daftar ONU | `display ont info {slot} {port}` | `show onu unquiet interface gpon-olt_{slot}/{port}` | `show ont list slot {slot} port {port}` | `show ont list slot {s} port {p}` |
+| Rx/Tx power | `display ont optical-info {s} {p} {o}` | `show onu optical-info {s} {p} {o}` | `show ont optic slot {s} port {p} ont {o}` | `show ont optic slot {s} port {p} ont {o}` |
+| Reboot ONU | `interface gpon {s}/{p}` → `ont reset {o}` | `interface gpon-olt_{s}/{p}` → `onu reset {o}` | `ont reset slot {s} port {p} ont {o}` | `ont reset slot {s} port {p} ont {o}` |
+| Hapus ONU | `interface gpon {s}/{p}` → `ont delete {o}` | `interface gpon-olt_{s}/{p}` → `no onu {o}` | `ont delete slot {s} port {p} ont {o}` | `ont delete slot {s} port {p} ont {o}` |
+| Provision | `ont add {o} {sn}` + `ont port native-vlan` | `onu {o} type ont sn {sn}` | `ont add slot {s} port {p} sn {sn}` | `ont add slot {s} port {p} sn {sn}` |
 
 ---
 
@@ -427,6 +497,8 @@ interface OltConnector {
 - **Output**: `public/` directory
 - **Routes**: Semua request → `api/index.php`, kecuali `/build/*`
 - **Environment**: Cookie session, array cache, sync queue, stderr log
+- **Migrations**: Run `migrate --force` di setiap cold-start via `api/index.php` (wrapped in try-catch agar tidak crash)
+- **Cold start safety**: Semua migration idempotent — guard `hasTable()`/`hasColumn()` untuk mencegah error duplicate table
 - **Database**: MySQL Aiven dengan SSL (CA cert + verify server cert = false)
 - **Domain**: `rabegnet.vercel.app`
 
@@ -505,7 +577,10 @@ User (tenant)
 | Odc | odcs | BelongsToUser | hasMany: OdpRoute |
 | OdpRoute | odp_routes | BelongsToUser | belongsTo: Odc; hasMany: OdpPoint |
 | OdpPoint | odp_points | BelongsToUser | belongsTo: OdpRoute; hasMany: Customer |
-| Voucher | vouchers | BelongsToUser, HasFactory | — |
+| Voucher | vouchers | BelongsToUser, HasFactory | belongsTo: VoucherProfile, MikrotikRouter, VoucherTemplate |
+| VoucherProfile | voucher_profiles | BelongsToUser | hasMany: Voucher |
+| MikrotikRouter | mikrotik_routers | BelongsToUser | hasMany: Voucher |
+| VoucherTemplate | voucher_templates | BelongsToUser | hasMany: Voucher |
 | Setting | settings | BelongsToUser | — |
 | ActivityLog | activity_logs | BelongsToUser | belongsTo: User |
 
@@ -515,10 +590,18 @@ User (tenant)
 
 - **Role middleware aktif** — route dipisah: `teknisi` sebagai base auth, `admin` untuk route sensitif
 - **UserFactory** — default role `teknisi`, method `admin()` untuk testing
-- **OLT polling pakai Job per-OLT** — `PollOltJob` dengan timeout 120s, tries=2, internal try/catch — OLT gagal tidak blokir yang lain
-- **Kolom `price` di vouchers** — belum ada, perlu migration
-- **6 halaman hotspot statis** — sudah ada di `public/hotspot/*.html` (login, status, logout, alive, error, redirect)
-- **Export CSV voucher** — belum ada
-- **Selector profile/server** — belum ada di form create voucher
+- **OLT polling pakai Job per-OLT** — `PollOltJob` dengan timeout 120s, tries=2, internal try/catch — OLT gagal tidak blokir yang lain. Brand: Huawei, ZTE, FiberHome, C-Data
+- **CData OLT driver** — relatif baru, CLI command pattern mungkin berbeda tiap firmware version
+- **Voucher `price`, `prefix`, `speed`, `quota_limit`** — sudah ada (migration batch 3)
+- **Voucher Profile / Router / Template selector** — sudah ada di form create voucher
+- **6 halaman hotspot statis** — sudah migrate ke database (VoucherTemplate model), auto-write ke `public/hotspot/`
+- **Export CSV voucher** — belum ada (via report page bisa filter + view, tapi belum export CSV)
+- **Multi-router MikroTik** — setiap router punya kredensial sendiri, voucher bisa di-push ke router tertentu
+- **Voucher public self-service** — halaman publik untuk cek status & generate voucher
+- **Voucher report** — filterable by profile, status, date range — [tempat] menampilkan revenue stats
+- **Migrations idempotent** — semua migration baru pakai guard `hasTable()`/`hasColumn()` untuk safety Vercel cold-start
+- **API index.php** — migrate command di-wrap try-catch agar tidak 500 total jika ada migration error
 - **SQLite lokal** — beberapa migration record pernah corrupt (tabel hilang tapi record ada), sudah di-fix
 - **Voucher `user_id`** — sudah ditambahkan ke lokal (kolom sudah ada di migration batch 2 untuk production)
+- **Package `details`** — sudah ada migration untuk kolom description, billing_cycle, mikrotik_profile, is_active
+- **Customer `phone` & `email`** — sudah ada migration untuk menambah kolom tersebut
