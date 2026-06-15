@@ -23,6 +23,15 @@ use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\VoucherController;
 use Illuminate\Support\Facades\Route;
 
+// ── HOTSPOT STATIC PAGES ──
+Route::get('/hotspot/{page}', function (string $page) {
+    $path = public_path("hotspot/$page");
+    if (! str_contains($page, '..') && file_exists($path)) {
+        return response()->file($path);
+    }
+    abort(404);
+})->where('page', '.*');
+
 // ── SITEMAP ──
 Route::get('/sitemap.xml', [SitemapController::class, 'index'])->name('sitemap');
 
