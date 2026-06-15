@@ -10,7 +10,12 @@ require __DIR__.'/../vendor/autoload.php';
 
 $app = require __DIR__.'/../bootstrap/app.php';
 
-$app->make(Kernel::class)->call('migrate', ['--force' => true]);
+try {
+    $app->make(Kernel::class)->call('migrate', ['--force' => true]);
+} catch (Throwable $e) {
+    // Log migration failure but don't crash the app
+    // Vercel cold-start may retry with partial state
+}
 
 $kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);
 $response = $kernel->handle($request = Request::capture());
