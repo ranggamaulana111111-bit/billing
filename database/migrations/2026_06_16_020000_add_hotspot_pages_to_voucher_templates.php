@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasColumn('voucher_templates', 'status_page')) {
+            return;
+        }
+
         Schema::table('voucher_templates', function (Blueprint $table) {
             $table->text('status_page')->nullable()->after('content')->comment('status.html');
             $table->text('redirect_page')->nullable()->after('status_page')->comment('redirect.html');

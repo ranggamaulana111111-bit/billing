@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasTable('voucher_templates')) {
+            return;
+        }
+
         Schema::create('voucher_templates', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
@@ -17,9 +21,11 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        Schema::table('vouchers', function (Blueprint $table) {
-            $table->foreignId('voucher_template_id')->nullable()->after('router_id')->constrained('voucher_templates')->nullOnDelete();
-        });
+        if (!Schema::hasColumn('vouchers', 'voucher_template_id')) {
+            Schema::table('vouchers', function (Blueprint $table) {
+                $table->foreignId('voucher_template_id')->nullable()->after('router_id')->constrained('voucher_templates')->nullOnDelete();
+            });
+        }
     }
 
     public function down(): void

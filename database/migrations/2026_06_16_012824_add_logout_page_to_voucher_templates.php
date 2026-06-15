@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasColumn('voucher_templates', 'logout_page')) {
+            return;
+        }
+
         Schema::table('voucher_templates', function (Blueprint $table) {
             $table->text('logout_page')->nullable()->comment('logout.html');
         });

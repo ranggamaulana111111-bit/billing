@@ -11,6 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::hasTable('voucher_profiles')) {
+            Schema::drop('voucher_profiles');
+        }
+
         Schema::create('voucher_profiles', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
@@ -26,23 +30,25 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        Schema::table('vouchers', function (Blueprint $table) {
-            $table->foreignId('voucher_profile_id')->nullable()->after('id')->constrained('voucher_profiles')->nullOnDelete();
-            $table->decimal('price', 12, 2)->nullable()->after('duration_hours');
-            $table->string('prefix')->nullable()->after('price');
-            $table->string('speed')->nullable()->after('prefix');
-            $table->bigInteger('quota_limit')->nullable()->after('speed')->comment('in MB');
-            $table->integer('validity_days')->nullable()->after('quota_limit');
-            $table->integer('shared_users')->default(1)->after('validity_days');
-            $table->integer('printed_count')->default(0)->after('shared_users');
-            $table->bigInteger('downloaded')->default(0)->after('printed_count');
-            $table->bigInteger('uploaded')->default(0)->after('downloaded');
-            $table->bigInteger('total_traffic')->default(0)->after('uploaded');
-            $table->string('ip_address')->nullable()->after('total_traffic');
-            $table->string('mac_address')->nullable()->after('ip_address');
-            $table->timestamp('last_login_at')->nullable()->after('mac_address');
-            $table->foreignId('router_id')->nullable()->after('last_login_at')->constrained('mikrotik_routers')->nullOnDelete();
-        });
+        if (!Schema::hasColumn('vouchers', 'voucher_profile_id')) {
+            Schema::table('vouchers', function (Blueprint $table) {
+                $table->foreignId('voucher_profile_id')->nullable()->after('id')->constrained('voucher_profiles')->nullOnDelete();
+                $table->decimal('price', 12, 2)->nullable()->after('duration_hours');
+                $table->string('prefix')->nullable()->after('price');
+                $table->string('speed')->nullable()->after('prefix');
+                $table->bigInteger('quota_limit')->nullable()->after('speed')->comment('in MB');
+                $table->integer('validity_days')->nullable()->after('quota_limit');
+                $table->integer('shared_users')->default(1)->after('validity_days');
+                $table->integer('printed_count')->default(0)->after('shared_users');
+                $table->bigInteger('downloaded')->default(0)->after('printed_count');
+                $table->bigInteger('uploaded')->default(0)->after('downloaded');
+                $table->bigInteger('total_traffic')->default(0)->after('uploaded');
+                $table->string('ip_address')->nullable()->after('total_traffic');
+                $table->string('mac_address')->nullable()->after('ip_address');
+                $table->timestamp('last_login_at')->nullable()->after('mac_address');
+                $table->foreignId('router_id')->nullable()->after('last_login_at')->constrained('mikrotik_routers')->nullOnDelete();
+            });
+        }
     }
 
     public function down(): void
