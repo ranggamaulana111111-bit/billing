@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('voucher_templates', function (Blueprint $table) {
-            $table->text('logout_page')->nullable()->after('alive_page')->comment('logout.html');
+            $table->text('logout_page')->nullable()->comment('logout.html');
         });
     }
 
