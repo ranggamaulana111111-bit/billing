@@ -19,22 +19,12 @@ use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PortalController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SettingController;
+use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\VoucherController;
 use Illuminate\Support\Facades\Route;
 
 // ── SITEMAP ──
-Route::get('/sitemap.xml', function () {
-    $urls = [
-        ['loc' => url('/'), 'priority' => '1.0', 'changefreq' => 'weekly'],
-        ['loc' => route('login'), 'priority' => '0.5', 'changefreq' => 'monthly'],
-        ['loc' => route('register'), 'priority' => '0.4', 'changefreq' => 'monthly'],
-        ['loc' => route('portal.index'), 'priority' => '0.8', 'changefreq' => 'daily'],
-    ];
-
-    return response()
-        ->view('sitemap', compact('urls'))
-        ->header('Content-Type', 'application/xml; charset=utf-8');
-})->name('sitemap');
+Route::get('/sitemap.xml', [SitemapController::class, 'index'])->name('sitemap');
 
 // ── AUTH ──
 Route::get('login', [LoginController::class, 'showLoginForm'])->name('login');

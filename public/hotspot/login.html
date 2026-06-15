@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>$(identity) — Hotspot Login</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+            padding: 20px;
+        }
+        .login-card {
+            width: 100%;
+            max-width: 400px;
+            background: rgba(255,255,255,0.04);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 20px;
+            padding: 40px 32px 32px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.4);
+        }
+        .brand {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        .brand-icon {
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            border-radius: 16px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 12px;
+            font-size: 24px;
+            color: #fff;
+        }
+        .brand h1 {
+            font-size: 20px;
+            font-weight: 700;
+            color: #fff;
+            margin: 0;
+        }
+        .brand small {
+            font-size: 12px;
+            color: rgba(255,255,255,0.4);
+            letter-spacing: 0.05em;
+        }
+        .form-control {
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            color: #fff;
+            padding: 12px 16px;
+            font-size: 15px;
+        }
+        .form-control:focus {
+            background: rgba(255,255,255,0.08);
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+            color: #fff;
+        }
+        .form-control::placeholder { color: rgba(255,255,255,0.3); }
+        .form-label {
+            color: rgba(255,255,255,0.6);
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 6px;
+        }
+        .btn-login {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            border: none;
+            border-radius: 12px;
+            color: #fff;
+            font-weight: 600;
+            font-size: 15px;
+            transition: all 0.2s;
+        }
+        .btn-login:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 20px rgba(59,130,246,0.35);
+        }
+        .alert-box {
+            background: rgba(239,68,68,0.12);
+            border: 1px solid rgba(239,68,68,0.25);
+            border-radius: 12px;
+            padding: 12px 16px;
+            color: #fca5a5;
+            font-size: 13px;
+            margin-bottom: 20px;
+            display: $(if error)block$(else)none$(endif);
+        }
+        .footer-text {
+            text-align: center;
+            margin-top: 24px;
+            color: rgba(255,255,255,0.25);
+            font-size: 11px;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <div class="brand">
+            <div class="brand-icon">
+                <i class="fa-solid fa-bolt"></i>
+            </div>
+            <h1>$(identity)</h1>
+            <small>Hotspot WiFi</small>
+        </div>
+
+        $(if error)
+        <div class="alert-box">
+            <i class="fa-solid fa-circle-exclamation me-2"></i>$(error)
+        </div>
+        $(endif)
+
+        <form method="post" action="$(link-login-only)">
+            <input type="hidden" name="dst" value="$(link-orig)">
+            <input type="hidden" name="popup" value="true">
+
+            <div class="mb-3">
+                <label class="form-label"><i class="fa-solid fa-user me-1"></i>Username</label>
+                <input type="text" name="username" class="form-control" placeholder="Masukkan username" autocomplete="off" required autofocus>
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label"><i class="fa-solid fa-lock me-1"></i>Password</label>
+                <input type="password" name="password" class="form-control" placeholder="Masukkan password" autocomplete="off" required>
+            </div>
+
+            <button type="submit" class="btn-login">
+                <i class="fa-solid fa-right-to-bracket me-2"></i>Masuk
+            </button>
+        </form>
+
+        <div class="footer-text">
+            &copy; $(identity) &mdash; RabegNet Billing
+        </div>
+    </div>
+</body>
+</html>

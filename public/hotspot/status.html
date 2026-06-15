@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>$(identity) — Status</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+            padding: 20px;
+        }
+        .status-card {
+            width: 100%;
+            max-width: 420px;
+            background: rgba(255,255,255,0.04);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 20px;
+            padding: 36px 32px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.4);
+        }
+        .brand {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+        .brand-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            border-radius: 14px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 10px;
+            font-size: 20px;
+            color: #fff;
+        }
+        .brand h1 {
+            font-size: 18px;
+            font-weight: 700;
+            color: #fff;
+            margin: 0;
+        }
+        .brand small {
+            font-size: 11px;
+            color: rgba(255,255,255,0.4);
+        }
+        .status-badge {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        .status-badge .badge {
+            background: rgba(34,197,94,0.15);
+            color: #4ade80;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        .info-group {
+            margin-bottom: 20px;
+        }
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .info-item:last-child { border-bottom: none; }
+        .info-label {
+            color: rgba(255,255,255,0.45);
+            font-size: 13px;
+        }
+        .info-value {
+            color: #fff;
+            font-size: 14px;
+            font-weight: 500;
+            text-align: right;
+        }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 8px;
+        }
+        .btn-logout {
+            flex: 1;
+            padding: 11px;
+            background: rgba(239,68,68,0.12);
+            border: 1px solid rgba(239,68,68,0.2);
+            border-radius: 12px;
+            color: #fca5a5;
+            font-weight: 500;
+            font-size: 14px;
+            text-decoration: none;
+            text-align: center;
+            transition: all 0.2s;
+        }
+        .btn-logout:hover {
+            background: rgba(239,68,68,0.2);
+            color: #fca5a5;
+        }
+        .btn-portal {
+            flex: 1;
+            padding: 11px;
+            background: rgba(59,130,246,0.12);
+            border: 1px solid rgba(59,130,246,0.2);
+            border-radius: 12px;
+            color: #93c5fd;
+            font-weight: 500;
+            font-size: 14px;
+            text-decoration: none;
+            text-align: center;
+            transition: all 0.2s;
+        }
+        .btn-portal:hover {
+            background: rgba(59,130,246,0.2);
+            color: #93c5fd;
+        }
+    </style>
+</head>
+<body>
+    <div class="status-card">
+        <div class="brand">
+            <div class="brand-icon">
+                <i class="fa-solid fa-wifi"></i>
+            </div>
+            <h1>$(identity)</h1>
+            <small>Hotspot WiFi</small>
+        </div>
+
+        <div class="status-badge">
+            <span class="badge">
+                <i class="fa-solid fa-circle me-1" style="font-size:8px;color:#22c55e;"></i>Terhubung
+            </span>
+        </div>
+
+        <div class="info-group">
+            <div class="info-item">
+                <span class="info-label">Username</span>
+                <span class="info-value">$(username)</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Alamat IP</span>
+                <span class="info-value">$(address)</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">MAC Address</span>
+                <span class="info-value">$(mac)</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Waktu Terhubung</span>
+                <span class="info-value">$(uptime)</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Sisa Waktu</span>
+                <span class="info-value">$(remain-last)</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Bytes Masuk</span>
+                <span class="info-value">$(bytes-in-nice)</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Bytes Keluar</span>
+                <span class="info-value">$(bytes-out-nice)</span>
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <a href="$(link-logout)" class="btn-logout">
+                <i class="fa-solid fa-power-off me-1"></i>Putuskan
+            </a>
+            <a href="http://$(link-orig)" class="btn-portal" target="_blank">
+                <i class="fa-solid fa-globe me-1"></i>Lanjutkan
+            </a>
+        </div>
+    </div>
+</body>
+</html>

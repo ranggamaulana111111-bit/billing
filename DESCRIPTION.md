@@ -517,7 +517,7 @@ User (tenant)
 - **UserFactory** — default role `teknisi`, method `admin()` untuk testing
 - **OLT polling pakai Job per-OLT** — `PollOltJob` dengan timeout 120s, tries=2, internal try/catch — OLT gagal tidak blokir yang lain
 - **Kolom `price` di vouchers** — belum ada, perlu migration
-- **6 halaman hotspot statis** — belum dibuat (`public/hotspot/*.html`)
+- **6 halaman hotspot statis** — sudah ada di `public/hotspot/*.html` (login, status, logout, alive, error, redirect)
 - **Export CSV voucher** — belum ada
 - **Selector profile/server** — belum ada di form create voucher
 - **SQLite lokal** — beberapa migration record pernah corrupt (tabel hilang tapi record ada), sudah di-fix
