@@ -12,7 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         if (Schema::hasTable('voucher_profiles')) {
+            Schema::disableForeignKeyConstraints();
             Schema::drop('voucher_profiles');
+            Schema::enableForeignKeyConstraints();
         }
 
         Schema::create('voucher_profiles', function (Blueprint $table) {
