@@ -8,7 +8,11 @@ class OdpController extends Controller
 {
     public function show(Odp $odp)
     {
-        $odp->load('ports.customer', 'odc');
+        $odp->load([
+            'ports.customer.package',
+            'odc',
+            'connectedOdcPort.odc',
+        ]);
 
         return view('odp.show', compact('odp'));
     }

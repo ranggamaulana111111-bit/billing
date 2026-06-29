@@ -51,6 +51,11 @@ class Odp extends Model
         return $this->belongsTo(Odc::class);
     }
 
+    public function connectedOdcPort()
+    {
+        return $this->hasOne(OdcPort::class, 'connected_to_odp_id');
+    }
+
     public function ports()
     {
         return $this->hasMany(OdpPort::class);

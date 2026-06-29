@@ -22,7 +22,7 @@
                 <i class="fa-solid fa-plug"></i>
             </div>
             <div class="stat-info">
-                <div class="stat-value">{{ $odp->availablePortsCount() }}</div>
+                <div class="stat-value" id="stat-available">{{ $odp->availablePortsCount() }}</div>
                 <div class="stat-label">Port Tersedia</div>
             </div>
         </div>
@@ -33,7 +33,7 @@
                 <i class="fa-solid fa-plug"></i>
             </div>
             <div class="stat-info">
-                <div class="stat-value">{{ $odp->usedPortsCount() }}</div>
+                <div class="stat-value" id="stat-used">{{ $odp->usedPortsCount() }}</div>
                 <div class="stat-label">Port Terpakai</div>
             </div>
         </div>
@@ -44,7 +44,7 @@
                 <i class="fa-solid fa-circle-exclamation"></i>
             </div>
             <div class="stat-info">
-                <div class="stat-value">{{ $odp->brokenPortsCount() }}</div>
+                <div class="stat-value" id="stat-broken">{{ $odp->brokenPortsCount() }}</div>
                 <div class="stat-label">Port Rusak</div>
             </div>
         </div>
@@ -69,6 +69,9 @@
     <div class="card-body">
         <p class="mb-0 fs-5 fw-medium">
             {{ $odp->odc?->nama_odc ?? 'Tanpa ODC' }}
+            @if($odp->connectedOdcPort)
+                <span class="badge bg-dark ms-1">Port ODC #{{ $odp->connectedOdcPort->port_number }}</span>
+            @endif
             <i class="fa-solid fa-arrow-right mx-2 text-muted"></i>
             Tube: <span class="badge bg-secondary">{{ $odp->kabel_tube_color }}</span>
             <i class="fa-solid fa-arrow-right mx-2 text-muted"></i>
@@ -90,10 +93,13 @@
 <div class="card">
     <div class="card-header bg-white d-flex justify-content-between align-items-center">
         <span><i class="fa-solid fa-table-cells me-1 text-muted"></i> Port ODP ({{ $odp->kapasitas_port }})</span>
-        <span class="text-muted small">Sisa <strong>{{ $odp->availablePortsCount() }}</strong> port terbuka</span>
+        <div class="d-flex align-items-center gap-2">
+            <span class="text-muted small" id="live-indicator"><i class="fa-solid fa-circle text-success" style="font-size:8px;"></i> Live</span>
+            <span class="text-muted small">Sisa <strong id="sisa-port">{{ $odp->availablePortsCount() }}</strong> port terbuka</span>
+        </div>
     </div>
     <div class="card-body">
-        <div class="port-grid">
+        <div class="port-grid" id="port-grid">
             @foreach($odp->ports as $port)
                 @php
                     $portClass = match($port->status) {
@@ -103,15 +109,11 @@
                         default => 'port-available',
                     };
                 @endphp
-                <div class="port-item {{ $portClass }}"
-                     @if($port->customer)
-                        data-bs-toggle="tooltip"
-                        title="{{ $port->customer->name }}"
-                     @endif
-                     role="button">
+                <div class="port-item {{ $portClass }}" data-port="{{ $port->id }}" data-status="{{ $port->status }}" data-customer="{{ $port->customer?->name ?? '' }}">
                     <span class="port-number">{{ $port->port_number }}</span>
                     @if($port->status === 'used' && $port->customer)
                         <span class="port-customer-name">{{ $port->customer->name }}</span>
+                        <span class="port-customer-info">{{ $port->customer->package?->name ?? 'No Pkg' }}</span>
                     @endif
                     @if($port->status === 'broken')
                         <span class="port-broken-label">RUSAK</span>
@@ -130,13 +132,16 @@ document.addEventListener('DOMContentLoaded', function() {
     var odpLng = {{ $odp->longitude ?? 'null' }};
 
     if (odpLat !== null && odpLng !== null) {
-        var map = L.map('map-odp');
-
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
             attribution: '&copy; OpenStreetMap',
-            className: 'map-tiles'
-        }).addTo(map);
+        });
+        var sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 19,
+            attribution: '&copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+        });
+        var map = L.map('map-odp', { layers: [sat] });
+        L.control.layers({ 'Satelit': sat, 'Street': osm }).addTo(map);
 
         var marker = L.marker([odpLat, odpLng]).addTo(map);
         marker.bindPopup(`
@@ -179,12 +184,51 @@ document.addEventListener('DOMContentLoaded', function() {
     } else {
         document.getElementById('map-odp').innerHTML = '<div class="text-center py-4 text-muted"><i class="fa-solid fa-map me-2"></i>Koordinat belum diatur.</div>';
     }
+
+    // ── Realtime polling ──
+    function refreshPorts() {
+        fetch('/api/v1/odp/{{ $odp->id }}/ports')
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                document.getElementById('stat-available').textContent = data.odp.available;
+                document.getElementById('stat-used').textContent = data.odp.used;
+                document.getElementById('stat-broken').textContent = data.odp.broken;
+                document.getElementById('sisa-port').textContent = data.odp.available;
+
+                data.ports.forEach(function(p) {
+                    var el = document.querySelector('.port-item[data-port="' + p.id + '"]');
+                    if (!el) return;
+                    var oldStatus = el.dataset.status;
+                    if (oldStatus !== p.status) {
+                        el.className = 'port-item port-' + p.status;
+                        el.dataset.status = p.status;
+                        var oldContent = '';
+                        if (p.status === 'used' && p.customer) {
+                            el.innerHTML = '<span class="port-number">' + p.port_number + '</span><span class="port-customer-name">' + p.customer.name + '</span><span class="port-customer-info">' + (p.customer.package || 'No Pkg') + '</span>';
+                        } else if (p.status === 'broken') {
+                            el.innerHTML = '<span class="port-number">' + p.port_number + '</span><span class="port-broken-label">RUSAK</span>';
+                        } else {
+                            el.innerHTML = '<span class="port-number">' + p.port_number + '</span>';
+                        }
+                    }
+                });
+
+                var indicator = document.getElementById('live-indicator');
+                indicator.innerHTML = '<i class="fa-solid fa-circle text-success" style="font-size:8px;"></i> Live';
+            })
+            .catch(function() {
+                var indicator = document.getElementById('live-indicator');
+                indicator.innerHTML = '<i class="fa-solid fa-circle text-muted" style="font-size:8px;"></i> Offline';
+            });
+    }
+
+    setInterval(refreshPorts, 15000);
 });
 </script>
 <style>
 .port-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
     gap: 10px;
 }
 .port-item {
@@ -195,7 +239,7 @@ document.addEventListener('DOMContentLoaded', function() {
     transition: all 0.2s;
     cursor: default;
     position: relative;
-    min-height: 70px;
+    min-height: 80px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -209,55 +253,25 @@ document.addEventListener('DOMContentLoaded', function() {
     background: #f0fdf4;
     border-color: #86efac;
 }
-.port-available .port-number {
-    color: #16a34a;
-}
+.port-available .port-number { color: #16a34a; }
 .port-used {
     background: #fef2f2;
     border-color: #fca5a5;
 }
-.port-used .port-number {
-    color: #dc2626;
-}
+.port-used .port-number { color: #dc2626; }
 .port-broken {
     background: #1e293b;
     border-color: #64748b;
     animation: blink-broken 1.2s ease-in-out infinite;
 }
-.port-broken .port-number {
-    color: #94a3b8;
-}
-.port-broken .port-broken-label {
-    color: #ef4444;
-    font-size: 0.65rem;
-    font-weight: 700;
-    letter-spacing: 1px;
-}
+.port-broken .port-number { color: #94a3b8; }
+.port-broken .port-broken-label { color: #ef4444; font-size: 0.65rem; font-weight: 700; letter-spacing: 1px; display: block; }
 @keyframes blink-broken {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.5; }
 }
-.port-number {
-    font-weight: 800;
-    font-size: 1.1rem;
-    display: block;
-}
-.port-customer-name {
-    font-size: 0.6rem;
-    color: #64748b;
-    margin-top: 4px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 100%;
-}
+.port-number { font-weight: 800; font-size: 1.1rem; display: block; }
+.port-customer-name { font-size: 0.65rem; color: #1e293b; font-weight: 600; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.port-customer-info { font-size: 0.55rem; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 </style>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    var tooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-    tooltips.forEach(function(el) {
-        new bootstrap.Tooltip(el, { placement: 'top' });
-    });
-});
-</script>
 @endpush

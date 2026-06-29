@@ -387,12 +387,16 @@ document.addEventListener('DOMContentLoaded', function() {
     var lat = {{ $olt->latitude }};
     var lng = {{ $olt->longitude }};
 
-    var map = L.map('map-show').setView([lat, lng], 16);
-
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        attribution: '&copy; OpenStreetMap'
-    }).addTo(map);
+    var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; OpenStreetMap',
+        });
+    var sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 19,
+            attribution: '&copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+        });
+    var map = L.map('map-show', { layers: [sat] }).setView([lat, lng], 16);
+    L.control.layers({ 'Satelit': sat, 'Street': osm }).addTo(map);
 
     L.marker([lat, lng], {
         icon: L.divIcon({

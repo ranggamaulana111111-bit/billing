@@ -164,12 +164,16 @@ document.addEventListener('DOMContentLoaded', function() {
     var defaultLat = parseFloat(latInput.value) || -6.476;
     var defaultLng = parseFloat(lngInput.value) || 106.014;
 
-    var map = L.map('map-create').setView([defaultLat, defaultLng], defaultLat !== -6.476 ? 15 : 14);
-
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        attribution: '&copy; OpenStreetMap'
-    }).addTo(map);
+    var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; OpenStreetMap',
+        });
+    var sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 19,
+            attribution: '&copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+        });
+    var map = L.map('map-create', { layers: [sat] }).setView([defaultLat, defaultLng], defaultLat !== -6.476 ? 15 : 14);
+    L.control.layers({ 'Satelit': sat, 'Street': osm }).addTo(map);
 
     var marker;
 

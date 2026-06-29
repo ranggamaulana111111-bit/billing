@@ -625,13 +625,16 @@
         setInterval(updateClock, 1000);
 
         // Map
-        var map = L.map('map').setView([-6.476, 106.014], 15);
-
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-            className: 'map-tiles'
-        }).addTo(map);
+            attribution: '&copy; OpenStreetMap',
+        });
+        var sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 19,
+            attribution: '&copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+        });
+        var map = L.map('map', { layers: [sat] }).setView([-6.476, 106.014], 15);
+        L.control.layers({ 'Satelit': sat, 'Street': osm }).addTo(map);
 
         var odpsData = @json($odps);
         var newOdpsData = @json($newOdps);

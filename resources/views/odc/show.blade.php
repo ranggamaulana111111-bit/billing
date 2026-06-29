@@ -22,7 +22,7 @@
                 <i class="fa-solid fa-plug"></i>
             </div>
             <div class="stat-info">
-                <div class="stat-value">{{ $odc->ports->where('status', 'available')->count() }}</div>
+                <div class="stat-value" id="stat-available">{{ $odc->ports->where('status', 'available')->count() }}</div>
                 <div class="stat-label">Port Tersedia</div>
             </div>
         </div>
@@ -33,7 +33,7 @@
                 <i class="fa-solid fa-plug"></i>
             </div>
             <div class="stat-info">
-                <div class="stat-value">{{ $odc->ports->where('status', 'used')->count() }}</div>
+                <div class="stat-value" id="stat-used">{{ $odc->ports->where('status', 'used')->count() }}</div>
                 <div class="stat-label">Port Terpakai</div>
             </div>
         </div>
@@ -44,7 +44,7 @@
                 <i class="fa-solid fa-diagram-project"></i>
             </div>
             <div class="stat-info">
-                <div class="stat-value">{{ $odc->odps->count() }}</div>
+                <div class="stat-value" id="stat-odp-count">{{ $odc->odps->count() }}</div>
                 <div class="stat-label">ODP Tersambung</div>
             </div>
         </div>
@@ -111,10 +111,13 @@
 <div class="card">
     <div class="card-header bg-white d-flex justify-content-between align-items-center">
         <span><i class="fa-solid fa-table-cells me-1 text-muted"></i> Port ODC ({{ $odc->ports->count() }})</span>
-        <span class="text-muted small">Sisa <strong>{{ $odc->ports->where('status', 'available')->count() }}</strong> port terbuka</span>
+        <div class="d-flex align-items-center gap-2">
+            <span class="text-muted small" id="live-indicator"><i class="fa-solid fa-circle text-success" style="font-size:8px;"></i> Live</span>
+            <span class="text-muted small">Sisa <strong id="sisa-port">{{ $odc->ports->where('status', 'available')->count() }}</strong> port terbuka</span>
+        </div>
     </div>
     <div class="card-body">
-        <div class="port-grid">
+        <div class="port-grid" id="port-grid">
             @forelse($odc->ports as $port)
                 @php
                     $portClass = match($port->status) {
@@ -124,12 +127,14 @@
                         default => 'port-available',
                     };
                     $typeIcon = $port->port_type === 'inlet' ? 'fa-arrow-right-to-bracket' : 'fa-arrow-right-from-bracket';
+                    $customerCount = $port->connectedOdp?->ports->filter(fn($p) => $p->status === 'used' && $p->customer)->count() ?? 0;
                 @endphp
-                <div class="port-item {{ $portClass }}" data-bs-toggle="tooltip" title="Port {{ $port->port_number }} ({{ $port->port_type }}){{ $port->connectedOdp ? ' → '.$port->connectedOdp->nama_odp : '' }}">
+                <div class="port-item {{ $portClass }}" data-port-id="{{ $port->id }}" data-status="{{ $port->status }}">
                     <span class="port-number">{{ $port->port_number }}</span>
                     <span class="port-type-badge"><i class="fa-solid {{ $typeIcon }}"></i> {{ $port->port_type }}</span>
                     @if($port->status === 'used' && $port->connectedOdp)
                         <span class="port-odp-name">{{ $port->connectedOdp->nama_odp }}</span>
+                        <span class="port-customer-count">{{ $customerCount }} pelanggan</span>
                     @endif
                     @if($port->status === 'broken')
                         <span class="port-broken-label">RUSAK</span>
@@ -153,13 +158,16 @@ document.addEventListener('DOMContentLoaded', function() {
     var hasOdps = @json($odc->odps->filter(fn($o) => $o->latitude && $o->longitude)->count()) > 0;
 
     if (hasOdcCoord || hasOdps) {
-        var map = L.map('map-odc');
-
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
             attribution: '&copy; OpenStreetMap',
-            className: 'map-tiles'
-        }).addTo(map);
+        });
+        var sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 19,
+            attribution: '&copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+        });
+        var map = L.map('map-odc', { layers: [sat] });
+        L.control.layers({ 'Satelit': sat, 'Street': osm }).addTo(map);
 
         var bounds = [];
         var odcIcon = L.divIcon({
@@ -231,6 +239,43 @@ document.addEventListener('DOMContentLoaded', function() {
     } else {
         document.getElementById('map-odc').innerHTML = '<div class="text-center py-5 text-muted"><i class="fa-solid fa-map me-2"></i>Koordinat belum diatur. Edit ODC untuk menambahkan lokasi.</div>';
     }
+
+    // ── Realtime polling ──
+    function refreshPorts() {
+        fetch('/api/v1/odc/{{ $odc->id }}/ports')
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                document.getElementById('stat-available').textContent = data.ports.filter(function(p) { return p.status === 'available'; }).length;
+                document.getElementById('stat-used').textContent = data.ports.filter(function(p) { return p.status === 'used'; }).length;
+                document.getElementById('stat-odp-count').textContent = data.odc.odp_count;
+                document.getElementById('sisa-port').textContent = data.ports.filter(function(p) { return p.status === 'available'; }).length;
+
+                data.ports.forEach(function(p) {
+                    var el = document.querySelector('.port-item[data-port-id="' + p.id + '"]');
+                    if (!el) return;
+                    var oldStatus = el.dataset.status;
+                    if (oldStatus !== p.status) {
+                        el.className = 'port-item port-' + p.status;
+                        el.dataset.status = p.status;
+                        if (p.status === 'used' && p.connected_odp) {
+                            var nameEl = el.querySelector('.port-odp-name');
+                            var countEl = el.querySelector('.port-customer-count');
+                            if (nameEl) nameEl.textContent = p.connected_odp.nama_odp;
+                            if (countEl) countEl.textContent = p.connected_odp.customer_count + ' pelanggan';
+                        }
+                    }
+                });
+
+                var indicator = document.getElementById('live-indicator');
+                indicator.innerHTML = '<i class="fa-solid fa-circle text-success" style="font-size:8px;"></i> Live';
+            })
+            .catch(function() {
+                var indicator = document.getElementById('live-indicator');
+                indicator.innerHTML = '<i class="fa-solid fa-circle text-muted" style="font-size:8px;"></i> Offline';
+            });
+    }
+
+    setInterval(refreshPorts, 15000);
 });
 </script>
 <style>
@@ -247,7 +292,7 @@ document.addEventListener('DOMContentLoaded', function() {
     transition: all 0.2s;
     cursor: default;
     position: relative;
-    min-height: 85px;
+    min-height: 95px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -280,14 +325,7 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 .port-number { font-weight: 800; font-size: 1.1rem; display: block; }
 .port-type-badge { font-size: 0.6rem; color: #64748b; margin-top: 2px; }
-.port-odp-name { font-size: 0.6rem; color: #64748b; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.port-odp-name { font-size: 0.65rem; color: #1e293b; font-weight: 600; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.port-customer-count { font-size: 0.55rem; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 </style>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    var tooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-    tooltips.forEach(function(el) {
-        new bootstrap.Tooltip(el, { placement: 'top' });
-    });
-});
-</script>
 @endpush
