@@ -13,15 +13,20 @@ class MidtransService
 
     protected bool $isProduction;
 
-    public function __construct(?int $userId = null)
+    public function __construct(?int $tenantId = null)
     {
-        $this->serverKey = Setting::get('midtrans_server_key', null, $userId);
-        $this->isProduction = (bool) Setting::get('midtrans_is_production', false, $userId);
+        $this->serverKey = Setting::get('midtrans_server_key', null, $tenantId);
+        $this->isProduction = (bool) Setting::get('midtrans_is_production', false, $tenantId);
     }
 
     public function isConfigured(): bool
     {
         return ! empty($this->serverKey);
+    }
+
+    public function getServerKey(): ?string
+    {
+        return $this->serverKey;
     }
 
     public function getSnapToken(array $params): array

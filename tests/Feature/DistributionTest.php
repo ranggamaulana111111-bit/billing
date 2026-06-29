@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Customer;
 use App\Models\Odc;
+use App\Models\Odp;
 use App\Models\OdpPoint;
 use App\Models\OdpRoute;
 use App\Models\Package;
@@ -36,10 +37,10 @@ class DistributionTest extends TestCase
     public function test_store_odc(): void
     {
         $this->actingAs($this->user)->post('/distribution/odcs', $this->odcPayload([
-            'name' => 'ODC Barat',
+            'nama_odc' => 'ODC Barat',
         ]))->assertRedirect();
 
-        $this->assertDatabaseHas('odcs', ['name' => 'ODC Barat', 'status' => 'active']);
+        $this->assertDatabaseHas('odcs', ['nama_odc' => 'ODC Barat', 'kapasitas_port' => 8]);
         $this->assertDatabaseHas('activity_logs', ['action' => 'Tambah ODC']);
     }
 
@@ -48,21 +49,21 @@ class DistributionTest extends TestCase
         $this->createOdc();
 
         $this->actingAs($this->user)
-            ->post('/distribution/odcs', $this->odcPayload(['name' => 'ODC Test']))
-            ->assertSessionHasErrors('name');
+            ->post('/distribution/odcs', $this->odcPayload(['nama_odc' => 'ODC Test']))
+            ->assertSessionHasErrors('nama_odc');
     }
 
     public function test_update_odc(): void
     {
         $odc = $this->createOdc();
 
-        $this->actingAs($this->user)->put("/distribution/odcs/{$odc->id}", $this->odcPayload([
-            'name' => 'ODC Update',
-            'status' => 'maintenance',
-            'capacity' => 64,
-        ]))->assertRedirect();
+        $this->actingAs($this->user)->put("/distribution/odcs/{$odc->id}", [
+            'nama_odc' => 'ODC Update',
+            'koordinat' => '-6.476,106.014',
+            'kapasitas_port' => 16,
+        ])->assertRedirect();
 
-        $this->assertDatabaseHas('odcs', ['id' => $odc->id, 'name' => 'ODC Update', 'status' => 'maintenance', 'capacity' => 64]);
+        $this->assertDatabaseHas('odcs', ['id' => $odc->id, 'nama_odc' => 'ODC Update', 'kapasitas_port' => 16]);
     }
 
     public function test_destroy_odc_without_routes(): void
@@ -77,7 +78,16 @@ class DistributionTest extends TestCase
     public function test_destroy_odc_with_routes_is_blocked(): void
     {
         $odc = $this->createOdc();
-        $this->createRoute(['odc_id' => $odc->id]);
+
+        $odp = Odp::create([
+            'tenant_id' => $this->user->tenant_id,
+            'odc_id' => $odc->id,
+            'nama_odp' => 'ODP Test',
+            'kapasitas_port' => 8,
+            'kabel_tube_color' => 'Biru',
+            'kabel_core_number' => 1,
+            'kondisi_jalur' => 'UP',
+        ]);
 
         $this->actingAs($this->user)
             ->delete("/distribution/odcs/{$odc->id}")
@@ -116,7 +126,7 @@ class DistributionTest extends TestCase
     public function test_update_route(): void
     {
         $route = OdpRoute::create([
-            'user_id' => $this->user->id,
+            'tenant_id' => $this->user->tenant_id,
             'name' => 'Route Lama',
             'color' => '#2563eb',
             'coordinates' => [],
@@ -135,7 +145,7 @@ class DistributionTest extends TestCase
     public function test_destroy_route_without_points(): void
     {
         $route = OdpRoute::create([
-            'user_id' => $this->user->id,
+            'tenant_id' => $this->user->tenant_id,
             'name' => 'Route Hapus',
             'color' => '#2563eb',
             'coordinates' => [],
@@ -149,7 +159,7 @@ class DistributionTest extends TestCase
     public function test_destroy_route_with_points_is_blocked(): void
     {
         $route = $this->createRoute();
-        OdpPoint::create($this->pointPayload($route, ['user_id' => $this->user->id]));
+        OdpPoint::create($this->pointPayload($route, ['tenant_id' => $this->user->tenant_id]));
 
         $this->actingAs($this->user)
             ->delete("/distribution/routes/{$route->id}")
@@ -175,7 +185,7 @@ class DistributionTest extends TestCase
     public function test_store_point_rejects_duplicate_name(): void
     {
         $route = $this->createRoute();
-        OdpPoint::create($this->pointPayload($route, ['user_id' => $this->user->id]));
+        OdpPoint::create($this->pointPayload($route, ['tenant_id' => $this->user->tenant_id]));
 
         $this->actingAs($this->user)
             ->post('/distribution/points', $this->pointPayload($route))
@@ -185,7 +195,7 @@ class DistributionTest extends TestCase
     public function test_update_point(): void
     {
         $route = $this->createRoute();
-        $point = OdpPoint::create($this->pointPayload($route, ['user_id' => $this->user->id]));
+        $point = OdpPoint::create($this->pointPayload($route, ['tenant_id' => $this->user->tenant_id]));
 
         $this->actingAs($this->user)->put("/distribution/points/{$point->id}", $this->pointPayload($route, [
             'name' => 'ODP-Update',
@@ -199,7 +209,7 @@ class DistributionTest extends TestCase
     public function test_destroy_point_without_customers(): void
     {
         $route = $this->createRoute();
-        $point = OdpPoint::create($this->pointPayload($route, ['user_id' => $this->user->id]));
+        $point = OdpPoint::create($this->pointPayload($route, ['tenant_id' => $this->user->tenant_id]));
 
         $this->actingAs($this->user)->delete("/distribution/points/{$point->id}")->assertRedirect();
 
@@ -209,9 +219,9 @@ class DistributionTest extends TestCase
     public function test_destroy_point_with_customers_is_blocked(): void
     {
         $route = $this->createRoute();
-        $point = OdpPoint::create($this->pointPayload($route, ['user_id' => $this->user->id]));
-        $package = Package::factory()->create(['user_id' => $this->user->id]);
-        $customer = Customer::factory()->create(['user_id' => $this->user->id, 'package_id' => $package->id, 'odp_point_id' => $point->id]);
+        $point = OdpPoint::create($this->pointPayload($route, ['tenant_id' => $this->user->tenant_id]));
+        $package = Package::factory()->create(['tenant_id' => $this->user->tenant_id]);
+        $customer = Customer::factory()->create(['tenant_id' => $this->user->tenant_id, 'package_id' => $package->id, 'odp_point_id' => $point->id]);
 
         $this->actingAs($this->user)
             ->delete("/distribution/points/{$point->id}")
@@ -230,7 +240,7 @@ class DistributionTest extends TestCase
     private function createRoute(array $override = []): OdpRoute
     {
         return OdpRoute::create(array_merge([
-            'user_id' => $this->user->id,
+            'tenant_id' => $this->user->tenant_id,
             'name' => 'Route Test',
             'color' => '#2563eb',
             'coordinates' => [],
@@ -240,21 +250,17 @@ class DistributionTest extends TestCase
     private function odcPayload(array $override = []): array
     {
         return array_merge([
-            'user_id' => $this->user->id,
-            'name' => 'ODC Test',
-            'address' => 'Kp. ODC',
-            'latitude' => -6.476,
-            'longitude' => 106.014,
-            'status' => 'active',
-            'capacity' => 32,
-            'notes' => 'ODC test',
+            'tenant_id' => $this->user->tenant_id,
+            'nama_odc' => 'ODC Test',
+            'koordinat' => null,
+            'kapasitas_port' => 8,
         ], $override);
     }
 
     private function pointPayload(OdpRoute $route, array $override = []): array
     {
         return array_merge([
-            'user_id' => $this->user->id,
+            'tenant_id' => $this->user->tenant_id,
             'odp_route_id' => $route->id,
             'name' => 'ODP-Test',
             'address' => 'Kp. Test',

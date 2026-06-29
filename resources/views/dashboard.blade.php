@@ -262,7 +262,7 @@
                     <span class="badge badge-online">
                         <span class="dot dot-sm" style="background:#059669;margin-right:4px;vertical-align:middle;"></span>Online
                     </span>
-                    <small class="text-muted">{{ $odps->count() }} titik ODP</small>
+                    <small class="text-muted">{{ $odps->count() + $newOdps->count() }} titik ODP</small>
                 </div>
             </div>
             <div class="card-body p-0">
@@ -634,6 +634,7 @@
         }).addTo(map);
 
         var odpsData = @json($odps);
+        var newOdpsData = @json($newOdps);
         var markerBounds = [];
 
         var icons = {
@@ -682,6 +683,39 @@
                             <div style="display:flex;justify-content:space-between;font-size:11px;margin-top:4px;">
                                 <span style="color:${isFull ? '#dc2626' : '#059669'};font-weight:600;">Sisa ${sisaPort} port</span>
                                 <span style="color:#94a3b8;">${pct}%</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                marker.bindPopup(popupContent, { className: 'custom-popup' });
+                markerBounds.push([odp.latitude, odp.longitude]);
+            }
+        });
+
+        newOdpsData.forEach(function(odp) {
+            if (odp.latitude && odp.longitude) {
+                var terpakai = odp.used ?? 0;
+                var totalCapacity = odp.port_capacity ?? 16;
+                var isFull = terpakai >= totalCapacity;
+
+                var marker = L.marker([odp.latitude, odp.longitude], {
+                    icon: isFull ? icons.red : icons.green
+                }).addTo(map);
+
+                var popupContent = `
+                    <div style="font-family:'Inter',sans-serif;min-width:170px;">
+                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+                            <div style="width:10px;height:10px;border-radius:50%;background:${isFull ? '#dc2626' : '#059669'};"></div>
+                            <h6 style="margin:0;font-weight:700;font-size:14px;color:#0f172a;">${odp.name}</h6>
+                        </div>
+                        <small style="color:#64748b;"><i class="fa-solid fa-server"></i> ${odp.address ?? '-'}</small>
+                        <div style="margin-top:8px;padding-top:8px;border-top:1px solid #f1f5f9;">
+                            <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;">
+                                <span style="color:#475569;">Terpakai</span>
+                                <span style="font-weight:600;">${terpakai}/${totalCapacity}</span>
+                            </div>
+                            <div style="height:4px;background:#e2e8f0;border-radius:2px;overflow:hidden;">
+                                <div style="height:100%;width:${totalCapacity > 0 ? Math.round((terpakai / totalCapacity) * 100) : 0}%;background:${isFull ? '#dc2626' : '#059669'};border-radius:2px;"></div>
                             </div>
                         </div>
                     </div>

@@ -21,7 +21,7 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        if (!Schema::hasColumn('vouchers', 'voucher_template_id')) {
+        if (! Schema::hasColumn('vouchers', 'voucher_template_id')) {
             Schema::table('vouchers', function (Blueprint $table) {
                 $table->foreignId('voucher_template_id')->nullable()->after('router_id')->constrained('voucher_templates')->nullOnDelete();
             });

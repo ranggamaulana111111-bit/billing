@@ -2,15 +2,15 @@
 
 namespace App\Models;
 
-use App\Models\Traits\BelongsToUser;
+use App\Models\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 
 class VoucherProfile extends Model
 {
-    use BelongsToUser;
+    use BelongsToTenant;
 
     protected $fillable = [
-        'user_id', 'name', 'speed', 'price', 'time_limit',
+        'tenant_id', 'name', 'speed', 'price', 'time_limit',
         'quota_limit', 'validity_days', 'shared_users',
         'description', 'is_active',
     ];

@@ -2,8 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Support\Facades\Route;
-
 class SitemapController extends Controller
 {
     public function index()

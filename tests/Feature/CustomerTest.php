@@ -32,13 +32,13 @@ class CustomerTest extends TestCase
 
     public function test_create_page_is_accessible(): void
     {
-        Package::factory()->create(['user_id' => $this->user->id]);
+        Package::factory()->create(['tenant_id' => $this->user->tenant_id]);
         $this->actingAs($this->user)->get('/customer/create')->assertStatus(200);
     }
 
     public function test_store_creates_customer_and_invoice(): void
     {
-        $package = Package::factory()->create(['user_id' => $this->user->id, 'price' => 150000]);
+        $package = Package::factory()->create(['tenant_id' => $this->user->tenant_id, 'price' => 150000]);
 
         $response = $this->actingAs($this->user)->post('/customer', [
             'name' => 'Budi Santoso',
@@ -59,15 +59,15 @@ class CustomerTest extends TestCase
 
     public function test_edit_page_is_accessible(): void
     {
-        $package = Package::factory()->create(['user_id' => $this->user->id]);
-        $customer = Customer::factory()->create(['user_id' => $this->user->id, 'package_id' => $package->id]);
+        $package = Package::factory()->create(['tenant_id' => $this->user->tenant_id]);
+        $customer = Customer::factory()->create(['tenant_id' => $this->user->tenant_id, 'package_id' => $package->id]);
         $this->actingAs($this->user)->get("/customer/{$customer->id}/edit")->assertStatus(200);
     }
 
     public function test_update_customer(): void
     {
-        $package = Package::factory()->create(['user_id' => $this->user->id]);
-        $customer = Customer::factory()->create(['user_id' => $this->user->id, 'package_id' => $package->id, 'name' => 'Old Name']);
+        $package = Package::factory()->create(['tenant_id' => $this->user->tenant_id]);
+        $customer = Customer::factory()->create(['tenant_id' => $this->user->tenant_id, 'package_id' => $package->id, 'name' => 'Old Name']);
 
         $this->actingAs($this->user)->put("/customer/{$customer->id}", [
             'name' => 'New Name',
@@ -80,8 +80,8 @@ class CustomerTest extends TestCase
 
     public function test_destroy_customer(): void
     {
-        $package = Package::factory()->create(['user_id' => $this->user->id]);
-        $customer = Customer::factory()->create(['user_id' => $this->user->id, 'package_id' => $package->id]);
+        $package = Package::factory()->create(['tenant_id' => $this->user->tenant_id]);
+        $customer = Customer::factory()->create(['tenant_id' => $this->user->tenant_id, 'package_id' => $package->id]);
 
         $this->actingAs($this->user)->delete("/customer/{$customer->id}")->assertRedirect('/customers');
         $this->assertDatabaseMissing('customers', ['id' => $customer->id]);
@@ -89,8 +89,8 @@ class CustomerTest extends TestCase
 
     public function test_suspend_customer(): void
     {
-        $package = Package::factory()->create(['user_id' => $this->user->id]);
-        $customer = Customer::factory()->create(['user_id' => $this->user->id, 'package_id' => $package->id, 'status' => 'active']);
+        $package = Package::factory()->create(['tenant_id' => $this->user->tenant_id]);
+        $customer = Customer::factory()->create(['tenant_id' => $this->user->tenant_id, 'package_id' => $package->id, 'status' => 'active']);
 
         $this->actingAs($this->user)->post("/customer/{$customer->id}/suspend")->assertRedirect();
         $this->assertDatabaseHas('customers', ['id' => $customer->id, 'status' => 'suspended']);
@@ -98,8 +98,8 @@ class CustomerTest extends TestCase
 
     public function test_activate_customer(): void
     {
-        $package = Package::factory()->create(['user_id' => $this->user->id]);
-        $customer = Customer::factory()->create(['user_id' => $this->user->id, 'package_id' => $package->id, 'status' => 'suspended']);
+        $package = Package::factory()->create(['tenant_id' => $this->user->tenant_id]);
+        $customer = Customer::factory()->create(['tenant_id' => $this->user->tenant_id, 'package_id' => $package->id, 'status' => 'suspended']);
 
         $this->actingAs($this->user)->post("/customer/{$customer->id}/activate")->assertRedirect();
         $this->assertDatabaseHas('customers', ['id' => $customer->id, 'status' => 'active']);

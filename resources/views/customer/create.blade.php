@@ -72,15 +72,24 @@
 
                         <div class="col-md-6">
                             <label class="form-label fw-semibold small">Titik ODP</label>
-                            <select name="odp_point_id" class="form-select @error('odp_point_id') is-invalid @enderror">
+                            <select name="odp_id" id="odp_id" class="form-select @error('odp_id') is-invalid @enderror" onchange="updatePorts()">
                                 <option value="">— Pilih ODP (opsional) —</option>
                                 @foreach($odps as $o)
-                                    <option value="{{ $o->id }}" {{ old('odp_point_id') == $o->id ? 'selected' : '' }}>
-                                        {{ $o->name }} — {{ $o->address }}
+                                    <option value="{{ $o->id }}" data-ports="{{ $o->ports->where('status', 'available')->pluck('port_number')->join(',') }}" {{ old('odp_id') == $o->id ? 'selected' : '' }}>
+                                        {{ $o->nama_odp }} — Tube: {{ $o->kabel_tube_color }} Core: {{ $o->kabel_core_number }}
                                     </option>
                                 @endforeach
                             </select>
-                            @error('odp_point_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            @error('odp_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        </div>
+
+                        <div class="col-md-6" id="port_number_wrapper" style="display:none;">
+                            <label class="form-label fw-semibold small">Nomor Port</label>
+                            <select name="odp_port_number" id="odp_port_number" class="form-select @error('odp_port_number') is-invalid @enderror">
+                                <option value="">— Pilih Port —</option>
+                            </select>
+                            @error('odp_port_number') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            <small class="text-muted">Pilih port fisik sesuai instalasi di lapangan</small>
                         </div>
 
                         <div class="col-md-6">
@@ -110,3 +119,36 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+function updatePorts() {
+    const select = document.getElementById('odp_id');
+    const wrapper = document.getElementById('port_number_wrapper');
+    const portSelect = document.getElementById('odp_port_number');
+
+    const selected = select.options[select.selectedIndex];
+    const ports = selected ? (selected.dataset.ports || '') : '';
+
+    portSelect.innerHTML = '<option value="">— Pilih Port —</option>';
+
+    if (ports) {
+        wrapper.style.display = 'block';
+        ports.split(',').forEach(p => {
+            const opt = document.createElement('option');
+            opt.value = p;
+            opt.textContent = 'Port ' + p;
+            portSelect.appendChild(opt);
+        });
+    } else {
+        wrapper.style.display = 'none';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    if (document.getElementById('odp_id').value) {
+        updatePorts();
+    }
+});
+</script>
+@endpush

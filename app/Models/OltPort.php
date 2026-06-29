@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Models\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 
 class OltPort extends Model
 {
+    use BelongsToTenant;
+
     protected $fillable = [
-        'olt_id', 'slot_number', 'port_number', 'port_type', 'status', 'description',
+        'tenant_id', 'olt_id', 'slot_number', 'port_number', 'port_type', 'status', 'description',
     ];
 
     public function olt()

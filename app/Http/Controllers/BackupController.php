@@ -9,6 +9,10 @@ class BackupController extends Controller
 {
     public function database()
     {
+        if (app()->isProduction()) {
+            return back()->with('error', 'Backup lokal dinonaktifkan di production. Gunakan fitur automated backup MySQL Aiven.');
+        }
+
         $dbPath = database_path('database.sqlite');
         $backupDir = storage_path('app/backups');
 
@@ -32,6 +36,10 @@ class BackupController extends Controller
 
     public function index()
     {
+        if (app()->isProduction()) {
+            return back()->with('error', 'Fitur backup lokal dinonaktifkan di production.');
+        }
+
         $backupDir = storage_path('app/backups');
         $backups = [];
 
@@ -53,6 +61,10 @@ class BackupController extends Controller
 
     public function download(string $filename)
     {
+        if (app()->isProduction()) {
+            return back()->with('error', 'Fitur backup lokal dinonaktifkan di production.');
+        }
+
         $path = storage_path("app/backups/{$filename}");
 
         if (! File::exists($path)) {
@@ -66,6 +78,10 @@ class BackupController extends Controller
 
     public function destroy(string $filename)
     {
+        if (app()->isProduction()) {
+            return back()->with('error', 'Fitur backup lokal dinonaktifkan di production.');
+        }
+
         $path = storage_path("app/backups/{$filename}");
 
         if (File::exists($path)) {

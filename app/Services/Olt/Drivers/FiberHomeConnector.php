@@ -21,11 +21,11 @@ class FiberHomeConnector implements OltConnector
         $this->port = $port;
 
         try {
-            $this->ssh = new SSH2($host, $port, 10);
+            $this->ssh = new SSH2($host, $port, 20);
             if (! $this->ssh->login($username, $password)) {
                 throw new Exception('SSH login failed');
             }
-            $this->ssh->setTimeout(10);
+            $this->ssh->setTimeout(20);
 
             return true;
         } catch (Exception $e) {
@@ -99,7 +99,10 @@ class FiberHomeConnector implements OltConnector
     {
         try {
             $parts = explode('/', $onuId);
-            $output = $this->execCommand("show ont info slot {$parts[0]} port {$parts[1]} ont {$parts[2]}");
+            $slot = $parts[0] ?? 0;
+            $port = $parts[1] ?? 0;
+            $idx = $parts[2] ?? 0;
+            $output = $this->execCommand("show ont info slot {$slot} port {$port} ont {$idx}");
 
             return ['raw' => $output, 'onu_id' => $onuId];
         } catch (Exception $e) {
@@ -126,7 +129,10 @@ class FiberHomeConnector implements OltConnector
     {
         try {
             $parts = explode('/', $onuId);
-            $this->execCommand("ont delete slot {$parts[0]} port {$parts[1]} ont {$parts[2]}");
+            $slot = $parts[0] ?? 0;
+            $port = $parts[1] ?? 0;
+            $idx = $parts[2] ?? 0;
+            $this->execCommand("ont delete slot {$slot} port {$port} ont {$idx}");
 
             return ['success' => true, 'message' => "ONU {$onuId} berhasil dihapus"];
         } catch (Exception $e) {
@@ -138,7 +144,10 @@ class FiberHomeConnector implements OltConnector
     {
         try {
             $parts = explode('/', $onuId);
-            $this->execCommand("ont reset slot {$parts[0]} port {$parts[1]} ont {$parts[2]}");
+            $slot = $parts[0] ?? 0;
+            $port = $parts[1] ?? 0;
+            $idx = $parts[2] ?? 0;
+            $this->execCommand("ont reset slot {$slot} port {$port} ont {$idx}");
 
             return ['success' => true, 'message' => "ONU {$onuId} berhasil direboot"];
         } catch (Exception $e) {
@@ -161,7 +170,10 @@ class FiberHomeConnector implements OltConnector
     {
         try {
             $parts = explode('/', $onuId);
-            $output = $this->execCommand("show ont optic slot {$parts[0]} port {$parts[1]} ont {$parts[2]}");
+            $slot = $parts[0] ?? 0;
+            $port = $parts[1] ?? 0;
+            $idx = $parts[2] ?? 0;
+            $output = $this->execCommand("show ont optic slot {$slot} port {$port} ont {$idx}");
             $rx = null;
             $tx = null;
 

@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\ActivityLog;
 use App\Models\Odc;
+use App\Models\Odp;
 use App\Models\OdpPoint;
+use App\Models\OdpPort;
 use App\Models\OdpRoute;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -15,21 +17,38 @@ class DistributionController extends Controller
     {
         $odps = OdpPoint::with('customers', 'route')->get();
         $routes = OdpRoute::with('odc', 'points')->get();
-        $odcs = Odc::withCount('routes')->orderBy('name')->get();
+        $odcs = Odc::withCount(['routes', 'odps'])->orderBy('nama_odc')->get();
 
-        $totalPorts = $odps->sum('port_capacity');
-        $usedPorts = $odps->sum(fn ($o) => $o->customers->count());
+        $newOdps = Odp::with('ports', 'odc')->get();
+        $newOdpsJson = $newOdps->map(fn ($o) => [
+            'id' => $o->id,
+            'odc_id' => $o->odc_id,
+            'name' => $o->nama_odp,
+            'latitude' => $o->latitude,
+            'longitude' => $o->longitude,
+            'port_capacity' => (int) $o->kapasitas_port,
+            'used' => $o->usedPortsCount(),
+            'address' => $o->odc?->nama_odc,
+            'kondisi_jalur' => $o->kondisi_jalur,
+            'customers' => $o->customers()->pluck('name')->toArray(),
+            'onu_total' => (int) $o->customers()->whereHas('onus')->count(),
+            'onu_online' => (int) $o->customers()->whereHas('onus', fn ($q) => $q->where('status', 'online'))->count(),
+        ]);
+
+        $totalPorts = $newOdps->sum('kapasitas_port');
+        $usedPorts = $newOdps->sum(fn ($o) => $o->usedPortsCount());
         $availablePorts = $totalPorts - $usedPorts;
-        $totalOdps = $odps->count();
-        $fullOdps = $odps->filter(fn ($o) => $o->customers->count() >= $o->port_capacity)->count();
+        $totalOdps = $newOdps->count();
+        $fullOdps = $newOdps->filter(fn ($o) => $o->availablePortsCount() === 0)->count();
+        $downOdps = $newOdps->filter(fn ($o) => $o->kondisi_jalur === 'DOWN_LINK_FAILURE')->count();
 
-        $chartLabels = $odps->pluck('name');
-        $chartUsed = $odps->map(fn ($o) => $o->customers->count());
-        $chartCapacity = $odps->pluck('port_capacity');
+        $chartLabels = $newOdps->pluck('nama_odp');
+        $chartUsed = $newOdps->map(fn ($o) => $o->usedPortsCount());
+        $chartCapacity = $newOdps->pluck('kapasitas_port');
 
         return view('distribution.index', compact(
-            'odps', 'routes', 'odcs',
-            'totalPorts', 'usedPorts', 'availablePorts', 'totalOdps', 'fullOdps',
+            'odps', 'routes', 'odcs', 'newOdps', 'newOdpsJson',
+            'totalPorts', 'usedPorts', 'availablePorts', 'totalOdps', 'fullOdps', 'downOdps',
             'chartLabels', 'chartUsed', 'chartCapacity'
         ));
     }
@@ -37,18 +56,18 @@ class DistributionController extends Controller
     public function storeOdc(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:odcs,name',
-            'address' => 'nullable|string|max:255',
-            'latitude' => 'nullable|numeric|between:-90,90',
-            'longitude' => 'nullable|numeric|between:-180,180',
-            'status' => 'required|in:active,maintenance,inactive',
-            'capacity' => 'required|integer|min:0|max:1024',
-            'notes' => 'nullable|string|max:1000',
+            'nama_odc' => 'required|string|max:255|unique:odcs,nama_odc',
+            'koordinat' => 'nullable|string|max:255',
+            'kapasitas_port' => 'required|integer|in:4,8,16',
         ]);
 
         $odc = Odc::create($validated);
 
-        ActivityLog::log('Tambah ODC', 'Menambahkan ODC: '.$odc->name);
+        for ($i = 1; $i <= $odc->kapasitas_port; $i++) {
+            $odc->ports()->create(['port_number' => $i, 'port_type' => 'outlet', 'status' => 'available']);
+        }
+
+        ActivityLog::log('Tambah ODC', 'Menambahkan ODC: '.$odc->nama_odc);
 
         return back()->with('success', 'ODC berhasil ditambahkan.');
     }
@@ -56,36 +75,58 @@ class DistributionController extends Controller
     public function updateOdc(Request $request, Odc $odc)
     {
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255', Rule::unique('odcs', 'name')->ignore($odc)],
-            'address' => 'nullable|string|max:255',
-            'latitude' => 'nullable|numeric|between:-90,90',
-            'longitude' => 'nullable|numeric|between:-180,180',
-            'status' => 'required|in:active,maintenance,inactive',
-            'capacity' => 'required|integer|min:0|max:1024',
-            'notes' => 'nullable|string|max:1000',
+            'nama_odc' => ['required', 'string', 'max:255', Rule::unique('odcs', 'nama_odc')->ignore($odc)],
+            'koordinat' => 'nullable|string|max:255',
+            'kapasitas_port' => 'required|integer|in:4,8,16',
         ]);
 
         $odc->update($validated);
 
-        ActivityLog::log('Ubah ODC', 'Mengubah ODC: '.$odc->name);
+        ActivityLog::log('Ubah ODC', 'Mengubah ODC: '.$odc->nama_odc);
 
         return back()->with('success', 'ODC berhasil diperbarui.');
     }
 
     public function destroyOdc(Odc $odc)
     {
-        if ($odc->routes()->exists()) {
-            ActivityLog::log('Gagal Hapus ODC', 'ODC '.$odc->name.' masih memiliki route ODP');
+        $usedCount = $odc->odps()->count();
+        if ($usedCount > 0) {
+            ActivityLog::log('Gagal Hapus ODC', 'ODC '.$odc->nama_odc.' masih memiliki '.$usedCount.' ODP');
 
-            return back()->with('error', 'ODC tidak bisa dihapus karena masih memiliki route ODP.');
+            return back()->with('error', 'ODC tidak bisa dihapus karena masih memiliki ODP.');
         }
 
-        $name = $odc->name;
+        $name = $odc->nama_odc;
         $odc->delete();
 
         ActivityLog::log('Hapus ODC', 'Menghapus ODC: '.$name);
 
         return back()->with('success', 'ODC berhasil dihapus.');
+    }
+
+    public function storeOdp(Request $request)
+    {
+        $validated = $request->validate([
+            'tenant_id' => 'nullable|exists:tenants,id',
+            'odc_id' => 'nullable|exists:odcs,id',
+            'nama_odp' => 'required|string|max:255|unique:odps,nama_odp',
+            'koordinat' => 'nullable|string|max:255',
+            'kapasitas_port' => 'required|integer|in:8,16',
+            'kabel_tube_color' => 'required|string',
+            'kabel_core_number' => 'required|integer|min:1',
+        ]);
+
+        $validated['tenant_id'] = auth()->user()?->tenant_id;
+
+        $odp = Odp::create($validated);
+
+        for ($i = 1; $i <= $odp->kapasitas_port; $i++) {
+            OdpPort::create(['odp_id' => $odp->id, 'port_number' => $i, 'status' => 'available']);
+        }
+
+        ActivityLog::log('Tambah ODP', 'Menambahkan ODP: '.$odp->nama_odp);
+
+        return back()->with('success', 'ODP berhasil ditambahkan.');
     }
 
     public function storeRoute(Request $request)

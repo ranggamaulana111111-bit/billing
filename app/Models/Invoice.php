@@ -2,15 +2,15 @@
 
 namespace App\Models;
 
-use App\Models\Traits\BelongsToUser;
+use App\Models\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Invoice extends Model
 {
-    use BelongsToUser, HasFactory;
+    use BelongsToTenant, HasFactory;
 
-    protected $fillable = ['user_id', 'invoice_code', 'customer_id', 'amount', 'payment_status', 'paid_at', 'payment_method', 'midtrans_order_id'];
+    protected $fillable = ['tenant_id', 'invoice_code', 'customer_id', 'amount', 'payment_status', 'paid_at', 'payment_method', 'midtrans_order_id'];
 
     protected function casts(): array
     {

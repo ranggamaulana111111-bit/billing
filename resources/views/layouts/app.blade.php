@@ -56,6 +56,8 @@
             </div>
 
             <div class="sidebar-menu">
+                @if(auth()->user()->role === 'admin')
+                {{-- ADMIN SIDEBAR — full system --}}
                 <ul class="list-unstyled components mt-2">
                     <p>Dasbor Utama</p>
                     <li class="{{ request()->routeIs('dashboard') ? 'active' : '' }}">
@@ -110,10 +112,53 @@
                     <li class="{{ request()->routeIs('onu.search') ? 'active' : '' }}">
                         <a href="{{ route('onu.search') }}"><i class="fa-solid fa-search"></i><span>Cari ONU</span></a>
                     </li>
-                    <li class="{{ request()->routeIs('settings.*') ? 'active' : '' }}">
+                    <li class="{{ request()->routeIs('settings.users*') ? 'active' : '' }}">
+                        <a href="{{ route('settings.users') }}"><i class="fa-solid fa-user-shield"></i><span>Kelola Akun</span></a>
+                    </li>
+                    <li class="{{ request()->routeIs('settings.*') && !request()->routeIs('settings.users*') ? 'active' : '' }}">
                         <a href="{{ route('settings.index') }}"><i class="fa-solid fa-gear"></i><span>Pengaturan</span></a>
                     </li>
                 </ul>
+                @else
+                {{-- TEKNISI SIDEBAR — monitoring only --}}
+                <ul class="list-unstyled components mt-2">
+                    <p>Monitoring</p>
+                    <li class="{{ request()->routeIs('dashboard.teknisi') ? 'active' : '' }}">
+                        <a href="{{ route('dashboard.teknisi') }}"><i class="fa-solid fa-gauge-high"></i><span>Dasbor</span></a>
+                    </li>
+                    <li class="{{ request()->routeIs('mikrotik.*') ? 'active' : '' }}">
+                        <a href="{{ route('mikrotik.dashboard') }}"><i class="fa-solid fa-router"></i><span>Monitor MikroTik</span></a>
+                    </li>
+                    <li class="{{ request()->routeIs('monitoring.*') ? 'active' : '' }}">
+                        <a href="{{ route('monitoring.index') }}"><i class="fa-solid fa-chart-line"></i><span>Monitoring BW</span></a>
+                    </li>
+                    <li class="{{ request()->routeIs('olt.monitoring') ? 'active' : '' }}">
+                        <a href="{{ route('olt.monitoring') }}"><i class="fa-solid fa-tower-broadcast"></i><span>Monitor Gangguan</span></a>
+                    </li>
+
+                    <p>Infrastruktur</p>
+                    <li class="{{ request()->routeIs('olt.*') && !request()->routeIs('olt.monitoring') && !request()->routeIs('olt.map') ? 'active' : '' }}">
+                        <a href="{{ route('olt.index') }}"><i class="fa-solid fa-tower-cell"></i><span>OLT</span></a>
+                    </li>
+                    <li class="{{ request()->routeIs('olt.map') ? 'active' : '' }}">
+                        <a href="{{ route('olt.map') }}"><i class="fa-solid fa-map-location-dot"></i><span>Map OLT</span></a>
+                    </li>
+                    <li class="{{ request()->routeIs('onu.search') ? 'active' : '' }}">
+                        <a href="{{ route('onu.search') }}"><i class="fa-solid fa-search"></i><span>Cari ONU</span></a>
+                    </li>
+                    <li class="{{ request()->routeIs('distribution.*') ? 'active' : '' }}">
+                        <a href="{{ route('distribution.index') }}"><i class="fa-solid fa-map-location-dot"></i><span>Distribusi ODP</span></a>
+                    </li>
+
+                    <p>Lainnya</p>
+                    <li class="{{ request()->routeIs('logs.*') ? 'active' : '' }}">
+                        <a href="{{ route('logs.index') }}"><i class="fa-solid fa-terminal"></i><span>Log Sistem</span></a>
+                    </li>
+                    <li class="{{ request()->routeIs('vouchers.*') || request()->routeIs('vouchers.public.*') ? 'active' : '' }}">
+                        <a href="{{ route('vouchers.index') }}"><i class="fa-solid fa-ticket"></i><span>Voucher WiFi</span></a>
+                    </li>
+                </ul>
+                @endif
             </div>
 
             <div class="sidebar-footer">

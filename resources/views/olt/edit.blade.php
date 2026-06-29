@@ -72,6 +72,35 @@
                     <input type="password" name="password" class="form-control">
                 </div>
 
+                <div class="col-12">
+                    <hr>
+                    <h6 class="fw-bold mb-0">
+                        <i class="fa-solid fa-arrow-right-arrow-left me-1"></i>
+                        Tunnel via Jump Host
+                        <small class="text-muted fw-normal">(opsional — jika OLT tidak reachable langsung)</small>
+                    </h6>
+                    <p class="text-muted small mb-2 mt-1">
+                        Isi dengan IP MikroTik (<code>{{ \App\Models\Setting::get('mikrotik_host', '(belum diset)') }}</code>) untuk menggunakan <strong>proxy SSH via API MikroTik</strong>.
+                        Isi dengan IP server lain jika ingin SSH tunnel langsung.
+                    </p>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Jump Host IP</label>
+                    <input type="text" name="jump_host" class="form-control" value="{{ old('jump_host', $olt->jump_host) }}" placeholder="IP server perantara">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">SSH Port</label>
+                    <input type="number" name="jump_port" class="form-control" value="{{ old('jump_port', $olt->jump_port) }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Username</label>
+                    <input type="text" name="jump_username" class="form-control" value="{{ old('jump_username', $olt->jump_username) }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Password (kosongkan jika tidak diubah)</label>
+                    <input type="password" name="jump_password" class="form-control">
+                </div>
+
                 <div class="col-md-3">
                     <label class="form-label">SNMP Community</label>
                     <input type="text" name="snmp_community" class="form-control" value="{{ old('snmp_community', $olt->snmp_community) }}">

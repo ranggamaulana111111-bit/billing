@@ -41,7 +41,21 @@ class InvoiceController extends Controller
 
         $invoices = $query->paginate(20)->withQueryString();
 
-        return view('invoices.index', compact('invoices'));
+        $customerPaidMonths = [];
+        $customerIds = $invoices->pluck('customer_id')->unique()->filter()->toArray();
+        if (! empty($customerIds)) {
+            $paidData = Invoice::whereIn('customer_id', $customerIds)
+                ->where('payment_status', 'paid')
+                ->selectRaw('customer_id, DATE_FORMAT(created_at, "%Y-%m") as ym')
+                ->distinct()
+                ->get()
+                ->groupBy('customer_id')
+                ->map(fn ($items) => $items->pluck('ym')->toArray())
+                ->toArray();
+            $customerPaidMonths = $paidData;
+        }
+
+        return view('invoices.index', compact('invoices', 'customerPaidMonths'));
     }
 
     public function create()
@@ -131,6 +145,13 @@ class InvoiceController extends Controller
         $settings = Setting::pluck('value', 'key')->toArray();
 
         return view('invoices.print', compact('invoice', 'settings'));
+    }
+
+    public function printThermal(Invoice $invoice)
+    {
+        $settings = Setting::pluck('value', 'key')->toArray();
+
+        return view('invoices.print-thermal', compact('invoice', 'settings'));
     }
 
     public function sendReminder(Invoice $invoice)

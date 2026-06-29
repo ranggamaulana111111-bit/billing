@@ -6,6 +6,7 @@ use App\Models\ActivityLog;
 use App\Models\Invoice;
 use App\Services\MidtransService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class MidtransController extends Controller
 {
@@ -69,16 +70,30 @@ class MidtransController extends Controller
             return response('OK', 200);
         }
 
-        $invoice = Invoice::allUsers()->where('midtrans_order_id', $orderId)->first();
+        $invoice = Invoice::allTenants()->where('midtrans_order_id', $orderId)->first();
 
         if (! $invoice) {
             return response('OK', 200);
         }
 
-        $midtrans = new MidtransService($invoice->user_id);
+        // Idempotensi: jika sudah paid, potong langsung
+        if ($invoice->payment_status === 'paid') {
+            return response('OK', 200);
+        }
+
+        $midtrans = new MidtransService($invoice->tenant_id);
 
         if (! $midtrans->isConfigured()) {
             return response('Midtrans not configured', 500);
+        }
+
+        // Verifikasi signature_key SHA512 (Midtrans keamanan)
+        $serverKey = config('services.midtrans.server_key') ?: $midtrans->getServerKey();
+        $signature = $data['signature_key'] ?? '';
+        $expectedSignature = hash('sha512', $orderId.$data['status_code'].$data['gross_amount'].$serverKey);
+
+        if (! hash_equals($expectedSignature, $signature)) {
+            return response('Invalid signature', 403);
         }
 
         $notif = $midtrans->handleNotification();
@@ -87,17 +102,15 @@ class MidtransController extends Controller
             return response('OK', 200);
         }
 
-        if ($invoice['payment_status'] === 'paid') {
-            return response('OK', 200);
-        }
+        DB::transaction(function () use ($invoice) {
+            $invoice->update([
+                'payment_status' => 'paid',
+                'paid_at' => now(),
+                'payment_method' => 'midtrans',
+            ]);
 
-        $invoice->update([
-            'payment_status' => 'paid',
-            'paid_at' => now(),
-            'payment_method' => 'midtrans',
-        ]);
-
-        ActivityLog::log('Pembayaran Online', 'Pembayaran via Midtrans: '.$invoice->invoice_code.' - Rp '.number_format($invoice->amount, 0, ',', '.'));
+            ActivityLog::log('Pembayaran Online', 'Pembayaran via Midtrans: '.$invoice->invoice_code.' - Rp '.number_format($invoice->amount, 0, ',', '.'));
+        });
 
         return response('OK', 200);
     }
@@ -106,7 +119,7 @@ class MidtransController extends Controller
     {
         $orderId = $request->get('order_id');
 
-        $invoice = Invoice::allUsers()->where('midtrans_order_id', $orderId)->first();
+        $invoice = Invoice::allTenants()->where('midtrans_order_id', $orderId)->first();
 
         if ($invoice && $invoice->payment_status === 'paid') {
             return redirect()->route('invoices.index')->with('success', 'Pembayaran via Midtrans berhasil!');

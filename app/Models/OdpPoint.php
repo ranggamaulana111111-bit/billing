@@ -2,15 +2,15 @@
 
 namespace App\Models;
 
-use App\Models\Traits\BelongsToUser;
+use App\Models\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 
 class OdpPoint extends Model
 {
-    use BelongsToUser;
+    use BelongsToTenant;
 
     protected $fillable = [
-        'user_id', 'odp_route_id', 'name', 'address',
+        'tenant_id', 'odp_route_id', 'name', 'address',
         'latitude', 'longitude', 'status',
         'port_capacity', 'port_used',
     ];

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\ActivityLog;
 use App\Models\Customer;
 use App\Models\Invoice;
+use App\Models\Odp;
 use App\Models\OdpPoint;
 use App\Models\OdpRoute;
 use App\Models\Package;
@@ -105,11 +106,21 @@ class DashboardController extends Controller
             ->get();
         $activityLogs = ActivityLog::latest()->take(5)->get();
 
+        $newOdps = Odp::with('ports', 'odc')->get()->map(fn ($o) => [
+            'id' => $o->id,
+            'name' => $o->nama_odp,
+            'latitude' => $o->latitude,
+            'longitude' => $o->longitude,
+            'port_capacity' => (int) $o->kapasitas_port,
+            'used' => $o->usedPortsCount(),
+            'address' => $o->odc?->nama_odc,
+        ]);
+
         return view('dashboard', compact(
             'totalCustomers', 'activeCustomers', 'suspendedCustomers', 'inactiveCustomers',
             'totalRoutes', 'totalPoints', 'totalCapacity', 'totalUsed',
             'summary', 'todayRevenue',
-            'packages', 'odps', 'customers',
+            'packages', 'odps', 'newOdps', 'customers',
             'unpaidInvoices', 'paidInvoices', 'activityLogs',
             'months', 'monthlyRevenue', 'totalInvoices', 'paidCount', 'unpaidCount',
             'paymentMethods', 'packageDistribution', 'overdueCount', 'monthUnpaid',

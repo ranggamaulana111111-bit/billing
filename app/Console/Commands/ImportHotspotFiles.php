@@ -8,6 +8,7 @@ use Illuminate\Console\Command;
 class ImportHotspotFiles extends Command
 {
     protected $signature = 'hotspot:import {--name=Default : Nama template}';
+
     protected $description = 'Import file hotspot dari public/hotspot/ ke database';
 
     public function handle(): int
@@ -15,6 +16,7 @@ class ImportHotspotFiles extends Command
         $hotspotDir = public_path('hotspot');
         if (! is_dir($hotspotDir)) {
             $this->error('Directory public/hotspot/ tidak ditemukan.');
+
             return Command::FAILURE;
         }
 
@@ -30,7 +32,7 @@ class ImportHotspotFiles extends Command
         $data = ['name' => $this->option('name'), 'is_active' => true];
 
         foreach ($map as $filename => $attribute) {
-            $path = $hotspotDir . DIRECTORY_SEPARATOR . $filename;
+            $path = $hotspotDir.DIRECTORY_SEPARATOR.$filename;
             if (file_exists($path)) {
                 $data[$attribute] = file_get_contents($path);
                 $this->info("  Import {$filename}");

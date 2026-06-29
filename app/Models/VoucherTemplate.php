@@ -2,16 +2,16 @@
 
 namespace App\Models;
 
-use App\Models\Traits\BelongsToUser;
+use App\Models\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Log;
 
 class VoucherTemplate extends Model
 {
-    use BelongsToUser;
+    use BelongsToTenant;
 
     protected $fillable = [
-        'user_id', 'name', 'content', 'status_page', 'redirect_page', 'error_page', 'alive_page', 'logout_page', 'is_active',
+        'tenant_id', 'name', 'content', 'status_page', 'redirect_page', 'error_page', 'alive_page', 'logout_page', 'is_active',
     ];
 
     protected function casts(): array
@@ -39,12 +39,8 @@ class VoucherTemplate extends Model
         return $this->hasMany(Voucher::class, 'voucher_template_id');
     }
 
-    protected static function booted(): void
-    {
-        static::saved(function (self $template) {
-            $template->writeFiles();
-        });
-    }
+    // writeFiles() tidak dipanggil otomatis — Vercel readonly filesystem
+    // File hotspot disajikan langsung dari database via route dinamis
 
     public function writeFiles(): void
     {
@@ -64,13 +60,14 @@ class VoucherTemplate extends Model
         }
 
         foreach ($map as $attribute => $filename) {
-            $path = $hotspotDir . DIRECTORY_SEPARATOR . $filename;
+            $path = $hotspotDir.DIRECTORY_SEPARATOR.$filename;
             $content = $this->{$attribute};
 
             if (is_null($content) || trim($content) === '') {
                 if (file_exists($path)) {
                     unlink($path);
                 }
+
                 continue;
             }
 

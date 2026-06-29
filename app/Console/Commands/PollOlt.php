@@ -31,14 +31,9 @@ class PollOlt extends Command
         $dispatched = 0;
 
         foreach ($olts as $olt) {
-            if ($this->option('queue')) {
-                PollOltJob::dispatch($olt);
-                $this->line("Dispatched job for {$olt->name} ({$olt->ip_address})");
-            } else {
-                PollOltJob::dispatchSync($olt);
-                $this->line("Processed {$olt->name} ({$olt->ip_address})");
-            }
-
+            // Selalu dispatch ke queue — sync tidak aman untuk serverless
+            PollOltJob::dispatch($olt);
+            $this->line("Dispatched job for {$olt->name} ({$olt->ip_address})");
             $dispatched++;
         }
 

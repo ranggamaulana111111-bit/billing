@@ -50,12 +50,8 @@
         @foreach($vouchers as $voucher)
             <div class="col-md-6 col-lg-4">
                 <div class="voucher-card">
-                    @php
-                        $qrData = urlencode("{$voucher->username}|{$voucher->password}");
-                        $qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={$qrData}";
-                    @endphp
                     <div class="mb-2">
-                        <img src="{{ $qrUrl }}" alt="QR" style="width:100px;height:100px;" class="img-fluid">
+                        {!! QrCode::size(100)->generate("{$voucher->username}|{$voucher->password}") !!}
                     </div>
                     <h5 class="fw-bold mb-1">{{ $company }}</h5>
                     <p class="text-muted small mb-2">{{ $profile->name }}</p>

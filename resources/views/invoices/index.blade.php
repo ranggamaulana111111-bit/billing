@@ -83,7 +83,7 @@
                         <th>Invoice</th>
                         <th>Pelanggan</th>
                         <th>Paket</th>
-                        <th>Tgl</th>
+                        <th>Periode</th>
                         <th class="text-end">Total</th>
                         <th class="text-center">Status</th>
                         <th class="text-center">Aksi</th>
@@ -97,9 +97,19 @@
                                     {{ $inv->invoice_code }}
                                 </span>
                             </td>
-                            <td class="fw-medium">{{ $inv->customer->name ?? '-' }}</td>
+                            <td class="fw-medium">
+                                {{ $inv->customer->name ?? '-' }}
+                                @if($inv->customer && !empty($customerPaidMonths[$inv->customer_id]))
+                                    <div style="font-size:0.7rem;color:#64748b;margin-top:2px;">
+                                        @foreach($customerPaidMonths[$inv->customer_id] as $ym)
+                                            @php $monthName = \Carbon\Carbon::createFromFormat('Y-m', $ym)->format('M'); @endphp
+                                            <span title="Lunas {{ \Carbon\Carbon::createFromFormat('Y-m', $ym)->format('F Y') }}" style="display:inline-block;background:#f0fdf4;color:#059669;padding:0 6px;border-radius:4px;margin-right:2px;">{{ $monthName }}</span>
+                                        @endforeach
+                                    </div>
+                                @endif
+                            </td>
                             <td>{{ $inv->customer->package->name ?? '-' }}</td>
-                            <td style="font-size:0.8rem;">{{ $inv->created_at->format('d/m/Y') }}</td>
+                            <td style="font-size:0.8rem;">{{ $inv->created_at->format('M Y') }}</td>
                             <td class="fw-bold text-end">Rp{{ number_format($inv->amount, 0, ',', '.') }}</td>
                             <td class="text-center">
                                 @if($inv->payment_status === 'paid')
@@ -114,8 +124,11 @@
                             </td>
                             <td>
                                 <div class="d-flex justify-content-center gap-1 flex-wrap" style="min-width:130px;">
-                                    <a href="{{ route('invoice.print', $inv->id) }}" class="btn btn-sm btn-outline-secondary px-2" title="Cetak" target="_blank">
+                                    <a href="{{ route('invoice.print', $inv->id) }}" class="btn btn-sm btn-outline-secondary px-2" title="Cetak A4" target="_blank">
                                         <i class="fa-solid fa-print"></i>
+                                    </a>
+                                    <a href="{{ route('invoice.print-thermal', $inv->id) }}" class="btn btn-sm btn-outline-dark px-2" title="Cetak Thermal 58mm" target="_blank">
+                                        <i class="fa-solid fa-receipt"></i>
                                     </a>
                                     <a href="{{ route('invoice.pdf', $inv->id) }}" class="btn btn-sm btn-outline-danger px-2" title="Download PDF">
                                         <i class="fa-solid fa-file-pdf"></i>

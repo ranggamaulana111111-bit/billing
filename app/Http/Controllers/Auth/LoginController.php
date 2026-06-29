@@ -25,7 +25,9 @@ class LoginController extends Controller
             $request->session()->regenerate();
             ActivityLog::log('Login', 'User '.Auth::user()->email.' masuk');
 
-            return redirect()->intended('/dashboard');
+            $dashboard = Auth::user()->role === 'teknisi' ? '/teknisi/dashboard' : '/dashboard';
+
+            return redirect()->intended($dashboard);
         }
 
         return back()->withErrors([

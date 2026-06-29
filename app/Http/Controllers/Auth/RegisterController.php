@@ -30,10 +30,12 @@ class RegisterController extends Controller
             'password' => Hash::make($data['password']),
         ]);
 
-        Auth::login($user);
+        Auth::login($user->fresh());
 
         ActivityLog::log('Register', 'User '.$user->email.' terdaftar dan masuk');
 
-        return redirect('/dashboard');
+        $dashboard = auth()->user()->role === 'teknisi' ? '/teknisi/dashboard' : '/dashboard';
+
+        return redirect($dashboard);
     }
 }

@@ -3,12 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\ActivityLog;
-use App\Models\MikrotikRouter;
 use App\Models\Setting;
 use App\Models\Voucher;
 use App\Models\VoucherProfile;
 use App\Models\VoucherTemplate;
-use App\Services\MikrotikService;
 use Illuminate\Http\Request;
 
 class PublicVoucherController extends Controller

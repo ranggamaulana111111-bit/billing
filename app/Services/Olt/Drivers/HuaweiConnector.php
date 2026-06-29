@@ -21,11 +21,11 @@ class HuaweiConnector implements OltConnector
         $this->port = $port;
 
         try {
-            $this->ssh = new SSH2($host, $port, 10);
+            $this->ssh = new SSH2($host, $port, 20);
             if (! $this->ssh->login($username, $password)) {
                 throw new Exception('SSH login failed');
             }
-            $this->ssh->setTimeout(10);
+            $this->ssh->setTimeout(20);
             $this->enterEnableMode();
 
             return true;
@@ -110,7 +110,10 @@ class HuaweiConnector implements OltConnector
     {
         try {
             $parts = explode('/', $onuId);
-            $cmd = "display ont info {$parts[0]} {$parts[1]} {$parts[2]}";
+            $slot = $parts[0] ?? 0;
+            $port = $parts[1] ?? 0;
+            $idx = $parts[2] ?? 0;
+            $cmd = "display ont info {$slot} {$port} {$idx}";
             $output = $this->execCommand($cmd);
 
             return [
@@ -151,8 +154,11 @@ class HuaweiConnector implements OltConnector
     {
         try {
             $parts = explode('/', $onuId);
-            $this->execCommand("interface gpon {$parts[0]}/{$parts[1]}");
-            $this->execCommand("ont delete {$parts[2]}");
+            $slot = $parts[0] ?? 0;
+            $port = $parts[1] ?? 0;
+            $idx = $parts[2] ?? 0;
+            $this->execCommand("interface gpon {$slot}/{$port}");
+            $this->execCommand("ont delete {$idx}");
 
             return ['success' => true, 'message' => "ONU {$onuId} berhasil dihapus"];
         } catch (Exception $e) {
@@ -164,8 +170,11 @@ class HuaweiConnector implements OltConnector
     {
         try {
             $parts = explode('/', $onuId);
-            $this->execCommand("interface gpon {$parts[0]}/{$parts[1]}");
-            $this->execCommand("ont reset {$parts[2]}");
+            $slot = $parts[0] ?? 0;
+            $port = $parts[1] ?? 0;
+            $idx = $parts[2] ?? 0;
+            $this->execCommand("interface gpon {$slot}/{$port}");
+            $this->execCommand("ont reset {$idx}");
 
             return ['success' => true, 'message' => "ONU {$onuId} berhasil direboot"];
         } catch (Exception $e) {
@@ -188,7 +197,10 @@ class HuaweiConnector implements OltConnector
     {
         try {
             $parts = explode('/', $onuId);
-            $output = $this->execCommand("display ont optical-info {$parts[0]} {$parts[1]} {$parts[2]}");
+            $slot = $parts[0] ?? 0;
+            $port = $parts[1] ?? 0;
+            $idx = $parts[2] ?? 0;
+            $output = $this->execCommand("display ont optical-info {$slot} {$port} {$idx}");
             $rx = null;
             $tx = null;
 

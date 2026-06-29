@@ -2,15 +2,15 @@
 
 namespace App\Models;
 
-use App\Models\Traits\BelongsToUser;
+use App\Models\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 
 class ActivityLog extends Model
 {
-    use BelongsToUser;
+    use BelongsToTenant;
 
-    protected $fillable = ['user_id', 'action', 'details'];
+    protected $fillable = ['tenant_id', 'user_id', 'action', 'details'];
 
     public function user()
     {

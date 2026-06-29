@@ -23,11 +23,11 @@ class CDataConnector implements OltConnector
         $this->port = $port;
 
         try {
-            $this->ssh = new SSH2($host, $port, 10);
+            $this->ssh = new SSH2($host, $port, 20);
             if (! $this->ssh->login($username, $password)) {
                 throw new Exception('SSH login failed');
             }
-            $this->ssh->setTimeout(10);
+            $this->ssh->setTimeout(20);
             $this->ssh->read($this->prompt, SSH2::READ_REGEX);
             $this->enterPrivilegedMode();
 
@@ -50,13 +50,13 @@ class CDataConnector implements OltConnector
     public function testConnection(): array
     {
         try {
-            $info = $this->sendCommand('show version');
+            $version = $this->sendCommand('show version');
 
             return [
                 'success' => true,
                 'message' => 'Terhubung ke C-Data OLT',
                 'data' => [
-                    'version' => $this->parseLine($info, 'Firmware version'),
+                    'version' => $this->parseLine($version, 'Firmware version'),
                 ],
             ];
         } catch (Exception $e) {
@@ -85,16 +85,32 @@ class CDataConnector implements OltConnector
     {
         try {
             $output = $this->sendCommand("show ont info slot {$slot} port {$port}");
+
+            Log::debug("C-Data raw getOnuList({$slot}/{$port}): ".substr($output, 0, 2000));
+
             $onus = [];
 
             foreach (explode("\n", $output) as $line) {
-                if (preg_match('/^\s*(\d+)\s+(\S+)\s+(\S+)/', $line, $m)) {
+                $line = trim($line);
+                if ($line === '' || preg_match('/^[-=]+$/', $line) || stripos($line, 'onu id') !== false || stripos($line, 'sn') !== false) {
+                    continue;
+                }
+
+                if (preg_match('/^\s*(?:\d+[\s\/]\d+[\s\/]\d+\s+)?(\d+)\s+(\S+)(?:\s+(\S+))?(?:\s+(\S+))?/', $line, $m)) {
+                    $onuId = $m[1];
+                    $sn = $m[2];
+                    $status = $m[4] ?? $m[3] ?? 'unknown';
+
                     $onus[] = [
-                        'onu_id' => "{$slot}/{$port}/{$m[1]}",
-                        'sn' => $m[2],
-                        'status' => $m[3],
+                        'onu_id' => "{$slot}/{$port}/{$onuId}",
+                        'sn' => $sn,
+                        'status' => $status,
                     ];
                 }
+            }
+
+            if (empty($onus)) {
+                Log::warning("C-Data getOnuList({$slot}/{$port}) — 0 ONU parsed. Raw:\n".substr($output, 0, 1000));
             }
 
             return $onus;
@@ -109,7 +125,10 @@ class CDataConnector implements OltConnector
     {
         try {
             $parts = explode('/', $onuId);
-            $output = $this->sendCommand("show ont info slot {$parts[0]} port {$parts[1]} ont {$parts[2]}");
+            $slot = $parts[0] ?? 0;
+            $port = $parts[1] ?? 0;
+            $idx = $parts[2] ?? 0;
+            $output = $this->sendCommand("show ont info slot {$slot} port {$port} ont {$idx}");
 
             return [
                 'raw' => $output,
@@ -145,8 +164,11 @@ class CDataConnector implements OltConnector
     {
         try {
             $parts = explode('/', $onuId);
-            $this->sendCommand("interface gpon {$parts[0]}/{$parts[1]}");
-            $this->sendCommand("no ont add {$parts[2]}");
+            $slot = $parts[0] ?? 0;
+            $port = $parts[1] ?? 0;
+            $idx = $parts[2] ?? 0;
+            $this->sendCommand("interface gpon {$slot}/{$port}");
+            $this->sendCommand("no ont add {$idx}");
 
             return ['success' => true, 'message' => "ONU {$onuId} berhasil dihapus"];
         } catch (Exception $e) {
@@ -158,8 +180,11 @@ class CDataConnector implements OltConnector
     {
         try {
             $parts = explode('/', $onuId);
-            $this->sendCommand("interface gpon {$parts[0]}/{$parts[1]}");
-            $this->sendCommand("ont reset {$parts[2]}");
+            $slot = $parts[0] ?? 0;
+            $port = $parts[1] ?? 0;
+            $idx = $parts[2] ?? 0;
+            $this->sendCommand("interface gpon {$slot}/{$port}");
+            $this->sendCommand("ont reset {$idx}");
 
             return ['success' => true, 'message' => "ONU {$onuId} berhasil direboot"];
         } catch (Exception $e) {
@@ -182,7 +207,10 @@ class CDataConnector implements OltConnector
     {
         try {
             $parts = explode('/', $onuId);
-            $output = $this->sendCommand("show ont optical-info slot {$parts[0]} port {$parts[1]} ont {$parts[2]}");
+            $slot = $parts[0] ?? 0;
+            $port = $parts[1] ?? 0;
+            $idx = $parts[2] ?? 0;
+            $output = $this->sendCommand("show ont optical-info slot {$slot} port {$port} ont {$idx}");
             $rx = null;
             $tx = null;
 

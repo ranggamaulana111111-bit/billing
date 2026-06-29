@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Models\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 
 class Onu extends Model
 {
+    use BelongsToTenant;
+
     protected $fillable = [
-        'olt_port_id', 'customer_id', 'onu_id', 'serial_number',
+        'tenant_id', 'olt_port_id', 'customer_id', 'onu_id', 'serial_number', 'caller_id',
         'vendor', 'model', 'mac_address', 'status',
         'rx_power', 'tx_power', 'distance', 'uptime',
         'slot_number', 'port_number', 'notes', 'last_seen_at',

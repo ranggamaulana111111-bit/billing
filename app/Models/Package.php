@@ -2,15 +2,15 @@
 
 namespace App\Models;
 
-use App\Models\Traits\BelongsToUser;
+use App\Models\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Package extends Model
 {
-    use BelongsToUser, HasFactory;
+    use BelongsToTenant, HasFactory;
 
-    protected $fillable = ['user_id', 'name', 'speed', 'description', 'price', 'billing_cycle', 'mikrotik_profile', 'is_active'];
+    protected $fillable = ['tenant_id', 'name', 'speed', 'description', 'price', 'billing_cycle', 'mikrotik_profile', 'is_active'];
 
     protected function casts(): array
     {

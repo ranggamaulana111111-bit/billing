@@ -2,17 +2,17 @@
 
 namespace App\Models;
 
-use App\Models\Traits\BelongsToUser;
+use App\Models\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
 class Voucher extends Model
 {
-    use BelongsToUser, HasFactory;
+    use BelongsToTenant, HasFactory;
 
     protected $fillable = [
-        'user_id', 'voucher_profile_id', 'voucher_template_id', 'username', 'password', 'duration_hours',
+        'tenant_id', 'voucher_profile_id', 'voucher_template_id', 'username', 'password', 'duration_hours',
         'price', 'prefix', 'speed', 'quota_limit', 'validity_days', 'shared_users',
         'printed_count', 'downloaded', 'uploaded', 'total_traffic',
         'ip_address', 'mac_address', 'last_login_at', 'router_id',
@@ -54,10 +54,10 @@ class Voucher extends Model
 
         for ($i = 0; $i < $count; $i++) {
             $raw = strtoupper(Str::random($usernameLen));
-            $username = $prefix ? $prefix . $raw : $raw;
+            $username = $prefix ? $prefix.$raw : $raw;
             while (static::where('username', $username)->exists()) {
                 $raw = strtoupper(Str::random($usernameLen));
-                $username = $prefix ? $prefix . $raw : $raw;
+                $username = $prefix ? $prefix.$raw : $raw;
             }
 
             $password = $extra['password'] ?? Str::random($passwordLen);

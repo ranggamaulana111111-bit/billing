@@ -13,15 +13,19 @@ use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\LogController;
 use App\Http\Controllers\MidtransController;
 use App\Http\Controllers\MikrotikController;
+use App\Http\Controllers\MikrotikRouterController;
+use App\Http\Controllers\OdcController;
+use App\Http\Controllers\OdpController;
 use App\Http\Controllers\OltController;
 use App\Http\Controllers\PackageController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PortalController;
+use App\Http\Controllers\PublicVoucherController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\SitemapController;
-use App\Http\Controllers\MikrotikRouterController;
-use App\Http\Controllers\PublicVoucherController;
+use App\Http\Controllers\TeknisiController;
+use App\Http\Controllers\UserController;
 use App\Http\Controllers\VoucherController;
 use App\Http\Controllers\VoucherProfileController;
 use App\Http\Controllers\VoucherReportController;
@@ -64,15 +68,16 @@ Route::get('/portal/bayar/{invoice}', [PortalController::class, 'bayar'])->name(
 Route::get('/portal/finish', [PortalController::class, 'finish'])->name('portal.finish');
 
 // ── VOUCHER PUBLIC ──
-Route::get('/vouchers/public', [PublicVoucherController::class, 'index'])->name('vouchers.public');
+Route::get('/vouchers/public', [PublicVoucherController::class, 'index'])->name('vouchers.public.index');
 Route::post('/vouchers/public/generate', [PublicVoucherController::class, 'generate'])->name('vouchers.public.generate');
-Route::get('/vouchers/check', [PublicVoucherController::class, 'check'])->name('vouchers.check');
+Route::get('/vouchers/check', [PublicVoucherController::class, 'check'])->name('vouchers.public.check');
 Route::post('/vouchers/check-status', [PublicVoucherController::class, 'checkStatus'])->name('vouchers.check-status');
 
 // ── TEKNISI & ADMIN: all authenticated users ──
 Route::middleware(['auth', 'teknisi'])->group(function () {
 
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/teknisi/dashboard', [TeknisiController::class, 'dashboard'])->name('dashboard.teknisi');
 
     Route::get('/customers', [CustomerController::class, 'index'])->name('customers.index');
     Route::get('/customer/create', [CustomerController::class, 'create'])->name('customer.create');
@@ -82,6 +87,7 @@ Route::middleware(['auth', 'teknisi'])->group(function () {
     Route::delete('/customer/{customer}', [CustomerController::class, 'destroy'])->name('customer.destroy');
     Route::post('/customer/{customer}/suspend', [CustomerController::class, 'suspend'])->name('customer.suspend');
     Route::post('/customer/{customer}/activate', [CustomerController::class, 'activate'])->name('customer.activate');
+    Route::post('/customer/{customer}/sync-onu', [CustomerController::class, 'syncSingleOnu'])->name('customer.sync-single-onu');
 
     Route::get('/invoices', [InvoiceController::class, 'index'])->name('invoices.index');
     Route::get('/invoices/create', [InvoiceController::class, 'create'])->name('invoices.create');
@@ -91,6 +97,7 @@ Route::middleware(['auth', 'teknisi'])->group(function () {
     Route::delete('/invoice/{invoice}', [InvoiceController::class, 'destroy'])->name('invoice.destroy');
     Route::get('/invoice/paid/{invoice}', [InvoiceController::class, 'markPaid'])->name('invoice.paid');
     Route::get('/invoice/print/{invoice}', [InvoiceController::class, 'print'])->name('invoice.print');
+    Route::get('/invoice/print-thermal/{invoice}', [InvoiceController::class, 'printThermal'])->name('invoice.print-thermal');
     Route::get('/invoice/reminder/{invoice}', [InvoiceController::class, 'sendReminder'])->name('invoice.reminder');
     Route::get('/invoice/email-reminder/{invoice}', [InvoiceController::class, 'sendEmailReminder'])->name('invoice.email-reminder');
     Route::get('/invoice/email-payment/{invoice}', [InvoiceController::class, 'sendEmailPayment'])->name('invoice.email-payment');
@@ -119,6 +126,9 @@ Route::middleware(['auth', 'teknisi'])->group(function () {
     Route::get('/olts', [OltController::class, 'index'])->name('olt.index');
     Route::get('/olts/create', [OltController::class, 'create'])->name('olt.create');
     Route::post('/olts', [OltController::class, 'store'])->name('olt.store');
+    Route::get('/olts/map', [OltController::class, 'map'])->name('olt.map');
+    Route::get('/olts-monitoring', [OltController::class, 'monitoring'])->name('olt.monitoring');
+    Route::get('/olts/export', [OltController::class, 'exportOlt'])->name('olt.export');
     Route::get('/olts/{olt}', [OltController::class, 'show'])->name('olt.show');
     Route::get('/olts/{olt}/edit', [OltController::class, 'edit'])->name('olt.edit');
     Route::put('/olts/{olt}', [OltController::class, 'update'])->name('olt.update');
@@ -129,10 +139,8 @@ Route::middleware(['auth', 'teknisi'])->group(function () {
     Route::delete('/olts/{olt}/onu/{onu}', [OltController::class, 'removeOnu'])->name('olt.onu.remove');
     Route::post('/olts/{olt}/ports', [OltController::class, 'syncPorts'])->name('olt.ports.sync');
     Route::post('/onu/{onu}/link-customer', [OltController::class, 'linkCustomer'])->name('olt.onu.link');
-    Route::get('/olts-monitoring', [OltController::class, 'monitoring'])->name('olt.monitoring');
-    Route::get('/olts/map', [OltController::class, 'map'])->name('olt.map');
+    Route::post('/olts/{olt}/sync-mikrotik', [OltController::class, 'syncFromMikrotik'])->name('olt.sync-mikrotik');
     Route::get('/olts/{olt}/live', [OltController::class, 'liveData'])->name('olt.live');
-    Route::get('/olts/export', [OltController::class, 'exportOlt'])->name('olt.export');
     Route::get('/onus/export', [OltController::class, 'exportOnu'])->name('onu.export');
     Route::get('/onus/search', [OltController::class, 'searchOnu'])->name('onu.search');
 
@@ -159,6 +167,12 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/settings', [SettingController::class, 'index'])->name('settings.index');
     Route::post('/settings', [SettingController::class, 'update'])->name('settings.update');
     Route::get('/settings/test-mikrotik', [SettingController::class, 'testMikrotik'])->name('settings.test-mikrotik');
+
+    // ── USER MANAGEMENT ──
+    Route::get('/settings/users', [UserController::class, 'index'])->name('settings.users');
+    Route::post('/settings/users', [UserController::class, 'store'])->name('settings.users.store');
+    Route::put('/settings/users/{user}', [UserController::class, 'update'])->name('settings.users.update');
+    Route::delete('/settings/users/{user}', [UserController::class, 'destroy'])->name('settings.users.destroy');
 
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
 
@@ -192,6 +206,9 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::post('/distribution/points', [DistributionController::class, 'storePoint'])->name('distribution.points.store');
     Route::put('/distribution/points/{odpPoint}', [DistributionController::class, 'updatePoint'])->name('distribution.points.update');
     Route::delete('/distribution/points/{odpPoint}', [DistributionController::class, 'destroyPoint'])->name('distribution.points.destroy');
+    Route::post('/distribution/odps', [DistributionController::class, 'storeOdp'])->name('distribution.odps.store');
+    Route::get('/odc/{odc}', [OdcController::class, 'show'])->name('odc.show');
+    Route::get('/odp/{odp}', [OdpController::class, 'show'])->name('odp.show');
 
     Route::post('/vouchers', [VoucherController::class, 'store'])->name('vouchers.store');
     Route::get('/vouchers/create', [VoucherController::class, 'create'])->name('vouchers.create');
@@ -205,6 +222,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::post('/packages/mass-bill', [PackageController::class, 'massBill'])->name('packages.mass-bill');
 
     Route::post('/customers/sync-pppoe', [CustomerController::class, 'syncPppoe'])->name('customers.sync-pppoe');
+    Route::post('/olts/sync-all-onu', [CustomerController::class, 'syncAllOnu'])->name('olt.sync-all-onu');
 
     Route::get('/voucher-templates/{template}/preview', [VoucherTemplateController::class, 'preview'])->name('voucher-templates.preview');
     Route::get('/voucher-templates/{template}/preview/{page?}', [VoucherTemplateController::class, 'preview'])->name('voucher-templates.preview-page');

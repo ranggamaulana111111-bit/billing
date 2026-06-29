@@ -72,6 +72,7 @@
                         <th>Port</th>
                         <th>ONU ID</th>
                         <th>Serial</th>
+                        <th>Caller ID</th>
                         <th>Status</th>
                         <th>Rx Power</th>
                         <th>Pelanggan</th>
@@ -85,6 +86,7 @@
                         <td>{{ $onu->oltPort?->port_name ?? '-' }}</td>
                         <td><code>{{ $onu->onu_id }}</code></td>
                         <td><code class="small">{{ $onu->serial_number ?? '-' }}</code></td>
+                        <td><code class="small">{{ $onu->caller_id ?? '-' }}</code></td>
                         <td>
                             <span class="badge bg-{{ $onu->status === 'online' ? 'success' : 'danger' }}">
                                 {{ ucfirst($onu->status) }}

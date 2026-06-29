@@ -34,6 +34,15 @@
                 <i class="fa-solid fa-magnifying-glass me-1"></i>Scan ONU
             </button>
         </form>
+        <form action="{{ route('olt.sync-mikrotik', $olt) }}" method="POST" class="d-inline">
+            @csrf
+            <button class="btn btn-outline-info px-3 py-2" onclick="return confirm('Sync ONU dari PPPoE aktif MikroTik?')">
+                <i class="fa-solid fa-rotate me-1"></i>Sync dari MikroTik
+            </button>
+        </form>
+        <button type="button" class="btn btn-outline-info px-3 py-2" data-bs-toggle="modal" data-bs-target="#syncPortsModal">
+            <i class="fa-solid fa-sync me-1"></i>Sync Ports
+        </button>
         <a href="{{ route('olt.edit', $olt) }}" class="btn btn-outline-secondary px-3 py-2">
             <i class="fa-solid fa-pen me-1"></i>Edit
         </a>
@@ -127,6 +136,7 @@
                         <tr>
                             <th>ONU ID</th>
                             <th>Serial Number</th>
+                            <th>Caller ID</th>
                             <th>Status</th>
                             <th>Rx Power</th>
                             <th>Tx Power</th>
@@ -139,6 +149,7 @@
                             <tr>
                                 <td><code>{{ $onu->onu_id }}</code></td>
                                 <td><code>{{ $onu->serial_number ?? '-' }}</code></td>
+                                <td><code>{{ $onu->caller_id ?? '-' }}</code></td>
                                 <td>
                                     @if($onu->status === 'online')
                                         <span class="badge bg-success">Online</span>
@@ -187,6 +198,71 @@
         </div>
     </div>
 @endforelse
+{{-- SYNC PORTS MODAL --}}
+<div class="modal fade" id="syncPortsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ route('olt.ports.sync', $olt) }}">
+                @csrf
+                <div class="modal-header">
+                    <h5 class="modal-title">Sync Ports OLT</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small">Tambah satu atau beberapa port sekaligus.</p>
+                    <div id="port-rows">
+                        <div class="row g-2 mb-2 port-row">
+                            <div class="col-4">
+                                <input type="number" name="ports[0][slot]" class="form-control" placeholder="Slot" value="0" required>
+                            </div>
+                            <div class="col-4">
+                                <input type="number" name="ports[0][port]" class="form-control" placeholder="Port" value="0" required>
+                            </div>
+                            <div class="col-4">
+                                <select name="ports[0][type]" class="form-select">
+                                    <option value="gpon">GPON</option>
+                                    <option value="xgspon">XGS-PON</option>
+                                    <option value="epon">EPON</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="addPortRow()">
+                        <i class="fa-solid fa-plus"></i> Tambah Baris
+                    </button>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary">Sync</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+let portIndex = 1;
+function addPortRow() {
+    const html = `<div class="row g-2 mb-2 port-row">
+        <div class="col-4">
+            <input type="number" name="ports[${portIndex}][slot]" class="form-control" placeholder="Slot" value="0" required>
+        </div>
+        <div class="col-4">
+            <input type="number" name="ports[${portIndex}][port]" class="form-control" placeholder="Port" value="${portIndex}" required>
+        </div>
+        <div class="col-4">
+            <select name="ports[${portIndex}][type]" class="form-select">
+                <option value="gpon">GPON</option>
+                <option value="xgspon">XGS-PON</option>
+                <option value="epon">EPON</option>
+            </select>
+        </div>
+    </div>`;
+    document.getElementById('port-rows').insertAdjacentHTML('beforeend', html);
+    portIndex++;
+}
+</script>
+
 @endsection
 
 @push('scripts')
@@ -197,7 +273,12 @@
 <script>
 (function() {
     const $ = (sel, ctx) => (ctx || document).querySelector(sel);
-    const $$ = (sel, ctx) => (ctx || document).querySelectorAll(sel);
+
+    var csrfToken = '{{ csrf_token() }}';
+    var oltId = {{ $olt->id }};
+    var consecutiveErrors = 0;
+    var polling = false;
+    var errorBadge = null;
 
     function esc(s) {
         if (s == null || s === '') return '-';
@@ -206,13 +287,32 @@
         return d.innerHTML;
     }
 
-    var csrfToken = '{{ csrf_token() }}';
-    var oltId = {{ $olt->id }};
+    function showError(show) {
+        if (!errorBadge) {
+            var p = $('#live-badge');
+            if (!p) return;
+            errorBadge = document.createElement('span');
+            errorBadge.className = 'badge bg-danger ms-1';
+            errorBadge.style.cssText = 'font-size:0.65rem;';
+            errorBadge.innerHTML = '<i class="fa-solid fa-triangle-exclamation me-1"></i>Gagal ambil data';
+            p.parentNode.insertBefore(errorBadge, p.nextSibling);
+        }
+        errorBadge.classList.toggle('d-none', !show);
+    }
 
     function fetchLive() {
+        if (polling) return;
+        polling = true;
+
         fetch('{{ route("olt.live", $olt) }}')
-            .then(r => r.json())
+            .then(r => {
+                if (!r.ok) throw new Error('HTTP ' + r.status);
+                return r.json();
+            })
             .then(d => {
+                consecutiveErrors = 0;
+                showError(false);
+
                 var pingEl = $('#olt-ping');
                 if (pingEl) pingEl.textContent = d.ping !== null ? d.ping + ' ms' : '-';
                 var totalOnuEl = $('#olt-total-onu');
@@ -239,7 +339,8 @@
 
                             return '<tr>' +
                                 '<td><code>' + esc(o.onu_id) + '</code></td>' +
-                                '<td><code>' + esc(o.serial_number) + '</code></td>' +
+                                '<td><code>' + esc(o.serial_number || '-') + '</code></td>' +
+                                '<td><code>' + esc(o.caller_id || '-') + '</code></td>' +
                                 '<td>' + statusBadge + '</td>' +
                                 '<td class="' + rxClass + '">' + rxVal + '</td>' +
                                 '<td>' + txVal + '</td>' +
@@ -251,29 +352,33 @@
                             '</tr>';
                         }).join('');
                     } else {
-                        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3">Tidak ada ONU di port ini.</td></tr>';
+                        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-3">Tidak ada ONU di port ini.</td></tr>';
                     }
 
                     var countEl = $('#onu-count-' + p.id);
                     if (countEl) countEl.textContent = p.onus.length + ' ONU';
                 });
+
+                polling = false;
+                scheduleNext();
             })
-            .catch(function() {});
+            .catch(function() {
+                consecutiveErrors++;
+                showError(consecutiveErrors >= 2);
+                polling = false;
+                scheduleNext();
+            });
     }
 
-                    // Update ONU count badge
-                    var countEl = $('#onu-count-' + p.id);
-                    if (countEl) countEl.textContent = p.onus.length + ' ONU';
-                });
-            })
-            .catch(function() {});
+    function scheduleNext() {
+        var delay = consecutiveErrors > 0
+            ? Math.min(5000 * Math.pow(2, consecutiveErrors), 30000)
+            : 5000;
+        setTimeout(fetchLive, delay);
     }
 
     // Initial load after 1s
     setTimeout(fetchLive, 1000);
-
-    // Poll every 5 seconds
-    setInterval(fetchLive, 5000);
 })();
 </script>
 @if($olt->latitude && $olt->longitude)

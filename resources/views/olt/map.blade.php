@@ -3,6 +3,8 @@
 @section('title', 'Map OLT')
 
 @push('styles')
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
 <style>
     #map { height: 520px; width: 100%; border-radius: 0 0 16px 16px; }
     .olt-marker {
@@ -15,6 +17,58 @@
         border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);
     }
     .custom-popup .leaflet-popup-content { margin: 12px 16px; font-family: 'Inter', sans-serif; }
+    .search-box {
+        position: relative;
+    }
+    .search-box input {
+        padding-left: 36px;
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        font-size: 13px;
+        height: 38px;
+        width: 240px;
+    }
+    .search-box input:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+    }
+    .search-box .search-icon {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #94a3b8;
+        font-size: 13px;
+    }
+    .leaflet-marker-icon.marker-cluster {
+        background: rgba(37,99,235,0.2);
+        border: 2px solid var(--primary);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 12px;
+        color: var(--primary);
+    }
+    .legend {
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+        font-size: 12px;
+        color: #475569;
+    }
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .legend-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 4px;
+    }
 </style>
 @endpush
 
@@ -77,10 +131,23 @@
 
 {{-- MAP --}}
 <div class="card shadow-sm border-0 mb-4">
-    <div class="card-header bg-white d-flex align-items-center gap-2">
-        <div style="width:8px;height:8px;border-radius:50%;background:var(--primary);"></div>
-        <span>Peta Sebaran OLT</span>
-        <span class="badge badge-premium ms-2" style="background:#eef2ff;color:var(--primary);">{{ $oltData->where('latitude')->count() }} titik</span>
+    <div class="card-header bg-white d-flex flex-wrap justify-content-between align-items-center">
+        <div class="d-flex align-items-center gap-2">
+            <div style="width:8px;height:8px;border-radius:50%;background:var(--primary);"></div>
+            <span>Peta Sebaran OLT</span>
+            <span class="badge badge-premium ms-2" style="background:#eef2ff;color:var(--primary);">{{ $oltData->where('latitude')->count() }} titik</span>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <div class="legend">
+                <span class="legend-item"><span class="legend-dot" style="background:#22c55e;"></span>Aktif</span>
+                <span class="legend-item"><span class="legend-dot" style="background:#f59e0b;"></span>Maintenance</span>
+                <span class="legend-item"><span class="legend-dot" style="background:#ef4444;"></span>Nonaktif</span>
+            </div>
+            <div class="search-box">
+                <i class="fa-solid fa-search search-icon"></i>
+                <input type="text" id="searchOlt" placeholder="Cari OLT..." autocomplete="off">
+            </div>
+        </div>
     </div>
     <div class="card-body p-0">
         <div id="map"></div>
@@ -91,7 +158,7 @@
 <div class="card">
     <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
+            <table class="table table-hover align-middle mb-0" id="oltTable">
                 <thead>
                     <tr>
                         <th>Nama</th>
@@ -138,6 +205,7 @@
 @endsection
 
 @push('scripts')
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         var map = L.map('map').setView([-6.476, 106.014], 14);
@@ -149,6 +217,7 @@
         }).addTo(map);
 
         var olts = @json($oltData);
+        var markers = [];
         var markerBounds = [];
 
         var statusColors = {
@@ -163,6 +232,22 @@
             inactive: 'fa-ban'
         };
 
+        var mcg = L.markerClusterGroup({
+            chunkedLoading: true,
+            maxClusterRadius: 50,
+            spiderfyOnMaxZoom: true,
+            showCoverageOnHover: false,
+            iconCreateFunction: function(cluster) {
+                var count = cluster.getChildCount();
+                var size = count < 10 ? '32px' : (count < 50 ? '38px' : '46px');
+                return L.divIcon({
+                    html: '<div class="marker-cluster" style="width:'+size+';height:'+size+';">' + count + '</div>',
+                    className: 'custom-marker',
+                    iconSize: L.point(parseInt(size), parseInt(size))
+                });
+            }
+        });
+
         olts.forEach(function(olt) {
             if (olt.latitude && olt.longitude) {
                 var color = statusColors[olt.status] || '#64748b';
@@ -174,7 +259,7 @@
                     iconAnchor: [16, 16]
                 });
 
-                var marker = L.marker([olt.latitude, olt.longitude], { icon: icon }).addTo(map);
+                var marker = L.marker([olt.latitude, olt.longitude], { icon: icon });
 
                 var statusLabel = olt.status === 'active' ? 'Aktif' : (olt.status === 'maintenance' ? 'Maintenance' : 'Nonaktif');
 
@@ -193,24 +278,50 @@
                             ${olt.last_polled_at ? `<br>Last Polled: ${olt.last_polled_at}` : ''}
                         </div>
                         <div style="margin-top:8px;">
-                            <a href="/olts/${olt.id}" style="font-size:12px;">&rarr; Detail OLT</a>
-    </div>
-    <div class="page-actions mt-2 mt-md-0 d-flex gap-2">
-        <a href="{{ route('olt.create') }}" class="btn btn-primary px-3 py-2">
-            <i class="fa-solid fa-plus me-1"></i>Tambah OLT
-        </a>
-    </div>
-</div>
+                            <a href="${'/olts/' + olt.id}" style="font-size:12px;">&rarr; Detail OLT</a>
+                        </div>
+                    </div>
                 `, { className: 'custom-popup' });
 
+                mcg.addLayer(marker);
+                markers.push({ marker: marker, data: olt });
                 markerBounds.push([olt.latitude, olt.longitude]);
             }
         });
+
+        map.addLayer(mcg);
 
         if (markerBounds.length > 0) {
             var bounds = L.latLngBounds(markerBounds);
             map.fitBounds(bounds, { padding: [40, 40] });
         }
+
+        {{-- SEARCH FILTER --}}
+        document.getElementById('searchOlt').addEventListener('input', function(e) {
+            var query = e.target.value.toLowerCase().trim();
+            var visibleCount = 0;
+
+            mcg.clearLayers();
+
+            markers.forEach(function(item) {
+                var olt = item.data;
+                var match = olt.name.toLowerCase().includes(query)
+                    || olt.brand.toLowerCase().includes(query)
+                    || olt.ip_address.toLowerCase().includes(query)
+                    || (olt.location && olt.location.toLowerCase().includes(query));
+
+                if (match) {
+                    mcg.addLayer(item.marker);
+                    visibleCount++;
+                }
+            });
+
+            {{-- Show count in header --}}
+            var badge = document.querySelector('.badge-premium');
+            if (badge) {
+                badge.textContent = visibleCount + ' titik' + (query ? ' (filter)' : '');
+            }
+        });
     });
 </script>
 @endpush

@@ -3,11 +3,16 @@
 namespace App\Http\Controllers;
 
 use App\Models\ActivityLog;
+use App\Models\Customer;
 use App\Models\Olt;
 use App\Models\OltPort;
 use App\Models\Onu;
+use App\Models\Setting;
+use App\Services\MikrotikService;
 use App\Services\Olt\Factory\OltConnectorFactory;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Response;
 
 class OltController extends Controller
@@ -43,6 +48,10 @@ class OltController extends Controller
             'location' => 'nullable|string|max:255',
             'latitude' => 'nullable|numeric|between:-90,90',
             'longitude' => 'nullable|numeric|between:-180,180',
+            'jump_host' => 'nullable|string|max:45',
+            'jump_port' => 'required_with:jump_host|integer|min:1|max:65535',
+            'jump_username' => 'nullable|string|max:255',
+            'jump_password' => 'nullable|string|max:255',
             'status' => 'required|in:active,maintenance,inactive',
             'notes' => 'nullable|string|max:1000',
         ]);
@@ -83,12 +92,19 @@ class OltController extends Controller
             'location' => 'nullable|string|max:255',
             'latitude' => 'nullable|numeric|between:-90,90',
             'longitude' => 'nullable|numeric|between:-180,180',
+            'jump_host' => 'nullable|string|max:45',
+            'jump_port' => 'required_with:jump_host|integer|min:1|max:65535',
+            'jump_username' => 'nullable|string|max:255',
+            'jump_password' => 'nullable|string|max:255',
             'status' => 'required|in:active,maintenance,inactive',
             'notes' => 'nullable|string|max:1000',
         ]);
 
         if (! $request->filled('password')) {
             unset($validated['password']);
+        }
+        if (! $request->filled('jump_password')) {
+            unset($validated['jump_password']);
         }
 
         $olt->update($validated);
@@ -105,8 +121,24 @@ class OltController extends Controller
 
     public function testConnection(Olt $olt)
     {
+        if (! $olt->usesMikrotikProxy()) {
+            // Step 1: check if port is reachable (skip for proxy)
+            $start = microtime(true);
+            $sock = @fsockopen($olt->ip_address, $olt->ssh_port, $errno, $errstr, 5);
+            if (! $sock) {
+                $ping = round((microtime(true) - $start) * 1000, 1);
+
+                return back()->with('error',
+                    "Port {$olt->ssh_port} di {$olt->ip_address} tidak reachable ".
+                    "(timeout {$ping}ms). Cek routing/firewall antara server dan OLT."
+                );
+            }
+            fclose($sock);
+        }
+
+        // Step 2: try SSH login (via proxy or direct)
         try {
-            $connector = OltConnectorFactory::make($olt->brand);
+            $connector = OltConnectorFactory::make($olt->brand, $olt);
             $connected = $connector->connect(
                 $olt->ip_address,
                 $olt->ssh_port,
@@ -115,7 +147,9 @@ class OltController extends Controller
             );
 
             if (! $connected) {
-                return back()->with('error', 'Gagal terhubung ke OLT.');
+                $via = $olt->usesMikrotikProxy() ? ' via MikroTik proxy' : '';
+
+                return back()->with('error', "SSH login ditolak oleh {$olt->ip_address}{$via}. Cek username/password OLT.");
             }
 
             $result = $connector->testConnection();
@@ -129,29 +163,88 @@ class OltController extends Controller
 
             return back()->with('error', $result['message']);
         } catch (\Exception $e) {
-            return back()->with('error', 'Koneksi gagal: '.$e->getMessage());
+            return back()->with('error', 'Koneksi SSH gagal: '.$e->getMessage());
+        }
+    }
+
+    private function autoSyncPorts(Olt $olt): void
+    {
+        $existingCount = $olt->ports()->count();
+        if ($existingCount > 0) {
+            return;
+        }
+
+        // Auto-create default ports based on brand
+        $defaults = match ($olt->brand) {
+            'cdata', 'huawei', 'zte' => [
+                ['slot' => 0, 'port' => 0, 'type' => 'gpon'],
+                ['slot' => 0, 'port' => 1, 'type' => 'gpon'],
+                ['slot' => 0, 'port' => 2, 'type' => 'gpon'],
+                ['slot' => 0, 'port' => 3, 'type' => 'gpon'],
+            ],
+            'fiberhome' => [
+                ['slot' => 0, 'port' => 0, 'type' => 'gpon'],
+                ['slot' => 0, 'port' => 1, 'type' => 'gpon'],
+                ['slot' => 0, 'port' => 2, 'type' => 'gpon'],
+                ['slot' => 0, 'port' => 3, 'type' => 'gpon'],
+            ],
+            default => [
+                ['slot' => 0, 'port' => 0, 'type' => 'gpon'],
+            ],
+        };
+
+        foreach ($defaults as $p) {
+            OltPort::firstOrCreate(
+                ['olt_id' => $olt->id, 'slot_number' => $p['slot'], 'port_number' => $p['port']],
+                ['port_type' => $p['type'], 'status' => 'active']
+            );
         }
     }
 
     public function scanOnus(Olt $olt)
     {
-        try {
-            $connector = OltConnectorFactory::make($olt->brand);
-            $connector->connect(
-                $olt->ip_address,
-                $olt->ssh_port,
-                $olt->username,
-                $olt->password
-            );
+        if (! $olt->usesMikrotikProxy()) {
+            $sock = @fsockopen($olt->ip_address, $olt->ssh_port, $errno, $errstr, 5);
+            if (! $sock) {
+                return back()->with('error',
+                    "Port {$olt->ssh_port} di {$olt->ip_address} tidak reachable. ".
+                    'Cek routing/firewall antara server dan OLT.'
+                );
+            }
+            fclose($sock);
+        }
 
-            $ports = $olt->ports;
-            $totalFound = 0;
+        $this->autoSyncPorts($olt);
 
-            foreach ($ports as $port) {
+        $connector = OltConnectorFactory::make($olt->brand, $olt);
+        $connected = $connector->connect(
+            $olt->ip_address,
+            $olt->ssh_port,
+            $olt->username,
+            $olt->password
+        );
+
+        if (! $connected) {
+            $via = $olt->usesMikrotikProxy() ? ' via MikroTik proxy' : '';
+
+            return back()->with('error', "SSH login ditolak oleh {$olt->ip_address}{$via}. Cek username/password OLT.");
+        }
+
+        $ports = $olt->ports()->get();
+        $totalFound = 0;
+        $failedPorts = 0;
+
+        foreach ($ports as $port) {
+            try {
                 $onus = $connector->getOnuList($port->slot_number, $port->port_number);
 
                 foreach ($onus as $onuData) {
-                    $optical = $connector->getOpticalPower($onuData['onu_id']);
+                    try {
+                        $optical = $connector->getOpticalPower($onuData['onu_id']);
+                    } catch (\Exception $e) {
+                        Log::warning("Scan optical power gagal ONU {$onuData['onu_id']}: {$e->getMessage()}");
+                        $optical = ['rx_power' => null, 'tx_power' => null];
+                    }
 
                     Onu::updateOrCreate(
                         [
@@ -171,23 +264,87 @@ class OltController extends Controller
 
                     $totalFound++;
                 }
+            } catch (\Exception $e) {
+                $failedPorts++;
+                Log::error("Scan port {$port->slot_number}/{$port->port_number} gagal: {$e->getMessage()}");
+            }
+        }
+
+        $connector->disconnect();
+        $olt->update(['last_polled_at' => now()]);
+
+        $msg = "Scan selesai. {$totalFound} ONU ditemukan.";
+        if ($failedPorts > 0) {
+            $msg .= " {$failedPorts} port gagal (lihat log).";
+        }
+
+        ActivityLog::log('Scan ONU', "OLT: {$olt->name} — {$totalFound} ONU");
+
+        return back()->with('success', $msg);
+    }
+
+    public function syncFromMikrotik(Olt $olt)
+    {
+        try {
+            $mikrotik = new MikrotikService;
+            if (! $mikrotik->isConfigured()) {
+                return back()->with('error', 'MikroTik belum dikonfigurasi di Settings.');
             }
 
-            $connector->disconnect();
-            $olt->update(['last_polled_at' => now()]);
+            $active = $mikrotik->getPppActive();
+            $firstPort = $olt->ports()->first();
 
-            ActivityLog::log('Scan ONU', "OLT: {$olt->name} — {$totalFound} ONU ditemukan");
+            if (! $firstPort) {
+                return back()->with('error', 'OLT belum punya port. Sync ports atau scan dulu.');
+            }
 
-            return back()->with('success', "Scan selesai. {$totalFound} ONU ditemukan.");
+            $synced = 0;
+            foreach ($active as $session) {
+                $username = $session['name'] ?? '';
+                if (! $username) {
+                    continue;
+                }
+
+                $customer = Customer::where('pppoe_username', $username)->first();
+                if (! $customer) {
+                    continue;
+                }
+
+                $mac = $session['caller-id'] ?? '';
+
+                Onu::updateOrCreate(
+                    [
+                        'olt_port_id' => $firstPort->id,
+                        'customer_id' => $customer->id,
+                    ],
+                    [
+                        'onu_id' => 'mikrotik-'.$customer->id,
+                        'caller_id' => $mac ?: 'PPPoE-'.$username,
+                        'status' => 'online',
+                        'slot_number' => $firstPort->slot_number,
+                        'port_number' => $firstPort->port_number,
+                        'last_seen_at' => now(),
+                    ]
+                );
+
+                $synced++;
+            }
+
+            $msg = "Sinkron dari MikroTik selesai. {$synced} ONU ditemukan.";
+            ActivityLog::log('Sync MikroTik', "OLT: {$olt->name} — {$synced} ONU");
+
+            return back()->with('success', $msg);
         } catch (\Exception $e) {
-            return back()->with('error', 'Scan gagal: '.$e->getMessage());
+            Log::error("Sync dari MikroTik gagal: {$e->getMessage()}");
+
+            return back()->with('error', 'Gagal sync dari MikroTik: '.$e->getMessage());
         }
     }
 
     public function rebootOnu(Olt $olt, Onu $onu)
     {
         try {
-            $connector = OltConnectorFactory::make($olt->brand);
+            $connector = OltConnectorFactory::make($olt->brand, $olt);
             $connector->connect(
                 $olt->ip_address,
                 $olt->ssh_port,
@@ -213,7 +370,7 @@ class OltController extends Controller
     public function removeOnu(Olt $olt, Onu $onu)
     {
         try {
-            $connector = OltConnectorFactory::make($olt->brand);
+            $connector = OltConnectorFactory::make($olt->brand, $olt);
             $connector->connect(
                 $olt->ip_address,
                 $olt->ssh_port,
@@ -281,19 +438,41 @@ class OltController extends Controller
 
     public function monitoring()
     {
-        $onus = Onu::with('oltPort.olt', 'customer')->get();
         $olts = Olt::withCount('ports')->get();
 
-        $offlineOnus = $onus->where('status', '!=', 'online');
-        $weakSignalOnus = $onus->filter(fn ($o) => $o->rx_power !== null && $o->rx_power < -27);
-        $totalOnline = $onus->where('status', 'online')->count();
-        $totalOffline = $offlineOnus->count();
-        $totalWeak = $weakSignalOnus->count();
+        $customers = Customer::with(['onus' => function ($q) {
+            $q->with('oltPort.olt')->latest('last_seen_at');
+        }])->get();
+
+        $customerSignals = $customers->map(function ($customer) {
+            $onu = $customer->onus->first();
+
+            return [
+                'customer' => $customer,
+                'onu' => $onu,
+                'rx_power' => $onu?->rx_power,
+                'tx_power' => $onu?->tx_power,
+                'status' => $onu?->status ?? 'no_onu',
+                'onu_id' => $onu?->onu_id,
+                'serial' => $onu?->serial_number,
+                'last_seen' => $onu?->last_seen_at,
+                'olt' => $onu?->oltPort?->olt,
+                'oltPort' => $onu?->oltPort,
+            ];
+        })->sortBy([
+            fn ($a) => $a['rx_power'] ?? PHP_FLOAT_MAX,
+        ])->values();
+
+        $totalCustomers = $customers->count();
+        $totalOnline = $customerSignals->filter(fn ($cs) => $cs['status'] === 'online')->count();
+        $totalOffline = $customerSignals->filter(fn ($cs) => $cs['status'] === 'offline')->count();
+        $totalWeak = $customerSignals->filter(
+            fn ($cs) => $cs['rx_power'] !== null && $cs['rx_power'] < -27
+        )->count();
 
         return view('olt.monitoring', compact(
-            'onus', 'olts',
-            'offlineOnus', 'weakSignalOnus',
-            'totalOnline', 'totalOffline', 'totalWeak'
+            'olts', 'customerSignals',
+            'totalCustomers', 'totalOnline', 'totalOffline', 'totalWeak'
         ));
     }
 
@@ -303,14 +482,30 @@ class OltController extends Controller
     {
         $olt->load('ports.onus.customer');
 
-        // simple ping: measure SSH port connection time
+        // ping: direct SSH port check or MikroTik API latency for proxy
         $ping = null;
         try {
-            $start = microtime(true);
-            $sock = @fsockopen($olt->ip_address, $olt->ssh_port, $errno, $errstr, 3);
-            if ($sock) {
+            if ($olt->usesMikrotikProxy()) {
+                $start = microtime(true);
+                $mikrotikHost = Setting::get('mikrotik_host');
+                $mikrotikUser = Setting::get('mikrotik_user');
+                $mikrotikPass = Setting::get('mikrotik_password');
+                $mikrotikPort = (int) (Setting::get('mikrotik_port', '80'));
+                $scheme = $mikrotikPort === 443 ? 'https' : 'http';
+
+                Http::withBasicAuth($mikrotikUser, $mikrotikPass)
+                    ->withoutVerifying()
+                    ->timeout(3)
+                    ->get("{$scheme}://{$mikrotikHost}:{$mikrotikPort}/rest/system/resource");
+
                 $ping = round((microtime(true) - $start) * 1000, 1);
-                fclose($sock);
+            } else {
+                $start = microtime(true);
+                $sock = @fsockopen($olt->ip_address, $olt->ssh_port, $errno, $errstr, 3);
+                if ($sock) {
+                    $ping = round((microtime(true) - $start) * 1000, 1);
+                    fclose($sock);
+                }
             }
         } catch (\Exception $e) {
             $ping = null;
@@ -326,6 +521,7 @@ class OltController extends Controller
                 'id' => $onu->id,
                 'onu_id' => $onu->onu_id,
                 'serial_number' => $onu->serial_number,
+                'caller_id' => $onu->caller_id,
                 'status' => $onu->status,
                 'rx_power' => $onu->rx_power,
                 'tx_power' => $onu->tx_power,
@@ -411,9 +607,9 @@ class OltController extends Controller
 
         $onus = $query->get();
 
-        $csv = "OLT,Port,ONU ID,Serial,Vendor,Status,Rx Power,Tx Power,Pelanggan,Last Seen\n";
+        $csv = "OLT,Port,ONU ID,Serial,Caller ID,Vendor,Status,Rx Power,Tx Power,Pelanggan,Last Seen\n";
         foreach ($onus as $onu) {
-            $csv .= "{$onu->oltPort?->olt?->name},{$onu->oltPort?->port_name},{$onu->onu_id},{$onu->serial_number},{$onu->vendor},{$onu->status},{$onu->rx_power},{$onu->tx_power},".str_replace(',', ';', $onu->customer?->name ?? '').",{$onu->last_seen_at}\n";
+            $csv .= "{$onu->oltPort?->olt?->name},{$onu->oltPort?->port_name},{$onu->onu_id},{$onu->serial_number},{$onu->caller_id},{$onu->vendor},{$onu->status},{$onu->rx_power},{$onu->tx_power},".str_replace(',', ';', $onu->customer?->name ?? '').",{$onu->last_seen_at}\n";
         }
 
         ActivityLog::log('Export ONU', count($onus).' ONU di-export');
@@ -432,6 +628,7 @@ class OltController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->where('onu_id', 'LIKE', "%{$search}%")
                     ->orWhere('serial_number', 'LIKE', "%{$search}%")
+                    ->orWhere('caller_id', 'LIKE', "%{$search}%")
                     ->orWhere('notes', 'LIKE', "%{$search}%")
                     ->orWhereHas('customer', fn ($c) => $c->where('name', 'LIKE', "%{$search}%"));
             });

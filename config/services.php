@@ -56,4 +56,6 @@ return [
         'client_key' => env('MIDTRANS_CLIENT_KEY'),
     ],
 
+    'cron_token' => env('CRON_TOKEN'),
+
 ];

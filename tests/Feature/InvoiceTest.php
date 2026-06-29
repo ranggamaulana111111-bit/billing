@@ -33,14 +33,14 @@ class InvoiceTest extends TestCase
 
     public function test_create_page_is_accessible(): void
     {
-        Package::factory()->create(['user_id' => $this->user->id]);
+        Package::factory()->create(['tenant_id' => $this->user->tenant_id]);
         $this->actingAs($this->user)->get('/invoices/create')->assertStatus(200);
     }
 
     public function test_store_creates_invoice(): void
     {
-        $package = Package::factory()->create(['user_id' => $this->user->id, 'price' => 200000]);
-        $customer = Customer::factory()->create(['user_id' => $this->user->id, 'package_id' => $package->id]);
+        $package = Package::factory()->create(['tenant_id' => $this->user->tenant_id, 'price' => 200000]);
+        $customer = Customer::factory()->create(['tenant_id' => $this->user->tenant_id, 'package_id' => $package->id]);
 
         $response = $this->actingAs($this->user)->post('/invoices', [
             'customer_id' => $customer->id,
@@ -53,9 +53,9 @@ class InvoiceTest extends TestCase
 
     public function test_mark_invoice_as_paid(): void
     {
-        $package = Package::factory()->create(['user_id' => $this->user->id]);
-        $customer = Customer::factory()->create(['user_id' => $this->user->id, 'package_id' => $package->id]);
-        $invoice = Invoice::factory()->create(['user_id' => $this->user->id, 'customer_id' => $customer->id]);
+        $package = Package::factory()->create(['tenant_id' => $this->user->tenant_id]);
+        $customer = Customer::factory()->create(['tenant_id' => $this->user->tenant_id, 'package_id' => $package->id]);
+        $invoice = Invoice::factory()->create(['tenant_id' => $this->user->tenant_id, 'customer_id' => $customer->id]);
 
         $this->actingAs($this->user)->get("/invoice/paid/{$invoice->id}")->assertRedirect();
         $this->assertDatabaseHas('invoices', ['id' => $invoice->id, 'payment_status' => 'paid']);
@@ -63,9 +63,9 @@ class InvoiceTest extends TestCase
 
     public function test_destroy_invoice(): void
     {
-        $package = Package::factory()->create(['user_id' => $this->user->id]);
-        $customer = Customer::factory()->create(['user_id' => $this->user->id, 'package_id' => $package->id]);
-        $invoice = Invoice::factory()->create(['user_id' => $this->user->id, 'customer_id' => $customer->id]);
+        $package = Package::factory()->create(['tenant_id' => $this->user->tenant_id]);
+        $customer = Customer::factory()->create(['tenant_id' => $this->user->tenant_id, 'package_id' => $package->id]);
+        $invoice = Invoice::factory()->create(['tenant_id' => $this->user->tenant_id, 'customer_id' => $customer->id]);
 
         $this->actingAs($this->user)->delete("/invoice/{$invoice->id}")->assertRedirect('/invoices');
         $this->assertDatabaseMissing('invoices', ['id' => $invoice->id]);
@@ -73,9 +73,9 @@ class InvoiceTest extends TestCase
 
     public function test_print_page_is_accessible(): void
     {
-        $package = Package::factory()->create(['user_id' => $this->user->id]);
-        $customer = Customer::factory()->create(['user_id' => $this->user->id, 'package_id' => $package->id]);
-        $invoice = Invoice::factory()->create(['user_id' => $this->user->id, 'customer_id' => $customer->id]);
+        $package = Package::factory()->create(['tenant_id' => $this->user->tenant_id]);
+        $customer = Customer::factory()->create(['tenant_id' => $this->user->tenant_id, 'package_id' => $package->id]);
+        $invoice = Invoice::factory()->create(['tenant_id' => $this->user->tenant_id, 'customer_id' => $customer->id]);
 
         $this->actingAs($this->user)->get("/invoice/print/{$invoice->id}")->assertStatus(200);
     }

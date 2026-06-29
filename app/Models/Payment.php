@@ -2,14 +2,14 @@
 
 namespace App\Models;
 
-use App\Models\Traits\BelongsToUser;
+use App\Models\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 
 class Payment extends Model
 {
-    use BelongsToUser;
+    use BelongsToTenant;
 
-    protected $fillable = ['user_id', 'invoice_id', 'amount', 'payment_method', 'payment_date', 'notes'];
+    protected $fillable = ['tenant_id', 'invoice_id', 'amount', 'payment_method', 'payment_date', 'notes'];
 
     protected function casts(): array
     {

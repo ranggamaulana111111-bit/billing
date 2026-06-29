@@ -21,11 +21,11 @@ class ZteConnector implements OltConnector
         $this->port = $port;
 
         try {
-            $this->ssh = new SSH2($host, $port, 10);
+            $this->ssh = new SSH2($host, $port, 20);
             if (! $this->ssh->login($username, $password)) {
                 throw new Exception('SSH login failed');
             }
-            $this->ssh->setTimeout(10);
+            $this->ssh->setTimeout(20);
             $this->enterPrivilegedMode();
 
             return true;
@@ -104,7 +104,10 @@ class ZteConnector implements OltConnector
     {
         try {
             $parts = explode('/', $onuId);
-            $output = $this->execCommand("show onu detail gpon-olt_{$parts[0]}/{$parts[1]} onu {$parts[2]}");
+            $slot = $parts[0] ?? 0;
+            $port = $parts[1] ?? 0;
+            $idx = $parts[2] ?? 0;
+            $output = $this->execCommand("show onu detail gpon-olt_{$slot}/{$port} onu {$idx}");
 
             return ['raw' => $output, 'onu_id' => $onuId];
         } catch (Exception $e) {
@@ -140,8 +143,11 @@ class ZteConnector implements OltConnector
     {
         try {
             $parts = explode('/', $onuId);
-            $this->execCommand("interface gpon-olt_{$parts[0]}/{$parts[1]}");
-            $this->execCommand("no onu {$parts[2]}");
+            $slot = $parts[0] ?? 0;
+            $port = $parts[1] ?? 0;
+            $idx = $parts[2] ?? 0;
+            $this->execCommand("interface gpon-olt_{$slot}/{$port}");
+            $this->execCommand("no onu {$idx}");
 
             return ['success' => true, 'message' => "ONU {$onuId} berhasil dihapus"];
         } catch (Exception $e) {
@@ -153,8 +159,11 @@ class ZteConnector implements OltConnector
     {
         try {
             $parts = explode('/', $onuId);
-            $this->execCommand("interface gpon-olt_{$parts[0]}/{$parts[1]}");
-            $this->execCommand("onu reset {$parts[2]}");
+            $slot = $parts[0] ?? 0;
+            $port = $parts[1] ?? 0;
+            $idx = $parts[2] ?? 0;
+            $this->execCommand("interface gpon-olt_{$slot}/{$port}");
+            $this->execCommand("onu reset {$idx}");
 
             return ['success' => true, 'message' => "ONU {$onuId} berhasil direboot"];
         } catch (Exception $e) {
@@ -177,7 +186,10 @@ class ZteConnector implements OltConnector
     {
         try {
             $parts = explode('/', $onuId);
-            $output = $this->execCommand("show onu optical-info {$parts[0]} {$parts[1]} {$parts[2]}");
+            $slot = $parts[0] ?? 0;
+            $port = $parts[1] ?? 0;
+            $idx = $parts[2] ?? 0;
+            $output = $this->execCommand("show onu optical-info {$slot} {$port} {$idx}");
             $rx = null;
             $tx = null;
 

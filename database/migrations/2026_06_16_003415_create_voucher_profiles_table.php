@@ -32,7 +32,7 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        if (!Schema::hasColumn('vouchers', 'voucher_profile_id')) {
+        if (! Schema::hasColumn('vouchers', 'voucher_profile_id')) {
             Schema::table('vouchers', function (Blueprint $table) {
                 $table->foreignId('voucher_profile_id')->nullable()->after('id')->constrained('voucher_profiles')->nullOnDelete();
                 $table->decimal('price', 12, 2)->nullable()->after('duration_hours');

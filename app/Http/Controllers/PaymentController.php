@@ -6,6 +6,7 @@ use App\Models\ActivityLog;
 use App\Models\Invoice;
 use App\Models\Payment;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class PaymentController extends Controller
 {
@@ -34,30 +35,34 @@ class PaymentController extends Controller
             return back()->with('error', 'Invoice ini sudah lunas.');
         }
 
-        $payment = Payment::create($validated);
+        DB::transaction(function () use ($validated, $invoice) {
+            $payment = Payment::create($validated);
 
-        $invoice->update([
-            'payment_status' => 'paid',
-            'paid_at' => $validated['payment_date'].' '.now()->format('H:i:s'),
-            'payment_method' => $validated['payment_method'],
-        ]);
+            $invoice->update([
+                'payment_status' => 'paid',
+                'paid_at' => $validated['payment_date'].' '.now()->format('H:i:s'),
+                'payment_method' => $validated['payment_method'],
+            ]);
 
-        ActivityLog::log('Pembayaran', 'Pembayaran Rp '.number_format($payment->amount, 0, ',', '.').' dari '.$invoice->customer->name.' ('.$validated['payment_method'].')');
+            ActivityLog::log('Pembayaran', 'Pembayaran Rp '.number_format($payment->amount, 0, ',', '.').' dari '.$invoice->customer->name.' ('.$validated['payment_method'].')');
+        });
 
         return redirect()->route('invoices.index')->with('success', 'Pembayaran berhasil dicatat untuk invoice '.$invoice->invoice_code);
     }
 
     public function destroy(Payment $payment)
     {
-        $invoice = $payment->invoice;
-        $payment->delete();
+        DB::transaction(function () use ($payment) {
+            $invoice = $payment->invoice;
+            $payment->delete();
 
-        $totalPayments = $invoice->payments()->sum('amount');
-        if ($totalPayments <= 0) {
-            $invoice->update(['payment_status' => 'unpaid', 'paid_at' => null, 'payment_method' => null]);
-        }
+            $totalPayments = $invoice->payments()->sum('amount');
+            if ($totalPayments <= 0) {
+                $invoice->update(['payment_status' => 'unpaid', 'paid_at' => null, 'payment_method' => null]);
+            }
 
-        ActivityLog::log('Hapus Pembayaran', 'Menghapus pembayaran invoice '.$invoice->invoice_code);
+            ActivityLog::log('Hapus Pembayaran', 'Menghapus pembayaran invoice '.$invoice->invoice_code);
+        });
 
         return back()->with('success', 'Pembayaran berhasil dihapus.');
     }
