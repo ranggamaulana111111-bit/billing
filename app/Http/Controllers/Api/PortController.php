@@ -16,7 +16,7 @@ class PortController extends Controller
             'odc',
         ]);
 
-        $ports = $odp->ports->map(function ($port) use ($odp) {
+        $ports = $odp->ports->map(function ($port) {
             return [
                 'id' => $port->id,
                 'port_number' => $port->port_number,

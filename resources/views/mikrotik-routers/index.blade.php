@@ -30,6 +30,7 @@
                         <th>Nama</th>
                         <th>Host</th>
                         <th>Port</th>
+                        <th>Tipe</th>
                         <th>Hotspot Server</th>
                         <th>Status</th>
                         <th>Voucher</th>
@@ -42,6 +43,11 @@
                             <td class="fw-semibold">{{ $router->name }}</td>
                             <td><code>{{ $router->host }}:{{ $router->port }}</code></td>
                             <td>{{ $router->port }}</td>
+                            <td>
+                                <span class="badge" style="background:{{ match($router->type) { 'pppoe' => '#eff6ff', 'bandwidth' => '#fef2f2', default => '#f8fafc' } }};color:{{ match($router->type) { 'pppoe' => '#2563eb', 'bandwidth' => '#dc2626', default => '#475569' } }};">
+                                    {{ match($router->type) { 'pppoe' => 'PPPoE', 'bandwidth' => 'Bandwidth', default => 'General' } }}
+                                </span>
+                            </td>
                             <td>{{ $router->hotspot_server ?: 'default' }}</td>
                             <td>
                                 <span class="badge" style="background:{{ $router->is_active ? '#f0fdf4' : '#f1f5f9' }};color:{{ $router->is_active ? '#059669' : '#64748b' }};">
@@ -66,7 +72,7 @@
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="7" class="text-center py-4 text-muted">Belum ada router</td></tr>
+                        <tr><td colspan="8" class="text-center py-4 text-muted">Belum ada router</td></tr>
                     @endforelse
                 </tbody>
             </table>
@@ -110,6 +116,14 @@
                         </div>
                     </div>
                     <div class="mb-3 mt-3">
+                        <label class="form-label fw-semibold">Tipe Router</label>
+                        <select name="type" class="form-select" required>
+                            <option value="pppoe">PPPoE (Utama)</option>
+                            <option value="bandwidth">Bandwidth (HTB)</option>
+                            <option value="general">General</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
                         <label class="form-label fw-semibold">Hotspot Server</label>
                         <input type="text" name="hotspot_server" class="form-control" placeholder="Kosongkan untuk default">
                     </div>
@@ -164,6 +178,14 @@
                         </div>
                     </div>
                     <div class="mb-3 mt-3">
+                        <label class="form-label fw-semibold">Tipe Router</label>
+                        <select name="type" class="form-select" required>
+                            <option value="pppoe" {{ $router->type === 'pppoe' ? 'selected' : '' }}>PPPoE (Utama)</option>
+                            <option value="bandwidth" {{ $router->type === 'bandwidth' ? 'selected' : '' }}>Bandwidth (HTB)</option>
+                            <option value="general" {{ $router->type === 'general' ? 'selected' : '' }}>General</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
                         <label class="form-label fw-semibold">Hotspot Server</label>
                         <input type="text" name="hotspot_server" class="form-control" value="{{ $router->hotspot_server }}">
                     </div>

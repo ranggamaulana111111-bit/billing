@@ -53,10 +53,11 @@ class CustomerController extends Controller
         $package = Package::find($validated['package_id']);
 
         Invoice::create([
-            'invoice_code' => 'INV-'.str_pad($customer->id, 4, '0', STR_PAD_LEFT).'-'.now()->format('m'),
+            'invoice_code' => 'INV-'.str_pad($customer->id, 4, '0', STR_PAD_LEFT).'-ALK-'.now()->format('m').'-PRDT',
             'customer_id' => $customer->id,
             'amount' => $package->price,
             'payment_status' => 'unpaid',
+            'billing_period' => now()->format('Y-m'),
         ]);
 
         ActivityLog::log('Tambah Pelanggan', 'Menambahkan pelanggan baru: '.$customer->name);
@@ -252,7 +253,9 @@ class CustomerController extends Controller
 
     public function syncPppoe()
     {
-        $routers = MikrotikRouter::where('is_active', true)->get();
+        $routers = MikrotikRouter::where('is_active', true)
+            ->byType('pppoe')
+            ->get();
 
         if ($routers->isEmpty()) {
             $mikrotik = new MikrotikService;
@@ -351,7 +354,9 @@ class CustomerController extends Controller
             return;
         }
 
-        $routers = MikrotikRouter::where('is_active', true)->get();
+        $routers = MikrotikRouter::where('is_active', true)
+            ->byType('pppoe')
+            ->get();
 
         if ($routers->isNotEmpty()) {
             foreach ($routers as $router) {

@@ -16,7 +16,7 @@ class PortalController extends Controller
         $firstUser = User::orderBy('id')->first();
         $uid = $firstUser?->id;
         $company = [
-            'name' => Setting::get('company_name', 'RabegNet', $uid),
+            'name' => Setting::get('company_name', 'ALKONEK', $uid),
             'address' => Setting::get('company_address', '', $uid),
             'phone' => Setting::get('company_phone', '', $uid),
         ];
@@ -43,7 +43,7 @@ class PortalController extends Controller
             ->get();
 
         $company = [
-            'name' => Setting::get('company_name', 'RabegNet', $customer->tenant_id),
+            'name' => Setting::get('company_name', 'ALKONEK', $customer->tenant_id),
             'address' => Setting::get('company_address', '', $customer->tenant_id),
             'phone' => Setting::get('company_phone', '', $customer->tenant_id),
         ];

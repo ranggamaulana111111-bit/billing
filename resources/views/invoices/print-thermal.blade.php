@@ -151,7 +151,7 @@
 </head>
 <body>
     <div class="header">
-        <div class="company">{{ $settings['company_name'] ?? 'RabegNet' }}</div>
+        <div class="company">{{ $settings['company_name'] ?? 'ALKONEK' }}</div>
         <div class="sub">{{ $settings['company_address'] ?? 'Internet Service Provider' }}</div>
         <div class="sub">{{ $settings['company_phone'] ?? '' }}</div>
         <div class="title">F A K T U R</div>
@@ -190,6 +190,11 @@
             <td class="value">{{ $invoice->created_at->format('d/m/Y') }}</td>
         </tr>
         <tr>
+            <td class="label">Periode</td>
+            <td class="sep">:</td>
+            <td class="value">{{ $invoice->billing_period ? \Carbon\Carbon::createFromFormat('Y-m', $invoice->billing_period)->format('M Y') : $invoice->created_at->format('M Y') }}</td>
+        </tr>
+        <tr>
             <td class="label">Jatuh Tempo</td>
             <td class="sep">:</td>
             <td class="value">{{ $invoice->customer->due_date ? \Carbon\Carbon::parse($invoice->customer->due_date)->format('d/m/Y') : '-' }}</td>
@@ -225,7 +230,7 @@
                     {{ $invoice->customer->package->name ?? 'Internet' }}
                     ({{ $invoice->customer->package->speed ?? '-' }} Mbps)
                     <br>
-                    <span style="font-size:9px;">Periode {{ $invoice->created_at->format('M Y') }}</span>
+                    <span style="font-size:9px;">Periode {{ $invoice->billing_period ? \Carbon\Carbon::createFromFormat('Y-m', $invoice->billing_period)->format('M Y') : $invoice->created_at->format('M Y') }}</span>
                     @if($invoice->customer->odp)
                         <br><span style="font-size:9px;">ODP: {{ $invoice->customer->odp->name }}</span>
                     @endif
@@ -248,13 +253,13 @@
     <div class="bank-info">
         Pembayaran via Transfer:<br>
         <strong>{{ $settings['bank_name'] ?? 'Bank BCA' }}</strong><br>
-        {{ $settings['bank_account'] ?? '1234567890' }} &middot; a.n. {{ $settings['bank_holder'] ?? 'RabegNet' }}
+        {{ $settings['bank_account'] ?? '1234567890' }} &middot; a.n. {{ $settings['bank_holder'] ?? ($settings['company_name'] ?? 'ALKONEK') }}
     </div>
     @endif
 
     <div class="footer">
         {{ $settings['invoice_footer'] ?? 'Terima kasih atas kepercayaan Anda.' }}<br>
-        {{ $settings['company_name'] ?? 'RabegNet' }} &middot; Billing System
+        {{ $settings['company_name'] ?? 'ALKONEK' }} &middot; Billing System
     </div>
 
     <div class="action-bar no-print">

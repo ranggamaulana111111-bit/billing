@@ -10,7 +10,7 @@ class Invoice extends Model
 {
     use BelongsToTenant, HasFactory;
 
-    protected $fillable = ['tenant_id', 'invoice_code', 'customer_id', 'amount', 'payment_status', 'paid_at', 'payment_method', 'midtrans_order_id'];
+    protected $fillable = ['tenant_id', 'invoice_code', 'customer_id', 'amount', 'payment_status', 'billing_period', 'paid_at', 'payment_method', 'midtrans_order_id'];
 
     protected function casts(): array
     {

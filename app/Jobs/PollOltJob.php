@@ -9,6 +9,7 @@ use App\Models\Olt;
 use App\Models\OltPort;
 use App\Models\Onu;
 use App\Models\Setting;
+use App\Services\FonnteService;
 use App\Services\MikrotikService;
 use App\Services\Olt\Factory\OltConnectorFactory;
 use Illuminate\Bus\Queueable;
@@ -17,7 +18,6 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class PollOltJob implements ShouldQueue
@@ -176,12 +176,7 @@ class PollOltJob implements ShouldQueue
                 ."Jalur: {$odcName} ➔ Tube: {$odp->kabel_tube_color} ➔ Core: {$odp->kabel_core_number}\n\n"
                 .'Kabel distribusi ini terdeteksi putus. Segera lakukan pengecekan dan splicing ulang.';
 
-            Http::withHeaders(['Authorization' => $token])
-                ->post('https://api.fonnte.com/send', [
-                    'target' => $phone,
-                    'message' => $message,
-                    'countryCode' => '62',
-                ]);
+            (new FonnteService($tenantId))->send($phone, $message);
         } catch (\Exception $e) {
             Log::error("PollOltJob RCA gagal kirim WA: {$e->getMessage()}");
         }

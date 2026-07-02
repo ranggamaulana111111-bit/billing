@@ -1,4 +1,4 @@
-# AGENTS.md — e-billing (RabegNet ISP Billing System v1.1)
+# AGENTS.md — e-billing (ALKONEK / PT Alkonek Network Access — ISP Billing System v1.1)
 
 ## Stack
 
@@ -8,6 +8,7 @@
 - **CSS Framework Utama:** **Bootstrap 5.3** (bukan Tailwind) — custom design system dengan CSS custom properties, gradient, glassmorphism. Tailwind di-import tapi tidak digunakan.
 - **Asset JS:** Chart.js (via NPM + Vite), Leaflet 1.9.4 + MarkerCluster, Alpine.js, Bootstrap JS
 - **QR Code:** `simplesoftwareio/simple-qrcode` v4.2 (inline SVG, no external API)
+- **WA Gateway:** Fonnte (via `App\Services\FonnteService`) — phone number auto-cleaned (strip `0`/`62` prefix), response validated & logged
 - **Code style:** Laravel Pint (default rules, no local `pint.json`)
 - **Testing:** PHPUnit 11 + Mockery — SQLite `:memory:` in tests (see `phpunit.xml`)
 - **Deployment:** Vercel (`vercel-php@0.9.0`, `api/index.php`) + Railway.app backup
@@ -60,7 +61,7 @@ C:\laragon\bin\php\php-8.2.31-Win32-vs16-x64\php.exe artisan {command}
 
 ## Architecture
 
-**RabegNet** adalah sistem billing ISP lengkap dengan ~80 file PHP di `app/`, 46 migrations, 28 tabel database, dan ~151 route.
+**ALKONEK (PT Alkonek Network Access)** adalah sistem billing ISP lengkap dengan ~80 file PHP di `app/`, 46 migrations, 28 tabel database, dan ~151 route.
 
 ### Multi-Tenancy
 - **`BelongsToTenant` trait** (bukan `BelongsToUser`) — global scope `tenant_id` pada semua model utama
@@ -73,6 +74,15 @@ C:\laragon\bin\php\php-8.2.31-Win32-vs16-x64\php.exe artisan {command}
 - Decorator Pattern untuk Jump Host SSH tunnel & MikroTik SSH Proxy
 - Event-driven API untuk sinkronasi voucher MikroTik (`POST /api/v1/mikrotik/hotspot-login`)
 - Isolir subsystem: auto-suspend + firewall integration MikroTik
+
+### WA Gateway (Fonnte)
+- **`FonnteService`** — centralized service di `app/Services/FonnteService.php`
+  - `cleanPhone()` — strip non-digit, hapus prefix `0`/`62`, kirim subscriber number saja
+  - `send()` — kirim via Fonnte API, validasi response, log error jika gagal
+- **5 call sites:** `InvoiceController::sendReminder()` (manual), `InvoiceController::sendWaNotification()` (lunas), `BillingProcess::sendWa()` (auto cron), `SendWhatsAppNotification` (job), `PollOltJob` (alert teknisi)
+- **Token** via `Setting::get('fonnte_token')` atau fallback `config('services.fonnte.token')`
+- **Message templates** menggunakan branding `ALKONEK BILLING` / `PT Alkonek Network Access`
+- **Nomor telepon** disimpan dalam format lokal (`08xx`), dibersihkan otomatis sebelum dikirim ke API
 
 ### Isolir Subsystem (tidak ada di DOCS versi lama)
 Tiga command + satu controller untuk auto-isolasi pelanggan telat bayar:
@@ -93,6 +103,7 @@ Tiga command + satu controller untuk auto-isolasi pelanggan telat bayar:
 
 - **JANGAN commit `.env` atau `vercel.json`** — berisi produksi credentials (DB password, APP_KEY, Midtrans server key, Fonnte token)
 - **reset_data.php** adalah destructive script — HAPUS file ini sebelum production atau beri proteksi
+- **Fonnte token** juga di Settings DB — token production jangan bocor via screenshot/log
 - `checker.md` juga mengandung sensitive tokens — jangan commit ke public repo
 - Password MikroTik router **tidak di-encrypt** (beda dengan OLT yang pakai `encrypted` cast)
 - `OdcPort` dan `OdpPort` model **tidak punya** `BelongsToTenant` scope — potensi data leak
@@ -110,7 +121,7 @@ app/
 ├── Jobs/                   # PollOltJob, SendWhatsAppNotification
 ├── Mail/                   # InvoiceReminder, PaymentConfirmation
 ├── Models/                 # 19 models + 2 traits (BelongsToTenant, BelongsToUser legacy)
-└── Services/               # MidtransService, MikrotikService, Olt/ (drivers, factory, SSH tunnel)
+└── Services/               # FonnteService, MidtransService, MikrotikService, Olt/ (drivers, factory, SSH tunnel)
 database/
 ├── migrations/             # 46 files (28 tables)
 ├── factories/              # 5 factories

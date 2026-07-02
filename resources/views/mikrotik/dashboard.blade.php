@@ -15,6 +15,8 @@
     </div>
 </div>
 
+@include('mikrotik._router_switcher')
+
 @if(session('success'))
     <div class="alert alert-custom alert-success mb-4">{{ session('success') }}</div>
 @endif
@@ -139,14 +141,14 @@
                     <div class="col-6 text-center">
                         <div class="stat-number" style="color:#2563eb;font-size:2rem;">{{ count($activeHotspot) }}</div>
                         <small class="text-muted">Hotspot Aktif</small>
-                        <a href="{{ route('mikrotik.active') }}" class="d-block mt-2">
+                        <a href="{{ route('mikrotik.active', ['router' => request('router')]) }}" class="d-block mt-2">
                             <small><i class="fa-solid fa-arrow-right me-1"></i>Lihat Detail</small>
                         </a>
                     </div>
                     <div class="col-6 text-center">
                         <div class="stat-number" style="color:#059669;font-size:2rem;">{{ count($activePpp) }}</div>
                         <small class="text-muted">PPP Aktif</small>
-                        <a href="{{ route('mikrotik.active') }}" class="d-block mt-2">
+                        <a href="{{ route('mikrotik.active', ['router' => request('router')]) }}" class="d-block mt-2">
                             <small><i class="fa-solid fa-arrow-right me-1"></i>Lihat Detail</small>
                         </a>
                     </div>
@@ -178,16 +180,16 @@
             </div>
             <div class="card-body">
                 <div class="d-flex gap-3 flex-wrap">
-                    <a href="{{ route('mikrotik.profiles') }}" class="btn btn-outline-primary">
+                    <a href="{{ route('mikrotik.profiles', ['router' => request('router')]) }}" class="btn btn-outline-primary">
                         <i class="fa-solid fa-layer-group me-1"></i>Profiles
                     </a>
-                    <a href="{{ route('mikrotik.ppp') }}" class="btn btn-outline-success">
+                    <a href="{{ route('mikrotik.ppp', ['router' => request('router')]) }}" class="btn btn-outline-success">
                         <i class="fa-solid fa-network-wired me-1"></i>PPP Secrets
                     </a>
-                    <a href="{{ route('mikrotik.queues') }}" class="btn btn-outline-warning">
+                    <a href="{{ route('mikrotik.queues', ['router' => request('router')]) }}" class="btn btn-outline-warning">
                         <i class="fa-solid fa-gauge-high me-1"></i>Queue Bandwidth
                     </a>
-                    <form method="POST" action="{{ route('mikrotik.backup') }}" class="d-inline" onsubmit="return confirm('Buat backup MikroTik sekarang?')">
+                    <form method="POST" action="{{ route('mikrotik.backup', ['router' => request('router')]) }}" class="d-inline" onsubmit="return confirm('Buat backup MikroTik sekarang?')">
                         @csrf
                         <button type="submit" class="btn btn-outline-secondary">
                             <i class="fa-solid fa-floppy-disk me-1"></i>Backup

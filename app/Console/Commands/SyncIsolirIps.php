@@ -26,7 +26,9 @@ class SyncIsolirIps extends Command
             return Command::SUCCESS;
         }
 
-        $routers = MikrotikRouter::where('is_active', true)->get();
+        $routers = MikrotikRouter::where('is_active', true)
+            ->byType('pppoe')
+            ->get();
 
         if ($routers->isEmpty()) {
             $mikrotik = new MikrotikService;

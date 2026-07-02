@@ -2,13 +2,12 @@
 
 namespace App\Jobs;
 
-use App\Models\Setting;
+use App\Services\FonnteService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Http;
 
 class SendWhatsAppNotification implements ShouldQueue
 {
@@ -26,18 +25,6 @@ class SendWhatsAppNotification implements ShouldQueue
 
     public function handle(): void
     {
-        $token = Setting::get('fonnte_token', null, $this->userId);
-
-        if (! $token) {
-            return;
-        }
-
-        Http::withHeaders([
-            'Authorization' => $token,
-        ])->post('https://api.fonnte.com/send', [
-            'target' => $this->phone,
-            'message' => $this->message,
-            'countryCode' => '62',
-        ]);
+        (new FonnteService($this->userId))->send($this->phone, $this->message);
     }
 }

@@ -28,13 +28,14 @@ class ExportController extends Controller
 
         ActivityLog::log('Export Invoice', 'Export '.$invoices->count().' invoice ke CSV');
 
-        $csv = "Invoice,Pelanggan,Paket,Tanggal,Jumlah,Status\n";
+        $csv = "Invoice,Pelanggan,Paket,Tanggal,Periode,Jumlah,Status\n";
         foreach ($invoices as $inv) {
             $csv .= implode(',', [
                 $inv->invoice_code,
                 str_replace(',', ' ', $inv->customer->name ?? '-'),
                 str_replace(',', ' ', $inv->customer->package->name ?? '-'),
                 $inv->created_at->format('d/m/Y'),
+                $inv->billing_period,
                 $inv->amount,
                 $inv->payment_status === 'paid' ? 'Lunas' : 'Belum',
             ])."\n";

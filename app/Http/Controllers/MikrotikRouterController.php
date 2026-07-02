@@ -26,6 +26,7 @@ class MikrotikRouterController extends Controller
             'password' => 'nullable|string|max:255',
             'hotspot_server' => 'nullable|string|max:255',
             'is_active' => 'boolean',
+            'type' => 'required|in:pppoe,bandwidth,general',
         ]);
 
         $validated['is_active'] = $request->has('is_active');
@@ -48,6 +49,7 @@ class MikrotikRouterController extends Controller
             'password' => 'nullable|string|max:255',
             'hotspot_server' => 'nullable|string|max:255',
             'is_active' => 'boolean',
+            'type' => 'required|in:pppoe,bandwidth,general',
         ]);
 
         $validated['is_active'] = $request->has('is_active');

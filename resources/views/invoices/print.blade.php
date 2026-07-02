@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Faktur {{ $invoice->invoice_code }} - {{ $settings['company_name'] ?? 'RabegNet' }}</title>
+    <title>Faktur {{ $invoice->invoice_code }} - {{ $settings['company_name'] ?? 'ALKONEK' }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -281,11 +281,15 @@
                 <div class="row align-items-center">
                     <div class="col-7">
                         <div class="brand">
-                            <div class="brand-icon">
-                                <i class="fa-solid fa-bolt"></i>
-                            </div>
+                            @if(!empty($settings['company_logo']))
+                                <img src="{{ asset('storage/' . $settings['company_logo']) }}" alt="Logo" style="height:36px;width:auto;border-radius:8px;">
+                            @else
+                                <div class="brand-icon">
+                                    <i class="fa-solid fa-bolt"></i>
+                                </div>
+                            @endif
                             <div>
-                                <h3>{{ $settings['company_name'] ?? 'RabegNet' }}</h3>
+                                <h3>{{ $settings['company_name'] ?? 'ALKONEK' }}</h3>
                                 <small>Internet Service Provider</small>
                             </div>
                         </div>
@@ -322,6 +326,7 @@
                         <p>{{ $invoice->invoice_code }}</p>
                         <div class="sub-text">
                             Tanggal: {{ $invoice->created_at->format('d/m/Y') }}<br>
+                            Periode: {{ $invoice->billing_period ? \Carbon\Carbon::createFromFormat('Y-m', $invoice->billing_period)->format('M Y') : $invoice->created_at->format('M Y') }}<br>
                             Jatuh Tempo: {{ $invoice->customer->due_date ? \Carbon\Carbon::parse($invoice->customer->due_date)->format('d/m/Y') : '-' }}
                         </div>
                     </div>
@@ -346,7 +351,7 @@
                                     @endif
                                 </div>
                             </td>
-                            <td>{{ $invoice->created_at->format('M Y') }}</td>
+                            <td>{{ $invoice->billing_period ? \Carbon\Carbon::createFromFormat('Y-m', $invoice->billing_period)->format('M Y') : $invoice->created_at->format('M Y') }}</td>
                             <td class="text-end fw-bold">Rp {{ number_format($invoice->amount, 0, ',', '.') }}</td>
                         </tr>
                     </tbody>
@@ -370,13 +375,13 @@
                 <div style="margin-top:24px;padding:14px 18px;background:#f8fafc;border-radius:10px;font-size:0.8rem;color:#64748b;">
                     <i class="fa-solid fa-info-circle me-1" style="color:var(--primary);"></i>
                     Pembayaran dapat dilakukan melalui transfer ke rekening:<br>
-                    <strong style="color:#0f172a;">{{ $settings['bank_name'] ?? 'Bank BCA' }} &middot; {{ $settings['bank_account'] ?? '1234567890' }} &middot; a.n. {{ $settings['bank_holder'] ?? 'RabegNet' }}</strong>
+                    <strong style="color:#0f172a;">{{ $settings['bank_name'] ?? 'Bank BCA' }} &middot; {{ $settings['bank_account'] ?? '1234567890' }} &middot; a.n. {{ $settings['bank_holder'] ?? ($settings['company_name'] ?? 'ALKONEK') }}</strong>
                 </div>
             </div>
 
             <div class="invoice-footer">
                 <small>{{ $settings['invoice_footer'] ?? 'Terima kasih atas kepercayaan Anda.' }}</small>
-                <small class="powered">RabegNet Billing System</small>
+                <small class="powered">{{ $settings['company_name'] ?? 'ALKONEK' }} Billing System</small>
             </div>
         </div>
 

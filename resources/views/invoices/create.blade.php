@@ -37,6 +37,13 @@
                         @error('amount') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
 
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Periode (Bulan)</label>
+                        <input type="month" name="billing_period" class="form-control @error('billing_period') is-invalid @enderror"
+                               value="{{ old('billing_period', now()->format('Y-m')) }}">
+                        @error('billing_period') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                    </div>
+
                     <div class="d-flex justify-content-between">
                         <a href="{{ route('invoices.index') }}" class="btn btn-outline-secondary px-4">
                             <i class="fa-solid fa-arrow-left me-2"></i>Kembali

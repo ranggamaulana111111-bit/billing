@@ -31,7 +31,10 @@
 <body>
     <div class="header">
         <div class="brand">
-            <h1>{{ $settings['company_name'] ?? 'RabegNet' }}</h1>
+            @if(!empty($settings['company_logo']))
+                <img src="{{ storage_path('app/public/' . $settings['company_logo']) }}" alt="Logo" style="height:36px;width:auto;border-radius:6px;margin-bottom:6px;"><br>
+            @endif
+            <h1>{{ $settings['company_name'] ?? 'ALKONEK' }}</h1>
             <small>{{ $settings['company_address'] ?? '' }}</small><br>
             <small>Telp: {{ $settings['company_phone'] ?? '' }}</small>
         </div>
@@ -67,7 +70,7 @@
         <tbody>
             <tr>
                 <td>{{ $invoice->customer->package->name ?? 'Internet' }}</td>
-                <td>{{ $invoice->created_at->format('F Y') }}</td>
+                <td>{{ $invoice->billing_period ? \Carbon\Carbon::createFromFormat('Y-m', $invoice->billing_period)->format('F Y') : $invoice->created_at->format('F Y') }}</td>
                 <td class="text-end">Rp{{ number_format($invoice->amount, 0, ',', '.') }}</td>
             </tr>
             <tr class="total">

@@ -20,6 +20,7 @@ class InvoiceFactory extends Factory
             'customer_id' => Customer::factory(),
             'amount' => fake()->randomElement([150000, 200000, 350000]),
             'payment_status' => 'unpaid',
+            'billing_period' => now()->format('Y-m'),
         ];
     }
 

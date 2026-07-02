@@ -38,11 +38,22 @@ class MikrotikService
                 $this->hotspotServer = $router->hotspot_server;
             }
         } else {
-            $this->host = Setting::get('mikrotik_host');
-            $this->user = Setting::get('mikrotik_user');
-            $this->pass = Setting::get('mikrotik_password');
-            $this->port = (int) (Setting::get('mikrotik_port', '80'));
-            $this->hotspotServer = Setting::get('mikrotik_hotspot_server', 'all');
+            $router = MikrotikRouter::where('is_active', true)
+                ->whereIn('type', ['general'])
+                ->first();
+            if ($router) {
+                $this->host = $router->host;
+                $this->user = $router->username;
+                $this->pass = $router->password;
+                $this->port = (int) $router->port;
+                $this->hotspotServer = $router->hotspot_server;
+            } else {
+                $this->host = Setting::get('mikrotik_host');
+                $this->user = Setting::get('mikrotik_user');
+                $this->pass = Setting::get('mikrotik_password');
+                $this->port = (int) (Setting::get('mikrotik_port', '80'));
+                $this->hotspotServer = Setting::get('mikrotik_hotspot_server', 'all');
+            }
         }
     }
 

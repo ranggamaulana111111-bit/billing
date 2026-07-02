@@ -102,19 +102,20 @@ class PackageController extends Controller
                 continue;
             }
 
+            $billingPeriod = now()->format('Y-m');
+
             $exists = Invoice::where('customer_id', $customer->id)
-                ->whereYear('created_at', now()->year)
-                ->whereMonth('created_at', now()->month)
+                ->where('billing_period', $billingPeriod)
                 ->exists();
 
             if ($exists) {
                 continue;
             }
 
-            $invoiceCode = 'INV-'.str_pad($customer->id, 4, '0', STR_PAD_LEFT).'-'.now()->format('m');
+            $invoiceCode = 'INV-'.str_pad($customer->id, 4, '0', STR_PAD_LEFT).'-ALK-'.now()->format('m').'-PRDT';
             $counter = 1;
             while (Invoice::where('invoice_code', $invoiceCode)->exists()) {
-                $invoiceCode = 'INV-'.str_pad($customer->id, 4, '0', STR_PAD_LEFT).'-'.now()->format('m').'-'.$counter;
+                $invoiceCode = 'INV-'.str_pad($customer->id, 4, '0', STR_PAD_LEFT).'-ALK-'.now()->format('m').'-PRDT-'.$counter;
                 $counter++;
             }
 
@@ -123,6 +124,7 @@ class PackageController extends Controller
                 'customer_id' => $customer->id,
                 'amount' => $customer->package->price,
                 'payment_status' => 'unpaid',
+                'billing_period' => $billingPeriod,
             ]);
 
             $generated++;

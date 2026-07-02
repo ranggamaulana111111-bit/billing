@@ -31,7 +31,9 @@ class IsolirController extends Controller
     {
         $clientIp = $request->ip();
 
-        $routers = MikrotikRouter::where('is_active', true)->get();
+        $routers = MikrotikRouter::where('is_active', true)
+            ->byType('pppoe')
+            ->get();
 
         if ($routers->isEmpty()) {
             $mikrotik = new MikrotikService;

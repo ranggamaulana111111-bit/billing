@@ -6,6 +6,7 @@
         body { font-family:'Segoe UI',Arial,sans-serif; background:#f4f4f4; margin:0; padding:0; }
         .container { max-width:600px; margin:30px auto; background:#fff; border-radius:12px; overflow:hidden; box-shadow:0 2px 12px rgba(0,0,0,0.08); }
         .header { background:linear-gradient(135deg,#2563eb,#6366f1); color:#fff; padding:30px; text-align:center; }
+        .header img { height:32px; width:auto; border-radius:6px; margin-bottom:10px; }
         .header h1 { margin:0; font-size:22px; }
         .body { padding:30px; }
         .body p { color:#475569; line-height:1.6; margin:0 0 16px; }
@@ -21,6 +22,9 @@
 <body>
     <div class="container">
         <div class="header">
+            @if(!empty($settings['company_logo']))
+                <img src="{{ asset('storage/' . $settings['company_logo']) }}" alt="{{ $settings['company_name'] ?? 'ALKONEK' }}">
+            @endif
             <h1>🔔 Reminder Pembayaran</h1>
         </div>
         <div class="body">
@@ -48,7 +52,7 @@
             @endif
         </div>
         <div class="footer">
-            <p>{{ $settings['company_name'] ?? 'RabegNet' }} &mdash; {{ $settings['company_address'] ?? '' }}</p>
+            <p>{{ $settings['company_name'] ?? 'ALKONEK' }} &mdash; {{ $settings['company_address'] ?? '' }}</p>
             <p>Email ini dikirim otomatis oleh sistem billing.</p>
         </div>
     </div>

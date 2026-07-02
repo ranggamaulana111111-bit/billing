@@ -11,7 +11,7 @@ class MikrotikRouter extends Model
 
     protected $fillable = [
         'tenant_id', 'name', 'host', 'port', 'username',
-        'password', 'hotspot_server', 'is_active',
+        'password', 'hotspot_server', 'is_active', 'type',
     ];
 
     protected function casts(): array
@@ -19,6 +19,17 @@ class MikrotikRouter extends Model
         return [
             'is_active' => 'boolean',
         ];
+    }
+
+    public function scopeByType($query, string $type)
+    {
+        if ($type === 'general') {
+            return $query;
+        }
+
+        return $query->where(function ($q) use ($type) {
+            $q->where('type', $type)->orWhere('type', 'general');
+        });
     }
 
     public function vouchers()

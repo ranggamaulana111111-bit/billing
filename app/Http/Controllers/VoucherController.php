@@ -163,14 +163,14 @@ class VoucherController extends Controller
 
         ActivityLog::log('Cetak Cepat Voucher', 'Membuat '.count($vouchers).' voucher WiFi ('.$hours.' jam) dari dashboard');
 
-        $companyName = Setting::get('company_name', 'RabegNet');
+        $companyName = Setting::get('company_name', 'ALKONEK');
 
         return view('vouchers.print-batch', compact('vouchers', 'companyName'));
     }
 
     public function print(Voucher $voucher)
     {
-        $companyName = Setting::get('company_name', 'RabegNet');
+        $companyName = Setting::get('company_name', 'ALKONEK');
 
         return view('vouchers.print', compact('voucher', 'companyName'));
     }
@@ -190,7 +190,7 @@ class VoucherController extends Controller
         }
 
         $vouchers = Voucher::whereIn('id', $ids)->get();
-        $companyName = Setting::get('company_name', 'RabegNet');
+        $companyName = Setting::get('company_name', 'ALKONEK');
 
         return view('vouchers.print-batch', compact('vouchers', 'companyName'));
     }
@@ -231,7 +231,9 @@ class VoucherController extends Controller
 
     public function syncMikrotik()
     {
-        $routers = MikrotikRouter::where('is_active', true)->get();
+        $routers = MikrotikRouter::where('is_active', true)
+            ->whereIn('type', ['general'])
+            ->get();
 
         if ($routers->isEmpty()) {
             $mikrotik = new MikrotikService;

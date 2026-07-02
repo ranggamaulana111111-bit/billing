@@ -14,7 +14,7 @@
     <div class="alert alert-custom alert-success mb-4">{{ session('success') }}</div>
 @endif
 
-<form method="POST" action="{{ route('settings.update') }}">
+<form method="POST" action="{{ route('settings.update') }}" enctype="multipart/form-data">
     @csrf
 
     <div class="row g-4">
@@ -32,6 +32,28 @@
                         <input type="text" name="company_name" class="form-control @error('company_name') is-invalid @enderror"
                                value="{{ old('company_name', $settings['company_name'] ?? '') }}" required>
                         @error('company_name') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Nama Singkat (Sidebar)</label>
+                        <input type="text" name="company_short_name" class="form-control @error('company_short_name') is-invalid @enderror"
+                               value="{{ old('company_short_name', $settings['company_short_name'] ?? '') }}" placeholder="ALKONEK">
+                        <div class="form-text">Nama pendek yang tampil di sidebar. Kosongkan untuk menggunakan default.</div>
+                        @error('company_short_name') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Logo Perusahaan</label>
+                        <input type="file" name="company_logo" class="form-control @error('company_logo') is-invalid @enderror"
+                               accept="image/jpg,image/jpeg,image/png,image/webp">
+                        @error('company_logo') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        @if(!empty($settings['company_logo']))
+                            <div class="mt-2 d-flex align-items-center gap-3">
+                                <img src="{{ asset('storage/' . $settings['company_logo']) }}" alt="Logo Preview"
+                                     style="height:40px;width:auto;border-radius:6px;border:1px solid #dee2e6;">
+                                <small class="text-muted">Logo saat ini. Unggah file baru untuk mengganti.</small>
+                            </div>
+                        @else
+                            <div class="form-text">Kosongkan jika tetap menggunakan logo default. Format: JPG, PNG, WEBP. Maks 2MB.</div>
+                        @endif
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Alamat</label>
@@ -266,6 +288,7 @@
                         <div class="col-md-6 d-flex align-items-end">
                             <p class="text-muted small mb-0">
                                 <i class="fa-solid fa-info-circle me-1"></i>
+                                Setting ini sebagai default/fallback. Untuk multi-router, gunakan menu <a href="{{ route('mikrotik-routers.index') }}" class="text-primary">Kelola Router</a>.
                                 Gunakan REST API MikroTik (RouterOS v7+). Pastikan REST API sudah diaktifkan di menu <code>IP → Services</code>.
                             </p>
                         </div>

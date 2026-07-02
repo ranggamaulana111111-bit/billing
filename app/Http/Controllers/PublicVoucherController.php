@@ -15,7 +15,7 @@ class PublicVoucherController extends Controller
     {
         $profiles = VoucherProfile::where('is_active', true)->get();
         $templates = VoucherTemplate::where('is_active', true)->get();
-        $company = Setting::get('company_name', 'RabegNet');
+        $company = Setting::get('company_name', 'ALKONEK');
         $showPrice = Setting::get('voucher_show_price', 'true');
 
         return view('vouchers.public', compact('profiles', 'templates', 'company', 'showPrice'));
@@ -53,7 +53,7 @@ class PublicVoucherController extends Controller
 
         ActivityLog::log('Generate Voucher Public', "{$count} voucher {$profile->name} dibuat dari halaman public");
 
-        $company = Setting::get('company_name', 'RabegNet');
+        $company = Setting::get('company_name', 'ALKONEK');
 
         $template = null;
         if ($validated['template_id']) {

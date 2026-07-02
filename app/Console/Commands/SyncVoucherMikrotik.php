@@ -20,7 +20,9 @@ class SyncVoucherMikrotik extends Command
             ->where('expires_at', '<', now())
             ->update(['status' => 'expired']);
 
-        $routers = MikrotikRouter::where('is_active', true)->get();
+        $routers = MikrotikRouter::where('is_active', true)
+            ->whereIn('type', ['general'])
+            ->get();
 
         if ($routers->isEmpty()) {
             $this->warn('Tidak ada router aktif. Coba fallback ke konfigurasi setting...');

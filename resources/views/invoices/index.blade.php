@@ -109,7 +109,13 @@
                                 @endif
                             </td>
                             <td>{{ $inv->customer->package->name ?? '-' }}</td>
-                            <td style="font-size:0.8rem;">{{ $inv->created_at->format('M Y') }}</td>
+                            <td style="font-size:0.8rem;">
+                                @if($inv->billing_period)
+                                    {{ \Carbon\Carbon::createFromFormat('Y-m', $inv->billing_period)->format('M Y') }}
+                                @else
+                                    {{ $inv->created_at->format('M Y') }}
+                                @endif
+                            </td>
                             <td class="fw-bold text-end">Rp{{ number_format($inv->amount, 0, ',', '.') }}</td>
                             <td class="text-center">
                                 @if($inv->payment_status === 'paid')

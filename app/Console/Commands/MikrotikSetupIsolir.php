@@ -21,7 +21,8 @@ class MikrotikSetupIsolir extends Command
         $redirectIp = $this->option('redirect-ip') ?: Setting::get('isolir_redirect_ip', '');
         $remove = $this->option('remove');
 
-        $routers = MikrotikRouter::where('is_active', true);
+        $routers = MikrotikRouter::where('is_active', true)
+            ->byType('pppoe');
 
         if ($routerId = $this->option('router')) {
             $routers = $routers->where('id', $routerId);

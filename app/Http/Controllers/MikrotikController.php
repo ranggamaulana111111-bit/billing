@@ -3,30 +3,40 @@
 namespace App\Http\Controllers;
 
 use App\Models\ActivityLog;
+use App\Models\MikrotikRouter;
 use App\Services\MikrotikService;
 use Illuminate\Http\Request;
 
 class MikrotikController extends Controller
 {
-    protected MikrotikService $mikrotik;
-
-    public function __construct()
+    protected function resolveMikrotik(): MikrotikService
     {
-        $this->mikrotik = new MikrotikService;
+        $routerId = request('router');
+
+        if ($routerId) {
+            $router = MikrotikRouter::find($routerId);
+            if ($router) {
+                return new MikrotikService($router);
+            }
+        }
+
+        return new MikrotikService;
     }
 
     public function dashboard()
     {
-        if (! $this->mikrotik->isConfigured()) {
+        $mikrotik = $this->resolveMikrotik();
+
+        if (! $mikrotik->isConfigured()) {
             return view('mikrotik.offline');
         }
 
-        $resource = $this->mikrotik->getSystemResource();
-        $identity = $this->mikrotik->getSystemIdentity();
-        $interfaces = collect($this->mikrotik->getInterfaces())->take(5);
-        $activeHotspot = $this->mikrotik->getActiveHotspotSessions();
-        $activePpp = $this->mikrotik->getPppActive();
-        $hotspotUsers = $this->mikrotik->getHotspotUsers();
+        $resource = $mikrotik->getSystemResource();
+        $identity = $mikrotik->getSystemIdentity();
+        $interfaces = collect($mikrotik->getInterfaces())->take(5);
+        $activeHotspot = $mikrotik->getActiveHotspotSessions();
+        $activePpp = $mikrotik->getPppActive();
+        $hotspotUsers = $mikrotik->getHotspotUsers();
 
         $uptimeSeconds = $this->parseUptime($resource['uptime'] ?? '0s');
 
@@ -41,17 +51,21 @@ class MikrotikController extends Controller
 
     public function profiles()
     {
-        if (! $this->mikrotik->isConfigured()) {
+        $mikrotik = $this->resolveMikrotik();
+
+        if (! $mikrotik->isConfigured()) {
             return view('mikrotik.offline');
         }
 
-        $profiles = $this->mikrotik->getHotspotProfiles();
+        $profiles = $mikrotik->getHotspotProfiles();
 
         return view('mikrotik.profiles', compact('profiles'));
     }
 
     public function storeProfile(Request $request)
     {
+        $mikrotik = $this->resolveMikrotik();
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'rate_limit' => 'nullable|string|max:100',
@@ -67,12 +81,12 @@ class MikrotikController extends Controller
             $params['shared-users'] = $validated['shared_users'];
         }
 
-        $result = $this->mikrotik->addHotspotProfile($validated['name'], $params);
+        $result = $mikrotik->addHotspotProfile($validated['name'], $params);
 
         if ($result['success']) {
             ActivityLog::log('Tambah Profile', 'Menambahkan profile hotspot: '.$validated['name']);
 
-            return redirect()->route('mikrotik.profiles')->with('success', $result['message']);
+            return redirect()->route('mikrotik.profiles', ['router' => request('router')])->with('success', $result['message']);
         }
 
         return back()->with('error', $result['message']);
@@ -80,7 +94,9 @@ class MikrotikController extends Controller
 
     public function destroyProfile(string $profileId)
     {
-        $result = $this->mikrotik->removeHotspotProfile($profileId);
+        $mikrotik = $this->resolveMikrotik();
+
+        $result = $mikrotik->removeHotspotProfile($profileId);
 
         if ($result['success']) {
             ActivityLog::log('Hapus Profile', 'Menghapus profile hotspot ID: '.$profileId);
@@ -95,19 +111,23 @@ class MikrotikController extends Controller
 
     public function activeSessions()
     {
-        if (! $this->mikrotik->isConfigured()) {
+        $mikrotik = $this->resolveMikrotik();
+
+        if (! $mikrotik->isConfigured()) {
             return view('mikrotik.offline');
         }
 
-        $hotspot = $this->mikrotik->getActiveHotspotSessions();
-        $ppp = $this->mikrotik->getPppActive();
+        $hotspot = $mikrotik->getActiveHotspotSessions();
+        $ppp = $mikrotik->getPppActive();
 
         return view('mikrotik.active', compact('hotspot', 'ppp'));
     }
 
     public function disconnectHotspot(string $sessionId)
     {
-        $result = $this->mikrotik->disconnectHotspotSession($sessionId);
+        $mikrotik = $this->resolveMikrotik();
+
+        $result = $mikrotik->disconnectHotspotSession($sessionId);
 
         if ($result['success']) {
             return back()->with('success', $result['message']);
@@ -118,7 +138,9 @@ class MikrotikController extends Controller
 
     public function disconnectPpp(string $sessionId)
     {
-        $result = $this->mikrotik->disconnectPppSession($sessionId);
+        $mikrotik = $this->resolveMikrotik();
+
+        $result = $mikrotik->disconnectPppSession($sessionId);
 
         if ($result['success']) {
             ActivityLog::log('Disconnect', 'Memutus sesi '.$sessionId);
@@ -133,18 +155,22 @@ class MikrotikController extends Controller
 
     public function pppSecrets()
     {
-        if (! $this->mikrotik->isConfigured()) {
+        $mikrotik = $this->resolveMikrotik();
+
+        if (! $mikrotik->isConfigured()) {
             return view('mikrotik.offline');
         }
 
-        $secrets = $this->mikrotik->getPppSecrets();
-        $profiles = $this->mikrotik->getPppProfiles();
+        $secrets = $mikrotik->getPppSecrets();
+        $profiles = $mikrotik->getPppProfiles();
 
         return view('mikrotik.ppp', compact('secrets', 'profiles'));
     }
 
     public function storePppSecret(Request $request)
     {
+        $mikrotik = $this->resolveMikrotik();
+
         $validated = $request->validate([
             'username' => 'required|string|max:255',
             'password' => 'required|string|max:255',
@@ -152,7 +178,7 @@ class MikrotikController extends Controller
             'profile' => 'nullable|string|max:255',
         ]);
 
-        $result = $this->mikrotik->addPppSecret(
+        $result = $mikrotik->addPppSecret(
             $validated['username'],
             $validated['password'],
             $validated['service'],
@@ -162,7 +188,7 @@ class MikrotikController extends Controller
         if ($result['success']) {
             ActivityLog::log('Tambah PPP', 'Menambahkan PPP secret: '.$validated['username']);
 
-            return redirect()->route('mikrotik.ppp')->with('success', $result['message']);
+            return redirect()->route('mikrotik.ppp', ['router' => request('router')])->with('success', $result['message']);
         }
 
         return back()->with('error', $result['message']);
@@ -170,7 +196,9 @@ class MikrotikController extends Controller
 
     public function destroyPppSecret(string $secretId)
     {
-        $result = $this->mikrotik->removePppSecret($secretId);
+        $mikrotik = $this->resolveMikrotik();
+
+        $result = $mikrotik->removePppSecret($secretId);
 
         if ($result['success']) {
             ActivityLog::log('Hapus PPP', 'Menghapus PPP secret ID: '.$secretId);
@@ -185,24 +213,28 @@ class MikrotikController extends Controller
 
     public function queues()
     {
-        if (! $this->mikrotik->isConfigured()) {
+        $mikrotik = $this->resolveMikrotik();
+
+        if (! $mikrotik->isConfigured()) {
             return view('mikrotik.offline');
         }
 
-        $queues = $this->mikrotik->getSimpleQueues();
+        $queues = $mikrotik->getSimpleQueues();
 
         return view('mikrotik.queues', compact('queues'));
     }
 
     public function storeQueue(Request $request)
     {
+        $mikrotik = $this->resolveMikrotik();
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'target' => 'required|string|max:50',
             'max_limit' => 'required|string|max:50',
         ]);
 
-        $result = $this->mikrotik->addSimpleQueue(
+        $result = $mikrotik->addSimpleQueue(
             $validated['name'],
             $validated['target'],
             $validated['max_limit']
@@ -211,7 +243,7 @@ class MikrotikController extends Controller
         if ($result['success']) {
             ActivityLog::log('Tambah Queue', 'Menambahkan simple queue: '.$validated['name']);
 
-            return redirect()->route('mikrotik.queues')->with('success', $result['message']);
+            return redirect()->route('mikrotik.queues', ['router' => request('router')])->with('success', $result['message']);
         }
 
         return back()->with('error', $result['message']);
@@ -219,7 +251,9 @@ class MikrotikController extends Controller
 
     public function destroyQueue(string $queueId)
     {
-        $result = $this->mikrotik->removeSimpleQueue($queueId);
+        $mikrotik = $this->resolveMikrotik();
+
+        $result = $mikrotik->removeSimpleQueue($queueId);
 
         if ($result['success']) {
             ActivityLog::log('Hapus Queue', 'Menghapus queue ID: '.$queueId);
@@ -234,9 +268,11 @@ class MikrotikController extends Controller
 
     public function backup(Request $request)
     {
+        $mikrotik = $this->resolveMikrotik();
+
         $name = 'billing-'.now()->format('Ymd-His');
 
-        $result = $this->mikrotik->createBackup($name);
+        $result = $mikrotik->createBackup($name);
 
         if ($result['success']) {
             ActivityLog::log('Backup MikroTik', 'Backup konfigurasi MikroTik: '.$name);
@@ -274,14 +310,16 @@ class MikrotikController extends Controller
 
     public function monitoring()
     {
-        if (! $this->mikrotik->isConfigured()) {
+        $mikrotik = $this->resolveMikrotik();
+
+        if (! $mikrotik->isConfigured()) {
             return back()->with('error', 'MikroTik belum dikonfigurasi.');
         }
 
-        $sessions = $this->mikrotik->getActiveHotspotSessions();
-        $pppActive = $this->mikrotik->getPppActive();
-        $interfaces = $this->mikrotik->getInterfaces();
-        $queues = $this->mikrotik->getSimpleQueues();
+        $sessions = $mikrotik->getActiveHotspotSessions();
+        $pppActive = $mikrotik->getPppActive();
+        $interfaces = $mikrotik->getInterfaces();
+        $queues = $mikrotik->getSimpleQueues();
 
         $totalBandwidthRx = 0;
         $totalBandwidthTx = 0;
@@ -306,14 +344,16 @@ class MikrotikController extends Controller
 
     public function liveData()
     {
-        if (! $this->mikrotik->isConfigured()) {
+        $mikrotik = $this->resolveMikrotik();
+
+        if (! $mikrotik->isConfigured()) {
             return response()->json(['error' => 'MikroTik not configured'], 400);
         }
 
-        $interfaces = $this->mikrotik->getInterfaces();
-        $sessions = $this->mikrotik->getActiveHotspotSessions();
-        $pppActive = $this->mikrotik->getPppActive();
-        $ping = $this->mikrotik->getLatency();
+        $interfaces = $mikrotik->getInterfaces();
+        $sessions = $mikrotik->getActiveHotspotSessions();
+        $pppActive = $mikrotik->getPppActive();
+        $ping = $mikrotik->getLatency();
 
         $totalRx = 0;
         $totalTx = 0;

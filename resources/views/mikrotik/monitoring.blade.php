@@ -15,6 +15,8 @@
     </div>
 </div>
 
+@include('mikrotik._router_switcher')
+
 <div class="row g-3 mb-4" id="stats-cards">
     <div class="col-md-3">
         <div class="card shadow-sm border-0">

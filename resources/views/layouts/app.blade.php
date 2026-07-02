@@ -1,18 +1,26 @@
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
+    @php
+        try {
+            $metaCompany = \App\Models\Setting::get('company_name') ?: config('app.name', 'ALKONEK');
+        } catch (\Exception $e) {
+            $metaCompany = config('app.name', 'ALKONEK');
+        }
+        $metaBrand = $metaCompany . ' Billing';
+    @endphp
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="@yield('meta_description', 'RabegNet Billing — Sistem billing ISP untuk manajemen pelanggan, tagihan, pembayaran online, voucher WiFi, monitoring MikroTik, dan manajemen OLT. Solusi operasional ISP yang rapi dan terintegrasi.')">
-    <meta name="keywords" content="@yield('meta_keywords', 'billing ISP, RabegNet, tagihan internet, pembayaran online, voucher WiFi, MikroTik, OLT, ISP management,印尼, billing system')">
+    <meta name="description" content="@yield('meta_description', $metaBrand . ' — Sistem billing ISP untuk manajemen pelanggan, tagihan, pembayaran online, voucher WiFi, monitoring MikroTik, dan manajemen OLT. Solusi operasional ISP yang rapi dan terintegrasi.')">
+    <meta name="keywords" content="@yield('meta_keywords', 'billing ISP, ' . $metaCompany . ', tagihan internet, pembayaran online, voucher WiFi, MikroTik, OLT, ISP management, billing system')">
     <meta name="robots" content="index, follow">
     <meta name="google-site-verification" content="8psHkpnmvIBG7wwjyZBspYTvVtRchzNfJBSdwNSwCo0" />
     <meta name="language" content="Indonesian">
 
     <!-- Open Graph -->
     <meta property="og:type" content="website">
-    <meta property="og:site_name" content="RabegNet Billing">
-    <meta property="og:title" content="@yield('title', config('app.name', 'RabegNet'))">
+    <meta property="og:site_name" content="{{ $metaBrand }}">
+    <meta property="og:title" content="@yield('title', $metaCompany)">
     <meta property="og:description" content="@yield('meta_description', 'Sistem billing ISP untuk manajemen pelanggan, tagihan, pembayaran online, voucher WiFi, dan monitoring jaringan.')">
     <meta property="og:url" content="{{ url()->current() }}">
     <meta property="og:image" content="{{ asset('images/og-image.svg') }}">
@@ -20,13 +28,13 @@
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="@yield('title', config('app.name', 'RabegNet'))">
+    <meta name="twitter:title" content="@yield('title', $metaCompany)">
     <meta name="twitter:description" content="@yield('meta_description', 'Sistem billing ISP untuk manajemen pelanggan, tagihan, pembayaran online, voucher WiFi, dan monitoring jaringan.')">
 
     <!-- Canonical -->
     <link rel="canonical" href="{{ url()->current() }}">
 
-    <title>@yield('title', config('app.name', 'RabegNet')) ~ RabegNet Billing</title>
+    <title>@yield('title', $metaCompany) ~ {{ $metaBrand }}</title>
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -45,13 +53,22 @@
     <div class="wrapper">
         @if(!request()->routeIs('login') && !request()->routeIs('register') && !request()->routeIs('portal.*') && !request()->is('/'))
         <nav id="sidebar">
+            @php
+                try {
+                    $sidebarLogo = \App\Models\Setting::get('company_logo');
+                    $sidebarShortName = \App\Models\Setting::get('company_short_name');
+                    $sidebarCompanyName = \App\Models\Setting::get('company_name');
+                } catch (\Exception $e) {
+                    $sidebarLogo = null;
+                    $sidebarShortName = null;
+                    $sidebarCompanyName = null;
+                }
+            @endphp
             <div class="sidebar-header d-flex align-items-center gap-3">
-                <div class="d-flex align-items-center justify-content-center" style="width:36px;height:36px;background:rgba(255,255,255,0.1);border-radius:10px;">
-                    <i class="fa-solid fa-bolt" style="color:#60a5fa;font-size:1.1rem;"></i>
-                </div>
+                <img src="{{ $sidebarLogo ? asset('storage/' . $sidebarLogo) : asset('images/logo.png') }}" alt="Logo" style="height:36px;width:auto;border-radius:8px;">
                 <div>
-                    <h4 class="mb-0">RabegNet</h4>
-                    <small style="font-size:10px;color:rgba(255,255,255,0.35);font-weight:500;letter-spacing:0.05em;display:block;margin-top:-2px;">BILLING SYSTEM</small>
+                    <h4 class="mb-0">{{ $sidebarShortName ?: 'ALKONEK' }}</h4>
+                    <small style="font-size:10px;color:rgba(255,255,255,0.35);font-weight:500;letter-spacing:0.05em;display:block;margin-top:-2px;">{{ $sidebarCompanyName ?: 'PT. ALKONEK NETWORK ACCESS' }}</small>
                 </div>
             </div>
 
@@ -74,6 +91,9 @@
                     </li>
 
                     <p>Layanan</p>
+                    <li class="{{ request()->routeIs('mikrotik-routers.*') ? 'active' : '' }}">
+                        <a href="{{ route('mikrotik-routers.index') }}"><i class="fa-solid fa-server"></i><span>Kelola Router</span></a>
+                    </li>
                     <li class="{{ request()->routeIs('vouchers.*') ? 'active' : '' }}">
                         <a href="{{ route('vouchers.index') }}"><i class="fa-solid fa-ticket"></i><span>Voucher WiFi</span></a>
                     </li>

@@ -7,9 +7,9 @@ use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\Setting;
 use App\Models\User;
+use App\Services\FonnteService;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Http;
 
 class BillingProcess extends Command
 {
@@ -39,7 +39,6 @@ class BillingProcess extends Command
             $this->info("--- Tenant: {$user->name} ({$user->email}) ---");
 
             $month = $today->format('m');
-            $year = $today->format('Y');
 
             $customers = Customer::where('user_id', $user->id)->with('package')->get();
 
@@ -61,17 +60,18 @@ class BillingProcess extends Command
 
                 $dueDay = $customer->due_date ? (int) Carbon::parse($customer->due_date)->format('d') : null;
 
+                $billingPeriod = $today->format('Y-m');
+
                 $existing = Invoice::where('user_id', $user->id)
                     ->where('customer_id', $customer->id)
-                    ->whereYear('created_at', $year)
-                    ->whereMonth('created_at', $month)
+                    ->where('billing_period', $billingPeriod)
                     ->exists();
 
                 if (! $existing) {
-                    $invoiceCode = 'INV-'.str_pad($customer->id, 4, '0', STR_PAD_LEFT).'-'.$month;
+                    $invoiceCode = 'INV-'.str_pad($customer->id, 4, '0', STR_PAD_LEFT).'-ALK-'.$month.'-PRDT';
                     $counter = 1;
                     while (Invoice::where('invoice_code', $invoiceCode)->exists()) {
-                        $invoiceCode = 'INV-'.str_pad($customer->id, 4, '0', STR_PAD_LEFT).'-'.$month.'-'.$counter;
+                        $invoiceCode = 'INV-'.str_pad($customer->id, 4, '0', STR_PAD_LEFT).'-ALK-'.$month.'-PRDT-'.$counter;
                         $counter++;
                     }
 
@@ -81,7 +81,7 @@ class BillingProcess extends Command
                         'customer_id' => $customer->id,
                         'amount' => $customer->package->price,
                         'payment_status' => 'unpaid',
-                        'created_at' => $today,
+                        'billing_period' => $billingPeriod,
                     ]);
 
                     $generated++;
@@ -158,10 +158,10 @@ class BillingProcess extends Command
             default => "🔔 *{$type}*",
         };
 
-        $message = "━━━ *RABEGNET BILLING* ━━━\n\n"
+        $message = "━━━ *ALKONEK BILLING* ━━━\n\n"
             ."{$typeLabel}\n\n"
-            ."Halo *{$customer->name}*\n\n"
-            ."📋 *Tagihan Bulan Ini*\n"
+            ."Halo YTH *{$customer->name}*, Mengetahui kenyamanan anda adalah prioritas kami. Kami ingin menginfokan bahwa :\n\n"
+            ."📋 *Tagihan Anda Bulan ini*\n"
             ."━━━━━━━━━━━━━━━━\n"
             ."Invoice : {$invoice->invoice_code}\n"
             ."Paket   : {$packageName}\n"
@@ -169,10 +169,11 @@ class BillingProcess extends Command
             ."Jatuh Tiap Tgl : {$dueDay}\n"
             ."Status  : ⏳ BELUM DIBAYAR\n"
             ."━━━━━━━━━━━━━━━━\n\n"
-            ."Segera lakukan pembayaran untuk menikmati layanan tanpa putus.\n"
-            ."Bayar via: QRIS / Transfer Bank\n\n"
+            ."Akan jatuh tempo, Dapat melakukan Pembayaran melalui DANA : 089531559066. atau pembayaran dapat dilakukan ditempat basecamp alkonek.\n"
+            ."Hubungi kami jika ada kendala.\n\n"
             ."Terima kasih 🙏\n\n"
-            .'━━━ *RabegNet* ━━━';
+            ."━━━ *PT Alkonek Network Access* ━━━\n\n"
+            .'> _Sent via fonnte.com_';
 
         try {
             $token = Setting::get('fonnte_token', null, $userId);
@@ -183,15 +184,13 @@ class BillingProcess extends Command
                 return;
             }
 
-            Http::withHeaders([
-                'Authorization' => $token,
-            ])->post('https://api.fonnte.com/send', [
-                'target' => $customer->phone,
-                'message' => $message,
-                'countryCode' => '62',
-            ]);
+            $result = (new FonnteService($userId))->send($customer->phone, $message);
 
-            $this->info("  WA reminder {$type} ke {$customer->name} ({$customer->phone})");
+            if ($result['success']) {
+                $this->info("  WA reminder {$type} ke {$customer->name} ({$customer->phone})");
+            } else {
+                $this->warn("  WA reminder {$type} ke {$customer->name} gagal: {$result['error']}");
+            }
         } catch (\Exception $e) {
             $this->error("  Gagal WA ke {$customer->name}: {$e->getMessage()}");
         }

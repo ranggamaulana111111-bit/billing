@@ -24,15 +24,14 @@ class DashboardController extends Controller
         $totalUsed = OdpPoint::sum('port_used');
 
         $totalPaid = Invoice::where('payment_status', 'paid')
-            ->whereMonth('created_at', now()->month)
+            ->where('billing_period', now()->format('Y-m'))
             ->sum('amount');
 
         $totalUnpaid = Invoice::where('payment_status', 'unpaid')
             ->sum('amount');
 
         $monthUnpaid = Invoice::where('payment_status', 'unpaid')
-            ->whereMonth('created_at', now()->month)
-            ->whereYear('created_at', now()->year)
+            ->where('billing_period', now()->format('Y-m'))
             ->sum('amount');
 
         $todayRevenue = Invoice::where('payment_status', 'paid')
@@ -49,8 +48,7 @@ class DashboardController extends Controller
         for ($i = 5; $i >= 0; $i--) {
             $date = now()->subMonths($i);
             $revenue = Invoice::where('payment_status', 'paid')
-                ->whereYear('created_at', $date->year)
-                ->whereMonth('created_at', $date->month)
+                ->where('billing_period', $date->format('Y-m'))
                 ->sum('amount');
             $months->push($date->format('M Y'));
             $monthlyRevenue->push((int) $revenue);

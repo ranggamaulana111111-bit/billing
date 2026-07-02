@@ -9,11 +9,13 @@
         <p class="section-subtitle mb-0 mt-1">Pantau dan kelola sesi hotspot & PPP aktif di MikroTik</p>
     </div>
     <div class="page-actions mt-2 mt-md-0">
-        <a href="{{ route('mikrotik.dashboard') }}" class="btn btn-outline-secondary px-3">
+        <a href="{{ route('mikrotik.dashboard', ['router' => request('router')]) }}" class="btn btn-outline-secondary px-3">
             <i class="fa-solid fa-arrow-left me-1"></i>Monitor
         </a>
     </div>
 </div>
+
+@include('mikrotik._router_switcher')
 
 @if(session('success'))
     <div class="alert alert-custom alert-success mb-4">{{ session('success') }}</div>

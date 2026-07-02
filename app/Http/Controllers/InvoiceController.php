@@ -8,9 +8,10 @@ use App\Models\ActivityLog;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\Setting;
+use App\Services\FonnteService;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
@@ -46,7 +47,8 @@ class InvoiceController extends Controller
         if (! empty($customerIds)) {
             $paidData = Invoice::whereIn('customer_id', $customerIds)
                 ->where('payment_status', 'paid')
-                ->selectRaw('customer_id, DATE_FORMAT(created_at, "%Y-%m") as ym')
+                ->whereNotNull('billing_period')
+                ->selectRaw('customer_id, billing_period as ym')
                 ->distinct()
                 ->get()
                 ->groupBy('customer_id')
@@ -70,15 +72,17 @@ class InvoiceController extends Controller
         $validated = $request->validate([
             'customer_id' => 'required|exists:customers,id',
             'amount' => 'required|numeric|min:1',
+            'billing_period' => 'nullable|regex:/^\d{4}-\d{2}$/',
             'due_date' => 'nullable|date',
         ]);
 
         $customer = Customer::findOrFail($validated['customer_id']);
-        $month = now()->format('m');
-        $invoiceCode = 'INV-'.str_pad($customer->id, 4, '0', STR_PAD_LEFT).'-'.$month;
+        $billingPeriod = $validated['billing_period'] ?? now()->format('Y-m');
+        $month = Carbon::parse($billingPeriod.'-01')->format('m');
+        $invoiceCode = 'INV-'.str_pad($customer->id, 4, '0', STR_PAD_LEFT).'-ALK-'.$month.'-PRDT';
         $counter = 1;
         while (Invoice::where('invoice_code', $invoiceCode)->exists()) {
-            $invoiceCode = 'INV-'.str_pad($customer->id, 4, '0', STR_PAD_LEFT).'-'.$month.'-'.$counter;
+            $invoiceCode = 'INV-'.str_pad($customer->id, 4, '0', STR_PAD_LEFT).'-ALK-'.$month.'-PRDT-'.$counter;
             $counter++;
         }
 
@@ -87,6 +91,7 @@ class InvoiceController extends Controller
             'customer_id' => $customer->id,
             'amount' => $validated['amount'],
             'payment_status' => 'unpaid',
+            'billing_period' => $billingPeriod,
         ]);
 
         ActivityLog::log('Buat Tagihan', 'Tagihan manual untuk '.$customer->name.' - Rp '.number_format($validated['amount'], 0, ',', '.'));
@@ -106,6 +111,7 @@ class InvoiceController extends Controller
         $validated = $request->validate([
             'customer_id' => 'required|exists:customers,id',
             'amount' => 'required|numeric|min:1',
+            'billing_period' => 'nullable|regex:/^\d{4}-\d{2}$/',
         ]);
 
         $invoice->update($validated);
@@ -167,33 +173,28 @@ class InvoiceController extends Controller
             return back()->with('error', 'Invoice ini sudah lunas.');
         }
 
-        $message = "━━━ *RABEGNET BILLING* ━━━\n\n"
-            ."🔔 *PENGINGAT PEMBAYARAN*\n\n"
-            ."Halo *{$customer->name}*, kami ingatkan ya!\n\n"
-            ."📋 *Tagihan Anda*\n"
+        $message = "━━━ *ALKONEK BILLING* ━━━\n\n"
+            ."🔔 *PEMEBERITAHUAN TEMPO TAGIHAN*\n\n"
+            ."Halo YTH *{$customer->name}*, Mengetahui kenyamanan anda adalah prioritas kami. Kami ingin menginfokan bahwa :\n\n"
+            ."📋 *Tagihan Anda Bulan ini*\n"
             ."━━━━━━━━━━━━━━━━\n"
             ."Invoice : {$invoice->invoice_code}\n"
             ."Paket   : {$customer->package->name}\n"
             .'Total   : Rp '.number_format($invoice->amount, 0, ',', '.')."\n"
             ."Status  : ⏳ BELUM DIBAYAR\n"
             ."━━━━━━━━━━━━━━━━\n\n"
-            ."Segera lakukan pembayaran sebelum jatuh tempo.\n"
+            ."Akan jatuh tempo, Dapat melakukan Pembayaran melalui DANA : 089531559066. atau pembayaran dapat dilakukan ditempat basecamp alkonek.\n"
             ."Hubungi kami jika ada kendala.\n\n"
             ."Terima kasih 🙏\n\n"
-            .'━━━ *RabegNet* ━━━';
+            ."━━━ *PT Alkonek Network Access* ━━━\n\n"
+            .'> _Sent via fonnte.com_';
 
-        try {
-            Http::withHeaders([
-                'Authorization' => Setting::get('fonnte_token') ?: config('services.fonnte.token'),
-            ])->post('https://api.fonnte.com/send', [
-                'target' => $phone,
-                'message' => $message,
-                'countryCode' => '62',
-            ]);
-        } catch (\Exception $e) {
-            Log::error('Fonnte WA reminder gagal: '.$e->getMessage());
+        $result = (new FonnteService)->send($phone, $message);
 
-            return back()->with('error', 'Gagal mengirim WA reminder.');
+        if (! $result['success']) {
+            Log::error('Fonnte WA reminder gagal: '.($result['error'] ?? 'Unknown'));
+
+            return back()->with('error', 'Gagal mengirim WA reminder: '.($result['error'] ?? ''));
         }
 
         ActivityLog::log('Reminder WA', 'Pengiriman reminder ke '.$customer->name.' - '.$invoice->invoice_code);
@@ -252,9 +253,9 @@ class InvoiceController extends Controller
             return;
         }
 
-        $message = "━━━ *RABEGNET BILLING* ━━━\n\n"
+        $message = "━━━ *ALKONEK BILLING* ━━━\n\n"
             ."✅ *PEMBAYARAN DITERIMA*\n\n"
-            ."Halo *{$customer->name}*, terima kasih!\n\n"
+            ."Halo YTH *{$customer->name}*, terima kasih!\n\n"
             ."📋 *Detail Pembayaran*\n"
             ."━━━━━━━━━━━━━━━━\n"
             ."Invoice : {$invoice->invoice_code}\n"
@@ -265,19 +266,10 @@ class InvoiceController extends Controller
             ."━━━━━━━━━━━━━━━━\n\n"
             ."Terima kasih telah melakukan pembayaran tepat waktu.\n"
             ."Nikmati layanan internet Anda!\n\n"
-            .'━━━ *RabegNet* ━━━';
+            ."━━━ *PT Alkonek Network Access* ━━━\n\n"
+            .'> _Sent via fonnte.com_';
 
-        try {
-            Http::withHeaders([
-                'Authorization' => Setting::get('fonnte_token') ?: config('services.fonnte.token'),
-            ])->post('https://api.fonnte.com/send', [
-                'target' => $phone,
-                'message' => $message,
-                'countryCode' => '62',
-            ]);
-        } catch (\Exception $e) {
-            Log::error('Fonnte WA gagal: '.$e->getMessage());
-        }
+        (new FonnteService)->send($phone, $message);
     }
 
     public function downloadPdf(Invoice $invoice)
