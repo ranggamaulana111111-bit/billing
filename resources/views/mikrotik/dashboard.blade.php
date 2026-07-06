@@ -186,6 +186,12 @@
                     <a href="{{ route('mikrotik.ppp', ['router' => request('router')]) }}" class="btn btn-outline-success">
                         <i class="fa-solid fa-network-wired me-1"></i>PPP Secrets
                     </a>
+                    <a href="{{ route('mikrotik.hotspot-users', ['router' => request('router')]) }}" class="btn btn-outline-info">
+                        <i class="fa-solid fa-wifi me-1"></i>Hotspot Users
+                    </a>
+                    <a href="{{ route('mikrotik.ppp-profiles', ['router' => request('router')]) }}" class="btn btn-outline-info">
+                        <i class="fa-solid fa-user-group me-1"></i>PPPoE Profiles
+                    </a>
                     <a href="{{ route('mikrotik.queues', ['router' => request('router')]) }}" class="btn btn-outline-warning">
                         <i class="fa-solid fa-gauge-high me-1"></i>Queue Bandwidth
                     </a>

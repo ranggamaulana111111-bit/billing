@@ -1,6 +1,6 @@
 # Services — RabegNet ISP Billing System
 
-> 11 Files | `App\Services\` namespace
+> 12 Files | `App\Services\` namespace
 
 ---
 
@@ -26,7 +26,7 @@ Midtrans Callback → handleNotification() → Update invoice → Redirect
 
 ## MikrotikService (`app/Services/MikrotikService.php`)
 
-MikroTik REST API client — 784 baris, service terbesar.
+MikroTik REST API client + SSH fallback — ~950 baris, service terbesar.
 
 ### Constructor
 
@@ -38,9 +38,36 @@ MikroTik REST API client — 784 baris, service terbesar.
 
 | Method | Deskripsi |
 |--------|-----------|
-| `isConfigured()` | Cek host/user/pass tersedia |
+| `isConfigured()` | Cek host/user tersedia (password opsional) |
 | `client()` | `Http::withBasicAuth()->withoutVerifying()->timeout(30)` |
-| `safeGet(path)` | GET request dengan try-catch, return `[]` jika gagal |
+| `safeGet(path)` | Auto-fallback: coba SSH dulu → REST → `[]` jika semua gagal |
+| `initSsh(router)` | Init `MikrotikSshService` jika `router->ssh_port` terisi |
+| `sshSafeGet(path, query)` | Mapping REST path → SSH method (15+ endpoint) |
+
+### SSH Fallback
+
+Jika router punya `ssh_port`, `safeGet()` akan:
+1. Coba SSH dulu via `sshSafeGet()` — method mapping per path
+2. Jika SSH gagal → fallback ke REST API
+3. Jika REST juga gagal → Log warning → return `[]`
+
+**Method mapping:**
+```
+/system/resource          → getSystemResource()
+/system/health           → getSystemHealth()
+/interface               → getInterfaces()
+/ip/hotspot/active       → getActiveHotspotSessions()
+/ip/hotspot/user         → getHotspotUsers()
+/ip/hotspot              → getHotspotServers()
+/ip/hotspot/user/profile → getHotspotProfiles()
+/ppp/active              → getPppActive()
+/ppp/secret              → getPppSecrets()
+/ppp/profile             → getPppProfiles()
+/queue/simple            → getSimpleQueues()
+/log                     → getLog()
+/interface/monitor-traffic → getInterfaceTraffic()
+/system/identity         → getSystemIdentity() (wrapped in array)
+```
 
 ### Fitur — SISTEM
 
@@ -195,3 +222,42 @@ Direct:      Client → HuaweiConnector (SSH)
 Jump Host:   Client → JumpHost → HuaweiConnector
 MikroTik:    Client → MikroTik REST (tool/ssh) → OLT CLI
 ```
+
+---
+
+## MikrotikSshService (`app/Services/MikrotikSshService.php`)
+
+**New** — 319 baris, SSH fallback untuk MikroTik via `phpseclib3\Net\SSH2`.
+
+### Constructor
+
+| Parameter | Deskripsi |
+|-----------|-----------|
+| `MikrotikRouter $router` | Router dengan `ssh_port` terisi |
+
+Auto-login via SSH2 dengan timeout 30 detik.
+
+### Methods
+
+| Method | CLI Command | Return |
+|--------|-------------|--------|
+| `testConnection()` | `/system resource print` | `['success'=>bool, 'message'=>string]` |
+| `getSystemResource()` | `/system resource print` | `['uptime'=>string, 'cpu-load'=>string, ...]` |
+| `getSystemIdentity()` | `/system identity print` | `['name'=>string]` |
+| `getSystemHealth()` | `/system health print` | `['temperature'=>string, ...]` |
+| `getInterfaces()` | `/interface print` | `[['name'=>string, 'type'=>string, ...]]` |
+| `getInterfaceTraffic(iface)` | `/interface monitor-traffic $iface once` | `[['name'=>string, 'rx-bits-per-second'=>...]]` |
+| `getActiveHotspotSessions()` | `/ip hotspot active print` | `[['user'=>string, 'address'=>string, ...]]` |
+| `getHotspotUsers()` | `/ip hotspot user print` | `[['name'=>string, 'password'=>string, ...]]` |
+| `getHotspotServers()` | `/ip hotspot print` | `[['name'=>string, 'interface'=>string, ...]]` |
+| `getHotspotProfiles()` | `/ip hotspot user profile print` | `[['name'=>string, 'rate-limit'=>string, ...]]` |
+| `getPppActive()` | `/ppp active print` | `[['name'=>string, 'service'=>string, ...]]` |
+| `getPppSecrets()` | `/ppp secret print` | `[['name'=>string, 'password'=>string, ...]]` |
+| `getPppProfiles()` | `/ppp profile print` | `[['name'=>string, 'local-address'=>string, ...]]` |
+| `getSimpleQueues()` | `/queue simple print` | `[['name'=>string, 'max-limit'=>string, ...]]` |
+| `getLog(top)` | `/log print where .top=$top` | `[['time'=>string, 'message'=>string, ...]]` |
+| `getLatency()` | measure round-trip time | `?float` (ms) |
+
+### Output Parsing
+
+Output CLI di-parse dengan `parseColonLines()` untuk format `key: value` dan `parseTabledLines()` untuk format tabel MikroTik. Hasil parsing dikonversi ke array asosiatif sesuai format REST API untuk kompatibilitas.<｜end▁of▁thinking｜>

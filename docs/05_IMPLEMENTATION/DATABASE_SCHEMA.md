@@ -293,11 +293,12 @@
 | tenant_id | bigint unsigned | YES | NULL | FK → tenants.id, **INDEX** |
 | name | varchar(255) | NO | — | |
 | host | varchar(255) | NO | — | |
-| port | int | NO | 80 | |
+| port | int | NO | 80 | REST API port |
 | username | varchar(255) | NO | — | |
 | password | text | NO | — | ⚠️ **Plaintext** |
 | hotspot_server | varchar(255) | NO | 'all' | |
 | is_active | tinyint(1) | NO | 1 | boolean |
+| ssh_port | int | YES | NULL | SSH port untuk SSH fallback (new) |
 | created_at | timestamp | YES | NULL | |
 | updated_at | timestamp | YES | NULL | |
 
@@ -316,6 +317,13 @@
 | shared_users | int | NO | 1 | |
 | description | text | YES | NULL | |
 | is_active | tinyint(1) | NO | 1 | boolean |
+| prefix | varchar(255) | YES | NULL | Prefix username (new) |
+| name_length | int | YES | NULL | Panjang username (new) |
+| password_length | int | YES | NULL | Panjang password (new) |
+| character_type | varchar(20) | YES | 'random' | random/numeric (new) |
+| password_same_as_username | tinyint(1) | NO | 0 | boolean (new) |
+| mikrotik_profile_id | varchar(50) | YES | NULL | ID profile di MikroTik (new) |
+| mikrotik_profile_name | varchar(255) | YES | NULL | Nama profile di MikroTik (new) |
 | created_at | timestamp | YES | NULL | |
 | updated_at | timestamp | YES | NULL | |
 
@@ -353,6 +361,8 @@
 | quota_limit | bigint | YES | NULL | MB |
 | validity_days | int | YES | NULL | Hari |
 | shared_users | int | NO | 1 | |
+| description | text | YES | NULL | Deskripsi (new) |
+| hotspot_server | varchar(255) | YES | NULL | Server hotspot (new) |
 | printed_count | int | NO | 0 | |
 | downloaded | bigint | NO | 0 | |
 | uploaded | bigint | NO | 0 | |

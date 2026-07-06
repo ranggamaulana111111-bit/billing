@@ -232,13 +232,18 @@ $isAdmin = auth()->user()->role === 'admin';
                             @endif
                         </td>
                         <td>
-                            @if($cs['onu'] && $cs['onu']->oltPort?->olt)
+                            @if($cs['customer']->id && $cs['onu'] && $cs['onu']->oltPort?->olt)
                                 <form action="{{ route('olt.onu.reboot', [$cs['onu']->oltPort->olt, $cs['onu']]) }}" method="POST" class="d-inline">
                                     @csrf
                                     <button class="btn btn-sm btn-warning" title="Reboot ONU" onclick="return confirm('Reboot ONU {{ $cs['onu']->onu_id }} milik {{ $cs['customer']->name }}?')">
                                         <i class="fa-solid fa-rotate"></i>
                                     </button>
                                 </form>
+                            @elseif($cs['onu'] && $cs['olt'])
+                                <button class="btn btn-sm btn-outline-primary" title="Tautkan ke Pelanggan"
+                                    onclick="openLinkModal('{{ $cs['onu']->id }}', '{{ $cs['onu']->onu_id }}', '{{ $cs['serial'] ?? '' }}')">
+                                    <i class="fa-solid fa-link"></i>
+                                </button>
                             @endif
                         </td>
                     </tr>
@@ -249,6 +254,54 @@ $isAdmin = auth()->user()->role === 'admin';
                     @endforelse
                 </tbody>
             </table>
+        </div>
+    </div>
+</div>
+
+{{-- Link ONU Modal --}}
+<div class="modal fade" id="linkOnuModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="" id="linkOnuForm">
+                @csrf
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fa-solid fa-link me-1"></i>Tautkan ONU ke Pelanggan</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-3">ONU: <strong id="linkOnuId"></strong> <span id="linkOnuSerial" class="text-muted small"></span></p>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Cari Pelanggan</label>
+                        <input type="text" id="linkCustomerSearch" class="form-control" placeholder="Ketik nama pelanggan..." onkeyup="filterLinkCustomers()">
+                    </div>
+                    <div class="mb-3" style="max-height:300px;overflow-y:auto;">
+                        <table class="table table-sm table-hover mb-0" id="linkCustomerTable">
+                            <thead>
+                                <tr>
+                                    <th style="width:40px;"></th>
+                                    <th>Nama</th>
+                                    <th>Telepon</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach(\App\Models\Customer::orderBy('name')->get() as $c)
+                                <tr data-name="{{ strtolower($c->name) }}">
+                                    <td>
+                                        <input type="radio" name="customer_id" value="{{ $c->id }}" class="form-check-input">
+                                    </td>
+                                    <td>{{ $c->name }}</td>
+                                    <td class="small text-muted">{{ $c->phone ?? '-' }}</td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary">Tautkan</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -295,6 +348,26 @@ function filterTable() {
     document.getElementById('rowCount').textContent = visible + ' baris';
 }
 filterTable();
+
+function openLinkModal(onuId, onuLabel, serial) {
+    const form = document.getElementById('linkOnuForm');
+    form.action = '{{ route("olt.onu.link", "_onu_") }}'.replace('_onu_', onuId);
+    document.getElementById('linkOnuId').textContent = onuLabel;
+    document.getElementById('linkOnuSerial').textContent = serial ? '(' + serial + ')' : '';
+    document.querySelectorAll('#linkCustomerTable input[type="radio"]').forEach(r => r.checked = false);
+    document.getElementById('linkCustomerSearch').value = '';
+    document.querySelectorAll('#linkCustomerTable tbody tr').forEach(r => r.style.display = '');
+    const modal = new bootstrap.Modal(document.getElementById('linkOnuModal'));
+    modal.show();
+}
+
+function filterLinkCustomers() {
+    const search = document.getElementById('linkCustomerSearch').value.toLowerCase();
+    document.querySelectorAll('#linkCustomerTable tbody tr').forEach(row => {
+        const name = row.getAttribute('data-name') || '';
+        row.style.display = name.includes(search) ? '' : 'none';
+    });
+}
 </script>
 @endpush
 @endsection

@@ -10,7 +10,7 @@ class VoucherProfile extends Model
     use BelongsToTenant;
 
     protected $fillable = [
-        'tenant_id', 'name', 'speed', 'price', 'time_limit',
+        'tenant_id', 'name', 'mikrotik_profile', 'speed', 'price', 'time_limit',
         'quota_limit', 'validity_days', 'shared_users',
         'description', 'is_active',
     ];

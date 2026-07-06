@@ -1,6 +1,6 @@
 # Controllers — RabegNet ISP Billing System
 
-> 36 Controllers | 149 Methods | `App\Http\Controllers\` namespace
+> 36 Controllers | 170+ Methods | `App\Http\Controllers\` namespace
 
 ---
 
@@ -131,27 +131,42 @@
 | `storePort` | POST /olts/{olt}/ports | Tambah port |
 | `destroyPort` | DELETE /olts/ports/{port} | Hapus port |
 
-### MikrotikController (17 methods)
+### MikrotikController (30+ methods, 690 baris)
 
 | Method | Route | Flow |
 |--------|-------|------|
-| `index` | GET /mikrotik | Dashboard MikroTik |
+| `dashboard` | GET /mikrotik | Dashboard MikroTik |
+| `monitoring` | GET /monitoring | Monitoring multi-router |
+| `liveData` | GET /mikrotik/live | Ajax: live monitoring data |
 | `testConnection` | POST /mikrotik/test | Test REST API |
-| `hotspot` | GET /mikrotik/hotspot | Manajemen hotspot |
-| `hotspotUsers` | GET /mikrotik/hotspot/users | List user hotspot |
-| `addHotspotUser` | POST /mikrotik/hotspot/users | Tambah user |
-| `removeHotspotUser` | POST /mikrotik/hotspot/users/remove | Hapus user |
-| `hotspotActive` | GET /mikrotik/hotspot/active | Sesi aktif |
-| `disconnectHotspot` | POST /mikrotik/hotspot/disconnect | Putus sesi |
-| `ppp` | GET /mikrotik/ppp | Manajemen PPP |
-| `pppSecrets` | GET /mikrotik/ppp/secrets | List secrets |
-| `pppActive` | GET /mikrotik/ppp/active | Sesi PPP aktif |
-| `addPppSecret` | POST /mikrotik/ppp/secrets | Tambah secret |
-| `disablePpp` | POST /mikrotik/ppp/disable | Disable secret |
-| `enablePpp` | POST /mikrotik/ppp/enable | Enable secret |
+| `hotspotUsers` | GET /mikrotik/hotspot-users | List & manage user hotspot |
+| `syncHotspotUsers` | POST /mikrotik/hotspot-users/sync | Sync dari MikroTik |
+| `storeHotspotUser` | POST /mikrotik/hotspot-users | Tambah user hotspot |
+| `updateHotspotUser` | PUT /mikrotik/hotspot-users/{userId} | Update user hotspot |
+| `destroyHotspotUser` | DELETE /mikrotik/hotspot-users/{userId} | Hapus user hotspot |
+| `profiles` | GET /mikrotik/profiles | Hotspot profiles |
+| `syncProfiles` | POST /mikrotik/profiles/sync | Sync profiles dari MikroTik |
+| `storeProfile` | POST /mikrotik/profiles | Tambah profile |
+| `updateProfile` | PUT /mikrotik/profiles/{profileId} | Update profile |
+| `destroyProfile` | DELETE /mikrotik/profiles/{profileId} | Hapus profile |
+| `activeSessions` | GET /mikrotik/active | Sesi hotspot aktif |
+| `disconnectHotspot` | POST /mikrotik/active/disconnect/{sessionId} | Putus sesi hotspot |
+| `disconnectPpp` | POST /mikrotik/active/ppp-disconnect/{sessionId} | Putus sesi PPP |
+| `pppSecrets` | GET /mikrotik/ppp | List PPP secrets |
+| `storePppSecret` | POST /mikrotik/ppp | Tambah PPP secret |
+| `destroyPppSecret` | DELETE /mikrotik/ppp/{secretId} | Hapus PPP secret |
+| `pppProfiles` | GET /mikrotik/ppp-profiles | List PPP profiles |
+| `syncPppProfiles` | POST /mikrotik/ppp-profiles/sync | Sync PPP profiles |
+| `storePppProfile` | POST /mikrotik/ppp-profiles | Tambah PPP profile |
+| `updatePppProfile` | PUT /mikrotik/ppp-profiles/{profileId} | Update PPP profile |
+| `destroyPppProfile` | DELETE /mikrotik/ppp-profiles/{profileId} | Hapus PPP profile |
 | `queues` | GET /mikrotik/queues | Simple queues |
-| `live` | GET /mikrotik/live | Ajax: live monitoring data |
+| `syncQueue` | POST /mikrotik/queues/sync | Sync queues |
+| `storeQueue` | POST /mikrotik/queues | Tambah queue |
+| `updateQueue` | PUT /mikrotik/queues/{queueId} | Update queue |
+| `destroyQueue` | DELETE /mikrotik/queues/{queueId} | Hapus queue |
 | `backup` | POST /mikrotik/backup | Backup konfigurasi |
+| `resolveMikrotik` | (internal) | Load router by ID atau default |
 
 ### DistributionController (11 methods)
 
@@ -174,43 +189,45 @@
 | `odpUpdate` | PUT /distribution/odp/{odp} | |
 | `odpDestroy` | DELETE /distribution/odp/{odp} | **Protected** — cek relasi customer |
 
-### MikrotikRouterController (5 methods)
+### MikrotikRouterController (6 methods)
 
 | Method | Route | Flow |
 |--------|-------|------|
 | `index` | GET /mikrotik-routers | List routers |
 | `create` | GET /mikrotik-routers/create | |
-| `store` | POST /mikrotik-routers | Validasi, create |
+| `store` | POST /mikrotik-routers | Validasi, create (termasuk ssh_port) |
 | `edit` | GET /mikrotik-routers/{router}/edit | |
 | `update` | PUT /mikrotik-routers/{router} | Validasi, update |
 | `testConnection` | POST /mikrotik-routers/{router}/test | Test REST API |
 
-### VoucherController (9 methods)
+### VoucherController (12 methods, 630 baris)
 
 | Method | Route | Flow |
 |--------|-------|------|
 | `index` | GET /vouchers | List + filter + search |
 | `create` | GET /vouchers/create | Load profiles + templates + routers |
-| `store` | POST /vouchers | Generate vouchers (massal) |
+| `store` | POST /vouchers | Generate vouchers massal dengan opsi: numeric, password same-as-username, custom length |
 | `show` | GET /vouchers/{voucher} | Detail voucher + print |
+| `edit` | GET /vouchers/{voucher}/edit | Edit voucher |
+| `update` | PUT /vouchers/{voucher} | Update voucher |
 | `destroy` | DELETE /vouchers/{voucher} | Hapus |
 | `print` | GET /vouchers/{voucher}/print | Print QR code + credentials |
 | `printBulk` | POST /vouchers/print-bulk | Print multiple |
 | `generate` | POST /vouchers/generate | Generate + push ke MikroTik |
 | `pushToMikrotik` | POST /vouchers/{voucher}/push | Push single ke MikroTik |
+| `printBatch` | POST /vouchers/print-batch | Batch print multiple vouchers |
 
-### VoucherProfileController (4 methods)
+### VoucherProfileController (6 methods, 410 baris)
 
 | Method | Route | Flow |
 |--------|-------|------|
-| `index` | GET /voucher-profiles | List |
-| `create` | GET /voucher-profiles/create | |
-| `store` | POST /voucher-profiles | Validasi, create |
-| `edit` | GET /voucher-profiles/{profile}/edit | |
-| `update` | PUT /voucher-profiles/{profile} | Validasi, update |
-| `destroy` | DELETE /voucher-profiles/{profile} | **Protected** — cek relasi voucher |
+| `index` | GET /voucher-profiles | List + sync dengan MikroTik |
+| `store` | POST /voucher-profiles | Validasi, create lokal + push ke MikroTik |
+| `syncMikrotik` | POST /voucher-profiles/sync-mikrotik | Sync profile dari MikroTik ke lokal |
+| `updateMikrotik` | POST /voucher-profiles/update-mikrotik/{profileId} | Update profile di MikroTik |
+| `destroyMikrotik` | POST /voucher-profiles/delete-mikrotik/{profileId} | Hapus profile dari MikroTik |
 
-### VoucherTemplateController (5 methods)
+### VoucherTemplateController (6 methods, 210 baris)
 
 | Method | Route | Flow |
 |--------|-------|------|

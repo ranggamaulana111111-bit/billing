@@ -65,7 +65,7 @@
                 }
             @endphp
             <div class="sidebar-header d-flex align-items-center gap-3">
-                <img src="{{ $sidebarLogo ? asset('storage/' . $sidebarLogo) : asset('images/logo.png') }}" alt="Logo" style="height:36px;width:auto;border-radius:8px;">
+                <img src="{{ $sidebarLogo ? asset('storage/' . $sidebarLogo) : asset('images/logo.png') }}" alt="Logo" style="height:56px;width:auto;border-radius:10px;">
                 <div>
                     <h4 class="mb-0">{{ $sidebarShortName ?: 'ALKONEK' }}</h4>
                     <small style="font-size:10px;color:rgba(255,255,255,0.35);font-weight:500;letter-spacing:0.05em;display:block;margin-top:-2px;">{{ $sidebarCompanyName ?: 'PT. ALKONEK NETWORK ACCESS' }}</small>
@@ -76,15 +76,15 @@
                 @if(auth()->user()->role === 'admin')
                 {{-- ADMIN SIDEBAR — full system --}}
                 <ul class="list-unstyled components mt-2">
-                    <p>Dasbor Utama</p>
+                    <p>Dashboard Utama</p>
                     <li class="{{ request()->routeIs('dashboard') ? 'active' : '' }}">
-                        <a href="{{ route('dashboard') }}"><i class="fa-solid fa-gauge-high"></i><span>Dasbor</span></a>
+                        <a href="{{ route('dashboard') }}"><i class="fa-solid fa-gauge-high"></i><span>Dashboard</span></a>
                     </li>
                     <li class="{{ request()->routeIs('mikrotik.*') ? 'active' : '' }}">
-                        <a href="{{ route('mikrotik.dashboard') }}"><i class="fa-solid fa-router"></i><span>Monitor MikroTik</span></a>
+                        <a href="{{ route('mikrotik.dashboard') }}"><i class="fa-solid fa-router"></i><span>Monitoring MikroTik</span></a>
                     </li>
                     <li class="{{ request()->routeIs('monitoring.*') ? 'active' : '' }}">
-                        <a href="{{ route('monitoring.index') }}"><i class="fa-solid fa-chart-line"></i><span>Monitoring BW</span></a>
+                        <a href="{{ route('monitoring.index') }}"><i class="fa-solid fa-chart-line"></i><span>Monitoring BandWidth</span></a>
                     </li>
                     <li class="{{ request()->routeIs('olt.monitoring') ? 'active' : '' }}">
                         <a href="{{ route('olt.monitoring') }}"><i class="fa-solid fa-tower-broadcast"></i><span>Monitor Gangguan</span></a>

@@ -83,7 +83,7 @@
         ['title' => 'Paket Terlaris', 'value' => $topPackage?->name ?? '-', 'color' => 'var(--primary)', 'bg' => '#eef2ff', 'icon' => 'wifi', 'footer' => ($topPackage?->customers_count ?? 0).' pelanggan • '.$activePackageCount.' aktif / '.$inactivePackageCount.' nonaktif'],
     ] as $insight)
     <div class="col-md-6 col-xl-3">
-        <div class="card insight-card shadow-sm border-0 h-100">
+        <div class="card insight-card shadow-sm border-0 h-100 stagger-card" data-accent="{{ $insight['color'] }}">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start mb-2">
                     <div>

@@ -24,9 +24,9 @@ class PollOltJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public int $timeout = 60;
+    public int $timeout = 120;
 
-    public int $tries = 3;
+    public int $tries = 2;
 
     public function __construct(public Olt $olt) {}
 
@@ -81,13 +81,14 @@ class PollOltJob implements ShouldQueue
                         $optical = ['rx_power' => null, 'tx_power' => null];
                     }
 
-                    Onu::updateOrCreate(
+                    $onu = Onu::updateOrCreate(
                         [
                             'olt_port_id' => $port->id,
                             'onu_id' => $onuData['onu_id'],
                         ],
                         [
                             'serial_number' => $onuData['sn'] ?? null,
+                            'caller_id' => $onuData['caller_id'] ?? $onuData['mac'] ?? null,
                             'status' => $onuData['status'] ?? 'unknown',
                             'rx_power' => $optical['rx_power'] ?? null,
                             'tx_power' => $optical['tx_power'] ?? null,
@@ -96,6 +97,17 @@ class PollOltJob implements ShouldQueue
                             'last_seen_at' => now(),
                         ]
                     );
+
+                    if (! $onu->customer_id && $onu->serial_number) {
+                        $matched = Onu::where('serial_number', $onu->serial_number)
+                            ->whereNotNull('customer_id')
+                            ->where('id', '!=', $onu->id)
+                            ->first();
+
+                        if ($matched) {
+                            $onu->update(['customer_id' => $matched->customer_id]);
+                        }
+                    }
 
                     $totalOnus++;
                 }

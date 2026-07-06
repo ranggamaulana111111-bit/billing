@@ -211,16 +211,61 @@ class CDataConnector implements OltConnector
             $port = $parts[1] ?? 0;
             $idx = $parts[2] ?? 0;
             $output = $this->sendCommand("show ont optical-info slot {$slot} port {$port} ont {$idx}");
+
+            Log::debug("C-Data optical-info raw ({$onuId}): ".substr($output, 0, 2000));
+
             $rx = null;
             $tx = null;
+            $lines = explode("\n", $output);
 
-            foreach (explode("\n", $output) as $line) {
-                if (preg_match('/Rx power\s*:\s*([-\d.]+)/i', $line, $m)) {
+            foreach ($lines as $i => $line) {
+                $line = trim($line);
+
+                if (preg_match('/[Rr]x\s*[pP]ower\s*.*?([-\d.]+)/', $line, $m)) {
                     $rx = (float) $m[1];
                 }
-                if (preg_match('/Tx power\s*:\s*([-\d.]+)/i', $line, $m)) {
+
+                if (preg_match('/[Tt]x\s*[pP]ower\s*.*?([-\d.]+)/', $line, $m)) {
                     $tx = (float) $m[1];
                 }
+
+                if (preg_match('/\brx\b\s*[:=]\s*(-?\d+\.?\d*)/i', $line, $m)) {
+                    $rx = (float) $m[1];
+                }
+
+                if (preg_match('/\btx\b\s*[:=]\s*(-?\d+\.?\d*)/i', $line, $m)) {
+                    $tx = (float) $m[1];
+                }
+
+                if (preg_match('/^(GPON|Rx Optical Power)/i', $line)) {
+                    $next = $lines[$i + 1] ?? '';
+                    if (preg_match('/(-?\d+\.?\d*)dBm/i', $next, $m)) {
+                        $rx = (float) $m[1];
+                    }
+                }
+
+                if (preg_match('/^(-?\d+\.?\d*)dBm\s*$/', $line, $m)) {
+                    $value = (float) $m[1];
+                    if ($value < 0 && $rx === null) {
+                        $rx = $value;
+                    } elseif ($value > 0 && $tx === null) {
+                        $tx = $value;
+                    }
+                }
+
+                if (preg_match('/^Tx\s*$/i', $line) && isset($lines[$i + 1])) {
+                    if (preg_match('/(-?\d+\.?\d*)dBm/i', $lines[$i + 1], $m)) {
+                        $tx = (float) $m[1];
+                    }
+                }
+
+                if (preg_match('/Tx\s*:?\s*(-?\d+\.?\d*)dBm/i', $line, $m)) {
+                    $tx = (float) $m[1];
+                }
+            }
+
+            if ($rx === null || $tx === null) {
+                Log::warning("C-Data optical-info parse failed for {$onuId}. Raw:\n".substr($output, 0, 1000));
             }
 
             return [
@@ -229,6 +274,8 @@ class CDataConnector implements OltConnector
                 'tx_power' => $tx,
             ];
         } catch (Exception $e) {
+            Log::error("C-Data getOpticalPower({$onuId}) exception: {$e->getMessage()}");
+
             return ['onu_id' => $onuId, 'rx_power' => null, 'tx_power' => null];
         }
     }

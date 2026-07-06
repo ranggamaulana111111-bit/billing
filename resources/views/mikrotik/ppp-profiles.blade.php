@@ -1,0 +1,165 @@
+@extends('layouts.app')
+
+@section('title', 'PPPoE Profiles')
+
+@section('content')
+<div class="page-header d-flex flex-wrap justify-content-between align-items-center">
+    <div>
+        <h2 class="mb-0"><i class="fa-solid fa-user-group me-2" style="color:var(--primary);"></i>PPPoE Profiles</h2>
+        <p class="section-subtitle mb-0 mt-1">Kelola profile PPPoE MikroTik — rate limit bandwidth</p>
+    </div>
+    <div class="page-actions mt-2 mt-md-0">
+        <form method="POST" action="{{ route('mikrotik.ppp-profiles.sync') }}" class="d-inline">
+            @csrf
+            <button type="submit" class="btn btn-outline-primary px-3 me-2" title="Sync dari MikroTik">
+                <i class="fa-solid fa-rotate me-1"></i>Sync
+            </button>
+        </form>
+        <a href="{{ route('mikrotik.dashboard', ['router' => request('router')]) }}" class="btn btn-outline-secondary px-3">
+            <i class="fa-solid fa-arrow-left me-1"></i>Monitor
+        </a>
+    </div>
+</div>
+
+@include('mikrotik._router_switcher')
+
+@if(session('success'))
+    <div class="alert alert-custom alert-success mb-4">{{ session('success') }}</div>
+@endif
+@if(session('error'))
+    <div class="alert alert-custom alert-danger mb-4">{{ session('error') }}</div>
+@endif
+
+<div class="row g-4">
+    {{-- FORM TAMBAH --}}
+    <div class="col-lg-4">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white">
+                <div class="d-flex align-items-center gap-2">
+                    <div style="width:8px;height:8px;border-radius:50%;background:#059669;"></div>
+                    <span>Tambah Profile</span>
+                </div>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ route('mikrotik.ppp-profiles.store') }}">
+                    @csrf
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Nama Profile</label>
+                        <input type="text" name="name" class="form-control" placeholder="contoh: Paket-10M" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Rate Limit</label>
+                        <input type="text" name="rate_limit" class="form-control" placeholder="10M/10M">
+                        <small class="text-muted">Format: tx-rate/rx-rate (contoh: 10M/10M)</small>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fa-solid fa-plus me-1"></i>Tambah Profile
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {{-- DAFTAR PROFILES --}}
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white">
+                <div class="d-flex align-items-center gap-2">
+                    <div style="width:8px;height:8px;border-radius:50%;background:var(--primary);"></div>
+                    <span>Daftar PPPoE Profile</span>
+                    <span class="badge badge-premium ms-2" style="background:#eef2ff;color:var(--primary);">{{ count($profiles) }}</span>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <table class="table mb-0">
+                    <thead>
+                        <tr>
+                            <th>Nama Profile</th>
+                            <th>Rate Limit</th>
+                            <th>Local Address</th>
+                            <th class="text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($profiles as $p)
+                            <tr>
+                                <td class="fw-medium">{{ $p['name'] ?? '-' }}</td>
+                                <td><code>{{ $p['rate-limit'] ?? '-' }}</code></td>
+                                <td><code>{{ $p['local-address'] ?? '-' }}</code></td>
+                                <td class="text-center">
+                                    <button type="button" class="btn btn-sm btn-outline-warning px-2 me-1" title="Edit"
+                                        data-bs-toggle="modal" data-bs-target="#editPppModal"
+                                        data-id="{{ $p['.id'] ?? '' }}"
+                                        data-name="{{ $p['name'] ?? '' }}"
+                                        data-rate-limit="{{ $p['rate-limit'] ?? '' }}">
+                                        <i class="fa-solid fa-pen"></i>
+                                    </button>
+                                    <form method="POST" action="{{ route('mikrotik.ppp-profiles.destroy', $p['.id'] ?? '') }}" class="d-inline" onsubmit="return confirm('Hapus profile {{ $p['name'] }}?')">
+                                        @csrf @method('DELETE')
+                                        <button type="submit" class="btn btn-sm btn-outline-danger px-2" title="Hapus">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr><td colspan="4" class="text-center py-4 text-muted">Belum ada PPPoE profile</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- MODAL EDIT --}}
+<div class="modal fade" id="editPppModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="" id="editPppForm">
+                @csrf @method('PUT')
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fa-solid fa-pen me-2"></i>Edit PPPoE Profile</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Nama Profile</label>
+                        <input type="text" name="name" id="edit_name" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Rate Limit</label>
+                        <input type="text" name="rate_limit" id="edit_rate_limit" class="form-control" placeholder="10M/10M">
+                        <small class="text-muted">Format: tx-rate/rx-rate (contoh: 10M/10M)</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-warning"><i class="fa-solid fa-save me-1"></i>Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const modal = document.getElementById('editPppModal');
+    modal.addEventListener('show.bs.modal', function (event) {
+        const btn = event.relatedTarget;
+        const id = btn.getAttribute('data-id');
+        const name = btn.getAttribute('data-name');
+        const rateLimit = btn.getAttribute('data-rate-limit');
+
+        document.getElementById('edit_name').value = name;
+        document.getElementById('edit_rate_limit').value = rateLimit;
+
+        const action = '{{ route("mikrotik.ppp-profiles.update", "__ID__") }}'.replace('__ID__', id);
+        document.getElementById('editPppForm').action = action;
+    });
+});
+</script>
+@endpush
+
+@endsection

@@ -35,13 +35,22 @@
         </div>
     </div>
 
-    @if($template && $template->content)
+    @if($template)
         <div class="card shadow-sm border-0 mb-4">
             <div class="card-body p-4">
                 <h5 class="fw-semibold mb-3"><i class="fa-solid fa-palette me-2" style="color:var(--primary);"></i>Landing Page: {{ $template->name }}</h5>
-                <div class="border rounded p-3 bg-light" style="max-height:400px;overflow-y:auto;">
-                    {!! $template->content !!}
-                </div>
+                @if($template->hasFiles())
+                    <div class="border rounded p-3 bg-light text-center">
+                        <p class="mb-2">Template ini menggunakan file folder.</p>
+                        <a href="{{ url('hotspot/templates/' . $template->id . '/login.html') }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                            <i class="fa-solid fa-eye me-1"></i>Lihat Template
+                        </a>
+                    </div>
+                @elseif($template->content)
+                    <div class="border rounded p-3 bg-light" style="max-height:400px;overflow-y:auto;">
+                        {!! $template->content !!}
+                    </div>
+                @endif
             </div>
         </div>
     @endif
@@ -74,7 +83,7 @@
                     </div>
                     <hr>
                     <div class="small text-muted">
-                        <i class="fa-solid fa-clock me-1"></i>Exp: {{ $voucher->expires_at->format('d/m/Y H:i') }}
+                        <i class="fa-solid fa-clock me-1"></i>Exp: {{ $voucher->expires_at ? $voucher->expires_at->format('d/m/Y H:i') : 'Belum aktif' }}
                     </div>
                 </div>
             </div>

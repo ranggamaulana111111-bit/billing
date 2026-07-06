@@ -67,7 +67,7 @@
                         </tr>
                         <tr>
                             <td class="text-muted">Kadaluarsa</td>
-                            <td class="fw-bold">{{ $voucher->expires_at->format('d/m/Y H:i') }}</td>
+                            <td class="fw-bold">{{ $voucher->expires_at ? $voucher->expires_at->format('d/m/Y H:i') : '-' }}</td>
                         </tr>
                         @if($voucher->used_at)
                         <tr>

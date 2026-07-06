@@ -66,13 +66,36 @@ class MikrotikSshProxyConnector implements OltConnector
 
             if (! $this->connected) {
                 Log::error('MikroTik proxy: gagal verify MikroTik, status '.$response->status());
+
+                return false;
             }
 
-            return $this->connected;
+            $this->mikrotikPing();
+
+            return true;
         } catch (Exception $e) {
             Log::error("MikroTik proxy: gagal konek ke MikroTik: {$e->getMessage()}");
 
             return false;
+        }
+    }
+
+    private function mikrotikPing(): void
+    {
+        try {
+            $response = Http::withBasicAuth($this->mikrotikUser, $this->mikrotikPass)
+                ->withoutVerifying()
+                ->timeout(10)
+                ->post("{$this->scheme}://{$this->mikrotikHost}:{$this->mikrotikPort}/rest/ping", [
+                    'address' => $this->oltHost,
+                    'count' => '2',
+                ]);
+
+            if (! $response->successful()) {
+                Log::warning("MikroTik proxy: ping OLT {$this->oltHost} gagal, status {$response->status()}");
+            }
+        } catch (Exception $e) {
+            Log::warning("MikroTik proxy: ping OLT {$this->oltHost} error: {$e->getMessage()}");
         }
     }
 
@@ -87,12 +110,12 @@ class MikrotikSshProxyConnector implements OltConnector
             throw new Exception('MikroTik proxy not connected');
         }
 
-        $url = "{$this->scheme}://{$this->mikrotikHost}:{$this->mikrotikPort}/rest/tool/ssh";
+        $url = "{$this->scheme}://{$this->mikrotikHost}:{$this->mikrotikPort}/rest/system/ssh-exec";
 
         try {
             $response = Http::withBasicAuth($this->mikrotikUser, $this->mikrotikPass)
                 ->withoutVerifying()
-                ->timeout(30)
+                ->timeout(60)
                 ->post($url, [
                     'address' => $this->oltHost,
                     'port' => $this->oltPort,

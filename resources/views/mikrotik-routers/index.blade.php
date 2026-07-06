@@ -15,10 +15,14 @@
 </div>
 
 @if(session('success'))
-    <div class="alert alert-success">{{ session('success') }}</div>
+    <div class="alert alert-custom alert-success mb-4 d-flex align-items-center">
+        <i class="fa-solid fa-circle-check me-2 fs-5"></i> {{ session('success') }}
+    </div>
 @endif
 @if(session('error'))
-    <div class="alert alert-danger">{{ session('error') }}</div>
+    <div class="alert alert-custom alert-danger mb-4 d-flex align-items-center">
+        <i class="fa-solid fa-circle-exclamation me-2 fs-5"></i> {{ session('error') }}
+    </div>
 @endif
 
 <div class="card shadow-sm border-0">
@@ -127,6 +131,10 @@
                         <label class="form-label fw-semibold">Hotspot Server</label>
                         <input type="text" name="hotspot_server" class="form-control" placeholder="Kosongkan untuk default">
                     </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">SSH Port <small class="text-muted">(isi jika RouterOS v6 / REST tidak support)</small></label>
+                        <input type="number" name="ssh_port" class="form-control" placeholder="Kosongkan untuk REST API" min="1" max="65535">
+                    </div>
                     <div class="form-check">
                         <input type="checkbox" name="is_active" class="form-check-input" id="createIsActive" checked>
                         <label class="form-check-label" for="createIsActive">Aktif</label>
@@ -188,6 +196,10 @@
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Hotspot Server</label>
                         <input type="text" name="hotspot_server" class="form-control" value="{{ $router->hotspot_server }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">SSH Port <small class="text-muted">(isi jika RouterOS v6 / REST tidak support)</small></label>
+                        <input type="number" name="ssh_port" class="form-control" value="{{ $router->ssh_port }}" placeholder="Kosongkan untuk REST API" min="1" max="65535">
                     </div>
                     <div class="form-check">
                         <input type="checkbox" name="is_active" class="form-check-input" id="editIsActive{{ $router->id }}" {{ $router->is_active ? 'checked' : '' }}>

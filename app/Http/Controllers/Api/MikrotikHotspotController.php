@@ -29,14 +29,19 @@ class MikrotikHotspotController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Voucher tidak valid'], 401);
         }
 
-        $voucher->update([
+        $now = now();
+        $data = [
             'status' => 'used',
-            'used_at' => now(),
+            'used_at' => $now,
             'ip_address' => $request->ip(),
             'mac_address' => $mac,
-            'last_login_at' => now(),
+            'last_login_at' => $now,
             'router_id' => $voucher->router_id,
-        ]);
+        ];
+        if (! $voucher->expires_at && $voucher->duration_hours > 0) {
+            $data['expires_at'] = $now->copy()->addHours($voucher->duration_hours);
+        }
+        $voucher->update($data);
 
         ActivityLog::log('Hotspot Login', "Voucher {$username} digunakan dari {$routerIp}");
 

@@ -2,108 +2,145 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cetak Voucher Batch</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz@14..32&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
         body {
-            font-family: 'Inter', -apple-system, sans-serif;
-            background:#f1f5f9;
-            padding:20px;
+            font-family:'Inter',-apple-system,sans-serif;
+            background:#fff;
+            padding:5mm;
         }
+        @page { size:A4; margin:5mm; }
+
         .grid {
             display:grid;
-            grid-template-columns:repeat(auto-fill,minmax(300px,1fr));
-            gap:16px;
-            max-width:1000px;
-            margin:0 auto;
+            grid-template-columns:repeat(8,1fr);
+            gap:1.5mm;
+            width:100%;
         }
+
         .voucher-card {
             background:#fff;
-            border-radius:12px;
-            overflow:hidden;
-            box-shadow:0 4px 12px rgba(0,0,0,.08);
+            border:0.5px solid #cbd5e1;
+            border-radius:2px;
+            display:flex;
+            flex-direction:column;
             break-inside:avoid;
         }
+
         .voucher-header {
-            background:linear-gradient(135deg,#2563eb,#6366f1);
+            background:linear-gradient(135deg,#1e40af,#4f46e5);
             color:#fff;
             text-align:center;
-            padding:16px 14px 14px;
+            padding:1.5mm 1mm 1mm;
+            flex-shrink:0;
         }
+
         .voucher-header .brand {
-            font-size:0.65rem; opacity:.8;
-            text-transform:uppercase; letter-spacing:1px;
+            font-size:4pt; font-weight:600; letter-spacing:.4px;
+            text-transform:uppercase; opacity:.6;
         }
-        .voucher-header h3 { font-size:0.95rem; font-weight:700; margin-bottom:0; }
-        .voucher-body { padding:16px 18px; }
-        .voucher-row {
-            display:flex;
-            justify-content:space-between;
-            align-items:center;
-            padding:7px 0;
-            border-bottom:1px dashed #e2e8f0;
-            font-size:0.85rem;
+
+        .voucher-header h3 {
+            font-size:5.5pt; font-weight:700;
+            margin-top:.5px; line-height:1.2;
         }
-        .voucher-row:last-child { border-bottom:none; }
-        .voucher-row label { color:#64748b; text-transform:uppercase; font-size:0.7rem; letter-spacing:0.5px; }
-        .voucher-row code { font-weight:700; color:#1e293b; font-size:0.9rem; }
-        .voucher-stripe { height:4px; background:repeating-linear-gradient(90deg,#2563eb 0,#2563eb 8px,transparent 8px,transparent 16px); }
+
+        .voucher-body {
+            flex:1;
+            padding:1.5mm 1.8mm 1.2mm;
+        }
+
+        .voucher-body table {
+            width:100%;
+            border-collapse:collapse;
+        }
+
+        .voucher-body table td {
+            padding:0.3mm 0;
+            vertical-align:middle;
+        }
+
+        .voucher-body table td:first-child {
+            font-size:4pt; font-weight:600; letter-spacing:.3px;
+            text-transform:uppercase; color:#94a3b8;
+            width:28%;
+        }
+
+        .voucher-body table td:last-child {
+            font-weight:700; color:#0f172a;
+            font-size:6.5pt; letter-spacing:.2px;
+            word-break:break-all;
+        }
+
+        .price { color:#059669; font-weight:700; }
+        .exp { color:#64748b; font-weight:600; }
+
         @media print {
-            body { background:#fff; padding:12px; }
-            .voucher-card { box-shadow:none; break-inside:avoid; }
+            body { padding:0; }
+            .grid { width:100%; }
             .no-print { display:none !important; }
         }
-        .print-bar {
-            text-align:center; margin-bottom:20px;
+
+        .no-print {
+            text-align:center; margin-bottom:12px;
         }
-        .print-bar button {
-            padding:10px 30px; background:#2563eb; color:#fff;
-            border:none; border-radius:8px; font-size:1rem; font-weight:600; cursor:pointer;
+
+        .no-print button {
+            padding:8px 24px; background:#2563eb; color:#fff;
+            border:none; border-radius:6px; font-size:14px; font-weight:600; cursor:pointer;
         }
-        .print-bar button:hover { background:#1d4ed8; }
+        .no-print button:hover { background:#1d4ed8; }
     </style>
 </head>
 <body>
-    <div class="print-bar no-print">
-        <button onclick="window.print()"><i class="fa-solid fa-print me-1"></i> Cetak Semua</button>
+    <div class="no-print">
+        <button onclick="window.print()">&#128424; Cetak (48/lbr)</button>
     </div>
     <div class="grid">
         @foreach($vouchers as $v)
+            @php $same = $v->username === $v->password; @endphp
             <div class="voucher-card">
                 <div class="voucher-header">
-                    <div class="brand">— Voucher Hotspot —</div>
+                    <div class="brand">Voucher Hotspot</div>
                     <h3>{{ $companyName }}</h3>
                 </div>
-                <div class="voucher-stripe"></div>
                 <div class="voucher-body">
-                    <div class="voucher-row">
-                        <label>Username</label>
-                        <code>{{ $v->username }}</code>
-                    </div>
-                    <div class="voucher-row">
-                        <label>Password</label>
-                        <code>{{ $v->password }}</code>
-                    </div>
-                    <div class="voucher-row">
-                        <label>Durasi</label>
-                        <code>
-                            @php
-                                $days = intdiv($v->duration_hours, 24);
-                                $hours = $v->duration_hours % 24;
-                                $durText = $days > 0
-                                    ? trim($days.' Hari '.($hours > 0 ? $hours.' Jam' : ''))
-                                    : $hours.' Jam';
-                            @endphp
-                            {{ $durText }}
-                        </code>
-                    </div>
-                    <div class="voucher-row">
-                        <label>Kadaluarsa</label>
-                        <code style="font-size:0.7rem;">{{ $v->expires_at->format('d/m/Y H:i') }}</code>
-                    </div>
+                    <table>
+                        <tr>
+                            <td>{{ $same ? 'User/Pass' : 'User' }}</td>
+                            <td>{{ $v->username }}</td>
+                        </tr>
+                        @if(!$same)
+                        <tr>
+                            <td>Pass</td>
+                            <td>{{ $v->password }}</td>
+                        </tr>
+                        @endif
+                        <tr>
+                            <td>Durasi</td>
+                            <td>
+                                @php
+                                    $d = intdiv($v->duration_hours,24);
+                                    $h = $v->duration_hours%24;
+                                    echo $d>0 ? $d.'h'.($h>0?' '.$h.'j':'') : $h.'j';
+                                @endphp
+                            </td>
+                        </tr>
+                        @if($v->price)
+                        <tr>
+                            <td>Harga</td>
+                            <td class="price">Rp{{ number_format($v->price,0,',','.') }}</td>
+                        </tr>
+                        @endif
+                        @if($v->expires_at)
+                        <tr>
+                            <td>Exp</td>
+                            <td class="exp">{{ $v->expires_at->format('d/m/y') }}</td>
+                        </tr>
+                        @endif
+                    </table>
                 </div>
             </div>
         @endforeach

@@ -1,4 +1,4 @@
-# AGENTS.md — e-billing (ALKONEK / PT Alkonek Network Access — ISP Billing System v1.1)
+# AGENTS.md — e-billing (ALKONEK / PT Alkonek Network Access — ISP Billing System v1.2)
 
 ## Stack
 
@@ -17,10 +17,11 @@
 ## PHP CLI note
 
 PHP CLI default (`php`) = 8.1.10 (tidak cukup untuk Laravel 12).
-Gunakan path lengkap ke Laragon's PHP 8.2:
+Gunakan path lengkap ke Laragon's PHP 8.3:
 ```
-C:\laragon\bin\php\php-8.2.31-Win32-vs16-x64\php.exe artisan {command}
+C:\laragon\bin\php\php-8.3.31-Win32-vs16-x64 (1)\php.exe artisan {command}
 ```
+> **Catatan:** Folder PHP 8.3 di Laragon Anda bernama `php-8.3.31-Win32-vs16-x64 (1)` — gunakan path tersebut.
 
 ## Commands
 
@@ -33,8 +34,8 @@ C:\laragon\bin\php\php-8.2.31-Win32-vs16-x64\php.exe artisan {command}
 | `npm run dev` | `vite` (dev server) |
 | `./vendor/bin/pint` | Auto-format code (default Laravel rules) |
 | `php artisan migrate` | Run pending migrations |
-| **Test via CLI** | `C:\laragon\bin\php\php-8.2.31-Win32-vs16-x64\php.exe vendor/bin/phpunit` |
-| **Artisan via CLI** | `C:\laragon\bin\php\php-8.2.31-Win32-vs16-x64\php.exe artisan {command}` |
+| **Test via CLI** | `C:\laragon\bin\php\php-8.3.31-Win32-vs16-x64 (1)\php.exe vendor/bin/phpunit` |
+| **Artisan via CLI** | `C:\laragon\bin\php\php-8.3.31-Win32-vs16-x64 (1)\php.exe artisan {command}` |
 
 ## Artisan Commands
 
@@ -132,3 +133,9 @@ routes/
 ├── api.php                 # POST /api/v1/mikrotik/hotspot-login
 └── console.php             # 5 scheduled commands
 ```
+
+
+## Tunnel/id MikroTik Connection
+- Tunnel host: cloud10.tunnel.id:3069
+- Error cURL error 6/7/28 = tunnel client di MikroTik offline, restart MikroTik onsite.
+- Jika tunnel mati, setting mikrotik_host bisa diganti sementara ke IP langsung MikroTik.

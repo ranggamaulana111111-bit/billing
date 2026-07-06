@@ -17,6 +17,7 @@ class SyncVoucherMikrotik extends Command
     public function handle()
     {
         Voucher::where('status', 'active')
+            ->whereNotNull('expires_at')
             ->where('expires_at', '<', now())
             ->update(['status' => 'expired']);
 
@@ -56,10 +57,15 @@ class SyncVoucherMikrotik extends Command
             $sessions = $mikrotik->getUserActiveSessions($voucher->username);
 
             if (! empty($sessions)) {
-                $voucher->update([
+                $now = now();
+                $updateData = [
                     'status' => 'used',
-                    'used_at' => now(),
-                ]);
+                    'used_at' => $now,
+                ];
+                if (! $voucher->expires_at && $voucher->duration_hours > 0) {
+                    $updateData['expires_at'] = $now->copy()->addHours($voucher->duration_hours);
+                }
+                $voucher->update($updateData);
                 $markedUsed++;
                 $this->info("{$voucher->username} -> used (ada session aktif)");
             }

@@ -282,7 +282,7 @@
                     <div class="col-7">
                         <div class="brand">
                             @if(!empty($settings['company_logo']))
-                                <img src="{{ asset('storage/' . $settings['company_logo']) }}" alt="Logo" style="height:36px;width:auto;border-radius:8px;">
+                                <img src="{{ asset('storage/' . $settings['company_logo']) }}" alt="Logo" style="height:56px;width:auto;border-radius:10px;">
                             @else
                                 <div class="brand-icon">
                                     <i class="fa-solid fa-bolt"></i>

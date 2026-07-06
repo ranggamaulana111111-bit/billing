@@ -132,6 +132,17 @@ Daftar migrasi diurutkan berdasarkan timestamp. Kolom `Aksi` menunjukkan jenis p
 | 47 | `2026_06_27_000001_add_caller_id_to_onus_table` | ALTER | onus +caller_id | Caller-ID dari PPPoE session |
 | 48 | `2026_06_30_093143_add_billing_period_to_invoices_table` | ALTER | invoices +billing_period | char(7) format YYYY-MM, backfill dari created_at |
 
+## Fase 13: Voucher & SSH MikroTik (2026_07_06/07)
+
+| # | File | Aksi | Tabel/Kolom | Detail |
+|---|------|------|-------------|--------|
+| 49 | `2026_07_06_000001_create_bandwidth_profiles_table` | CREATE | bandwidth_profiles | tenant_id, name, rate_limit, burst_limit, priority, is_active |
+| 50 | `2026_07_06_000002_drop_bandwidth_profiles_table` | DROP | bandwidth_profiles | Rollback: tabel tidak jadi dipakai |
+| 51 | `2026_07_06_020501_add_mikrotik_profile_to_voucher_profiles_table` | ALTER | voucher_profiles +mikrotik_profile_id +mikrotik_profile_name | Relasi ke profile MikroTik |
+| 52 | `2026_07_06_022310_add_description_and_hotspot_server_to_vouchers_table` | ALTER | vouchers +description +hotspot_server | Deskripsi & server hotspot per voucher |
+| 53 | `2026_07_06_030000_add_profile_fields_to_voucher_profiles_table` | ALTER | voucher_profiles +speed, +quota_limit, +validity_days, +shared_users, +prefix, +name_length, +password_length, +character_type, +password_same_as_username | Field tambahan untuk generate voucher |
+| 54 | `2026_07_07_150000_add_ssh_port_to_mikrotik_routers_table` | ALTER | mikrotik_routers +ssh_port | integer nullable, default null — untuk SSH fallback |
+
 ---
 
 ## Ringkasan Timeline
@@ -150,4 +161,5 @@ Daftar migrasi diurutkan berdasarkan timestamp. Kolom `Aksi` menunjukkan jenis p
 | 10 | 2026-06-22 (batch 2) | 3 | Multi-tenancy |
 | 11 | 2026-06-22 (batch 3) | 6 | ODP refactor |
 | 12 | 2026-06-27/30 | 2 | Tambahan |
-| | **Total** | **48** | |
+| 13 | 2026-07-06/07 | 6 | Voucher & SSH MikroTik |
+| | **Total** | **54** | |

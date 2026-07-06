@@ -127,7 +127,7 @@
                 </div>
                 <div class="voucher-row">
                     <label>Kadaluarsa</label>
-                    <code style="font-size:0.8rem;">{{ $voucher->expires_at->format('d/m/Y H:i') }}</code>
+                    <code style="font-size:0.8rem;">{{ $voucher->expires_at ? $voucher->expires_at->format('d/m/Y H:i') : '-' }}</code>
                 </div>
             </div>
             <div class="voucher-footer">

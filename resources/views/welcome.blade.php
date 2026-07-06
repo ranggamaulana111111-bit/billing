@@ -112,6 +112,54 @@
                 </div>
             </div>
         </div>
+
+        @if($packages->isNotEmpty())
+        <div class="py-5">
+            <div class="text-center mb-5">
+                <div class="hero-badge mb-3 d-inline-flex">
+                    <i class="fa-solid fa-wifi me-2"></i>Pilihan Paket Internet
+                </div>
+                <h2 class="hero-title mb-3 text-center" style="max-width:none;">Nikmati <span style="color:#60a5fa;">Akses Cepat</span> Tanpa Batas</h2>
+                <p class="hero-copy mx-auto">Pilih paket yang sesuai dengan kebutuhan internet Anda. Transparan, tanpa biaya tersembunyi.</p>
+            </div>
+            <div class="row g-4 justify-content-center">
+                @foreach($packages as $package)
+                <div class="col-lg-4 col-md-6">
+                    <div class="feature-card h-100 text-center" style="padding:32px 24px;">
+                        <div style="font-size:2.5rem;margin-bottom:8px;">
+                            @if($loop->first)
+                            <i class="fa-solid fa-wifi" style="color:#60a5fa;"></i>
+                            @elseif($loop->last)
+                            <i class="fa-solid fa-tower-broadcast" style="color:#c084fc;"></i>
+                            @else
+                            <i class="fa-solid fa-signal" style="color:#34d399;"></i>
+                            @endif
+                        </div>
+                        <h5 style="font-weight:800;font-size:1.2rem;">{{ $package->name }}</h5>
+                        @if($package->speed)
+                        <div style="color:rgba(255,255,255,0.5);font-size:0.85rem;margin-bottom:12px;">
+                            <i class="fa-solid fa-arrow-down me-1"></i>{{ $package->speed }} Mbps
+                        </div>
+                        @endif
+                        <div style="font-size:2.2rem;font-weight:900;letter-spacing:-0.04em;margin:16px 0 8px;">
+                            Rp{{ number_format($package->price, 0, ',', '.') }}
+                        </div>
+                        @if($package->billing_cycle)
+                        <div style="color:rgba(255,255,255,0.45);font-size:0.8rem;margin-bottom:16px;">
+                            /{{ $package->billing_cycle === 'monthly' ? 'bulan' : $package->billing_cycle }}
+                        </div>
+                        @endif
+                        @if($package->description)
+                        <p style="color:rgba(255,255,255,0.55);font-size:0.85rem;line-height:1.6;margin-bottom:0;">
+                            {{ $package->description }}
+                        </p>
+                        @endif
+                    </div>
+                </div>
+                @endforeach
+            </div>
+        </div>
+        @endif
     </div>
 </div>
 @endsection

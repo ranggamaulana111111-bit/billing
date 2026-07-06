@@ -1,24 +1,36 @@
 @extends('layouts.app')
 
-@section('title', 'Profile Voucher')
+@section('title', 'Profile MikroTik')
 
 @section('content')
 <div class="page-header d-flex flex-wrap justify-content-between align-items-center">
     <div>
-        <h2 class="mb-0"><i class="fa-solid fa-tags me-2" style="color:var(--primary);"></i>Profile Voucher</h2>
+        <h2 class="mb-0"><i class="fa-solid fa-tags me-2" style="color:var(--primary);"></i>Profile MikroTik</h2>
     </div>
-    <div class="page-actions mt-2 mt-md-0">
+    <div class="page-actions mt-2 mt-md-0 d-flex gap-2">
+        @if($routers->isNotEmpty())
+        <form method="POST" action="{{ route('voucher-profiles.sync-mikrotik') }}" class="d-inline">
+            @csrf
+            <button type="submit" class="btn btn-outline-info px-3 py-2">
+                <i class="fa-solid fa-rotate me-1"></i>Sync
+            </button>
+        </form>
+        @endif
         <button type="button" class="btn btn-primary px-3 py-2" data-bs-toggle="modal" data-bs-target="#createModal">
-            <i class="fa-solid fa-plus me-1"></i>Tambah Profile
+            <i class="fa-solid fa-plus me-1"></i>Buat Profile
         </button>
     </div>
 </div>
 
 @if(session('success'))
-    <div class="alert alert-success">{{ session('success') }}</div>
+    <div class="alert alert-success alert-dismissible fade show">{{ session('success') }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
 @endif
 @if(session('error'))
-    <div class="alert alert-danger">{{ session('error') }}</div>
+    <div class="alert alert-danger alert-dismissible fade show">{{ session('error') }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+@endif
+
+@if($error)
+    <div class="alert alert-warning"><i class="fa-solid fa-triangle-exclamation me-1"></i>{{ $error }}</div>
 @endif
 
 <div class="card shadow-sm border-0">
@@ -27,44 +39,59 @@
             <table class="table mb-0 align-middle">
                 <thead>
                     <tr>
-                        <th>Nama</th>
-                        <th>Speed</th>
-                        <th>Harga</th>
-                        <th>Time Limit</th>
-                        <th>Kuota</th>
-                        <th>Masa Berlaku</th>
-                        <th>Shared</th>
-                        <th>Status</th>
+                        <th>Name</th>
+                        <th>Address Pool</th>
+                        <th>Shared Users</th>
+                        <th>Rate Limit</th>
+                        <th>Price</th>
+                        <th>Selling Price</th>
+                        <th>Lock User</th>
+                        <th>Parent Queue</th>
+                        <th>Router</th>
                         <th class="text-center">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($profiles as $profile)
+                    @forelse($mikrotikProfiles as $profile)
                         <tr>
-                            <td class="fw-semibold">{{ $profile->name }}</td>
-                            <td>{{ $profile->speed ?? '-' }}</td>
-                            <td>Rp {{ number_format($profile->price, 0, ',', '.') }}</td>
-                            <td>{{ $profile->time_limit ? $profile->time_limit.' Jam' : 'Unlimited' }}</td>
-                            <td>{{ $profile->quota_limit ? number_format($profile->quota_limit).' MB' : 'Unlimited' }}</td>
-                            <td>{{ $profile->validity_days ? $profile->validity_days.' Hari' : '-' }}</td>
-                            <td class="text-center">{{ $profile->shared_users }}</td>
-                            <td>
-                                <span class="badge" style="background:{{ $profile->is_active ? '#f0fdf4' : '#f1f5f9' }};color:{{ $profile->is_active ? '#059669' : '#64748b' }};">
-                                    {{ $profile->is_active ? 'Aktif' : 'Nonaktif' }}
-                                </span>
-                            </td>
+                            <td class="fw-semibold">{{ $profile['name'] }}</td>
+                            <td>{{ $profile['address_pool'] ?? '-' }}</td>
+                            <td class="text-center">{{ $profile['shared_users'] }}</td>
+                            <td><code>{{ $profile['speed'] ?? '-' }}</code></td>
+                            <td>Rp {{ number_format($profile['price'] ?? 0, 0, ',', '.') }}</td>
+                            <td>{{ $profile['selling_price'] ? 'Rp '.number_format($profile['selling_price'], 0, ',', '.') : '-' }}</td>
                             <td class="text-center">
-                                <button type="button" class="btn btn-sm btn-outline-primary px-2" data-bs-toggle="modal" data-bs-target="#editModal{{ $profile->id }}">
+                                @if($profile['lock_user'])
+                                    <span class="badge" style="background:#f0fdf4;color:#059669;">Enable</span>
+                                @else
+                                    <span class="badge" style="background:#f1f5f9;color:#64748b;">Disable</span>
+                                @endif
+                            </td>
+                            <td>{{ $profile['parent_queue'] ?? '-' }}</td>
+                            <td><span class="badge" style="background:#eef2ff;color:#4f46e5;">{{ $profile['router'] }}</span></td>
+                            <td class="text-center">
+                                <button type="button" class="btn btn-sm btn-outline-primary px-2 edit-profile-btn"
+                                    data-id="{{ $profile['id'] }}"
+                                    data-name="{{ $profile['name'] }}"
+                                    data-speed="{{ $profile['speed'] ?? '' }}"
+                                    data-shared="{{ $profile['shared_users'] }}"
+                                    data-address-pool="{{ $profile['address_pool'] ?? '' }}"
+                                    data-lock-user="{{ $profile['lock_user'] ? '1' : '0' }}"
+                                    data-price="{{ $profile['price'] ?? 0 }}"
+                                    data-selling-price="{{ $profile['selling_price'] ?? '' }}"
+                                    data-parent-queue="{{ $profile['parent_queue'] ?? '' }}">
                                     <i class="fa-solid fa-pen"></i>
                                 </button>
-                                <form method="POST" action="{{ route('voucher-profiles.destroy', $profile) }}" class="d-inline" onsubmit="return confirm('Hapus profile {{ $profile->name }}?')">
-                                    @csrf @method('DELETE')
+                                <form method="POST" action="{{ route('voucher-profiles.destroy-mikrotik', $profile['id']) }}" class="d-inline" onsubmit="return confirm('Hapus profile &quot;{{ $profile['name'] }}&quot; dari MikroTik?')">
+                                    @csrf
                                     <button type="submit" class="btn btn-sm btn-outline-danger px-2"><i class="fa-solid fa-trash"></i></button>
                                 </form>
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="9" class="text-center py-4 text-muted">Belum ada profile voucher</td></tr>
+                        @if(!$error)
+                        <tr><td colspan="10" class="text-center py-4 text-muted">Tidak ada profile MikroTik</td></tr>
+                        @endif
                     @endforelse
                 </tbody>
             </table>
@@ -74,125 +101,159 @@
 
 {{-- CREATE MODAL --}}
 <div class="modal fade" id="createModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <form method="POST" action="{{ route('voucher-profiles.store') }}">
                 @csrf
                 <div class="modal-header">
-                    <h5 class="modal-title">Tambah Profile Voucher</h5>
+                    <h5 class="modal-title">Buat Profile di MikroTik</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Nama Profile</label>
-                        <input type="text" name="name" class="form-control" placeholder="Contoh: Paket 10GB" required>
-                    </div>
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">Speed</label>
-                            <input type="text" name="speed" class="form-control" placeholder="10Mbps">
+                            <label class="form-label fw-semibold">Name <span class="text-danger">*</span></label>
+                            <input type="text" name="name" class="form-control" placeholder="Profile name" required>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">Harga (Rp)</label>
-                            <input type="number" name="price" class="form-control" value="0" min="0" required>
-                        </div>
-                    </div>
-                    <div class="row g-3 mt-1">
-                        <div class="col-md-4">
-                            <label class="form-label fw-semibold">Time Limit (Jam)</label>
-                            <input type="number" name="time_limit" class="form-control" placeholder="Kosongkan jika unlimited">
+                            <label class="form-label fw-semibold">Address Pool</label>
+                            <input type="text" name="address_pool" class="form-control" placeholder="none">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label fw-semibold">Kuota (MB)</label>
-                            <input type="number" name="quota_limit" class="form-control" placeholder="Kosongkan jika unlimited">
+                            <label class="form-label fw-semibold">Shared Users</label>
+                            <input type="number" name="shared_users" class="form-control" value="1" min="1" max="100">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label fw-semibold">Masa Berlaku (Hari)</label>
-                            <input type="number" name="validity_days" class="form-control" placeholder="Kosongkan jika 1 hari">
+                            <label class="form-label fw-semibold">Rate limit [up/down]</label>
+                            <input type="text" name="speed" class="form-control" placeholder="Example : 512k/1M">
                         </div>
-                    </div>
-                    <div class="mb-3 mt-3">
-                        <label class="form-label fw-semibold">Shared Users</label>
-                        <input type="number" name="shared_users" class="form-control" value="1" min="1" max="100">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Deskripsi</label>
-                        <textarea name="description" class="form-control" rows="2" placeholder="Opsional"></textarea>
-                    </div>
-                    <div class="form-check">
-                        <input type="checkbox" name="is_active" class="form-check-input" id="createIsActive" checked>
-                        <label class="form-check-label" for="createIsActive">Aktif</label>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Price Rp</label>
+                            <input type="number" name="price" class="form-control" value="0" min="0">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Selling Price Rp</label>
+                            <input type="number" name="selling_price" class="form-control" value="0" min="0">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold d-flex align-items-center gap-2">
+                                Lock User
+                                <div class="form-check form-switch mb-0">
+                                    <input type="checkbox" name="lock_user" class="form-check-input" id="createLockUser" value="1">
+                                    <label class="form-check-label" for="createLockUser">Disable</label>
+                                </div>
+                            </label>
+                            <small class="text-muted d-block">Username can only be used on 1 device only.</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Parent Queue</label>
+                            <input type="text" name="parent_queue" class="form-control" placeholder="none">
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-primary">Simpan</button>
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-upload me-1"></i>Buat di MikroTik</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
-{{-- EDIT MODALS --}}
-@foreach($profiles as $profile)
-<div class="modal fade" id="editModal{{ $profile->id }}" tabindex="-1">
-    <div class="modal-dialog">
+{{-- EDIT MODAL --}}
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <form method="POST" action="{{ route('voucher-profiles.update', $profile) }}">
-                @csrf @method('PUT')
+            <form method="POST" action="">
+                @csrf
                 <div class="modal-header">
-                    <h5 class="modal-title">Edit Profile</h5>
+                    <h5 class="modal-title">Edit Profile di MikroTik</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Nama Profile</label>
-                        <input type="text" name="name" class="form-control" value="{{ $profile->name }}" required>
-                    </div>
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">Speed</label>
-                            <input type="text" name="speed" class="form-control" value="{{ $profile->speed }}">
+                            <label class="form-label fw-semibold">Name <span class="text-danger">*</span></label>
+                            <input type="text" name="name" class="form-control" required>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">Harga (Rp)</label>
-                            <input type="number" name="price" class="form-control" value="{{ $profile->price }}" min="0" required>
-                        </div>
-                    </div>
-                    <div class="row g-3 mt-1">
-                        <div class="col-md-4">
-                            <label class="form-label fw-semibold">Time Limit (Jam)</label>
-                            <input type="number" name="time_limit" class="form-control" value="{{ $profile->time_limit }}">
+                            <label class="form-label fw-semibold">Address Pool</label>
+                            <input type="text" name="address_pool" class="form-control" placeholder="none">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label fw-semibold">Kuota (MB)</label>
-                            <input type="number" name="quota_limit" class="form-control" value="{{ $profile->quota_limit }}">
+                            <label class="form-label fw-semibold">Shared Users</label>
+                            <input type="number" name="shared_users" class="form-control" min="1" max="100">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label fw-semibold">Masa Berlaku (Hari)</label>
-                            <input type="number" name="validity_days" class="form-control" value="{{ $profile->validity_days }}">
+                            <label class="form-label fw-semibold">Rate limit [up/down]</label>
+                            <input type="text" name="speed" class="form-control" placeholder="Example : 512k/1M">
                         </div>
-                    </div>
-                    <div class="mb-3 mt-3">
-                        <label class="form-label fw-semibold">Shared Users</label>
-                        <input type="number" name="shared_users" class="form-control" value="{{ $profile->shared_users }}" min="1" max="100">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Deskripsi</label>
-                        <textarea name="description" class="form-control" rows="2">{{ $profile->description }}</textarea>
-                    </div>
-                    <div class="form-check">
-                        <input type="checkbox" name="is_active" class="form-check-input" id="editIsActive{{ $profile->id }}" {{ $profile->is_active ? 'checked' : '' }}>
-                        <label class="form-check-label" for="editIsActive{{ $profile->id }}">Aktif</label>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Price Rp</label>
+                            <input type="number" name="price" class="form-control" min="0">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Selling Price Rp</label>
+                            <input type="number" name="selling_price" class="form-control" min="0">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold d-flex align-items-center gap-2">
+                                Lock User
+                                <div class="form-check form-switch mb-0">
+                                    <input type="checkbox" name="lock_user" class="form-check-input" id="editLockUser" value="1">
+                                    <label class="form-check-label" for="editLockUser">Disable</label>
+                                </div>
+                            </label>
+                            <small class="text-muted d-block">Username can only be used on 1 device only.</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Parent Queue</label>
+                            <input type="text" name="parent_queue" class="form-control" placeholder="none">
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-primary">Simpan</button>
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-save me-1"></i>Simpan</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
-@endforeach
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.edit-profile-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            const id = this.dataset.id;
+            const name = this.dataset.name;
+            const speed = this.dataset.speed;
+            const shared = this.dataset.shared;
+            const addressPool = this.dataset.addressPool;
+            const lockUser = this.dataset.lockUser;
+            const price = this.dataset.price;
+            const sellingPrice = this.dataset.sellingPrice;
+            const parentQueue = this.dataset.parentQueue;
+
+            const modal = document.getElementById('editModal');
+            const form = modal.querySelector('form');
+            form.action = '{{ route("voucher-profiles.update-mikrotik", "_id_") }}'.replace('_id_', id);
+            form.querySelector('[name="name"]').value = name;
+            form.querySelector('[name="speed"]').value = speed;
+            form.querySelector('[name="shared_users"]').value = shared;
+            form.querySelector('[name="address_pool"]').value = addressPool;
+            form.querySelector('[name="price"]').value = price;
+            form.querySelector('[name="selling_price"]').value = sellingPrice;
+            form.querySelector('[name="parent_queue"]').value = parentQueue;
+            form.querySelector('[name="lock_user"]').checked = lockUser === '1';
+
+            const bsModal = new bootstrap.Modal(modal);
+            bsModal.show();
+        });
+    });
+});
+</script>
+@endpush
+
 @endsection

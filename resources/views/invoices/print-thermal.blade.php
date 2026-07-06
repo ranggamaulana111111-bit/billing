@@ -8,124 +8,135 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Courier New', 'Consolas', 'Lucida Console', monospace;
-            font-size: 10px;
+            font-size: 8px;
             line-height: 1.2;
             color: #000;
-            width: 46mm;
-            margin: 0 auto;
-            padding: 1mm 2mm;
+            width: 44mm;
+            margin: 0;
+            padding: 0 0 0 2mm;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            text-shadow: 0 0 0 #000;
         }
         .header {
             text-align: center;
-            margin-bottom: 4px;
-            padding-bottom: 4px;
-            border-bottom: 1px dashed #000;
+            margin-bottom: 3px;
+            padding-bottom: 3px;
+            border-bottom: 4px solid #000;
         }
         .header .company {
             font-size: 12px;
-            font-weight: bold;
+            font-weight: 900;
             text-transform: uppercase;
         }
         .header .sub {
             font-size: 8px;
+            font-weight: 900;
         }
         .header .title {
             font-size: 13px;
-            font-weight: bold;
-            margin-top: 2px;
+            font-weight: 900;
+            margin-top: 1px;
         }
         .status {
             text-align: center;
             font-size: 10px;
-            font-weight: bold;
+            font-weight: 900;
             padding: 2px 0;
-            margin-bottom: 4px;
-            border-bottom: 1px dashed #000;
+            margin-bottom: 3px;
+            border-bottom: 4px solid #000;
         }
         .info {
             width: 100%;
-            margin-bottom: 4px;
-            font-size: 9px;
+            margin-bottom: 3px;
+            font-size: 8px;
+            font-weight: 900;
         }
         .info td {
             padding: 1px 0;
             vertical-align: top;
+            font-weight: 900;
         }
         .info td.label {
-            width: 28%;
-            font-weight: bold;
+            width: 24%;
         }
         .info td.sep {
             width: 2%;
             text-align: center;
         }
         .info td.value {
-            width: 70%;
+            width: 74%;
+            word-break: break-word;
         }
         .divider {
-            border-top: 1px dashed #000;
+            border-top: 4px solid #000;
             margin: 4px 0;
         }
         .divider-double {
-            border-top: 2px double #000;
+            border-top: 5px double #000;
             margin: 4px 0;
         }
         table.items {
             width: 100%;
             border-collapse: collapse;
-            font-size: 9px;
-            margin-bottom: 4px;
+            font-size: 8px;
+            margin-bottom: 3px;
         }
         table.items th {
-            border-bottom: 1px solid #000;
-            padding: 2px 0;
+            border-bottom: 4px solid #000;
+            padding: 1px 0;
             text-align: left;
             font-size: 8px;
             text-transform: uppercase;
+            font-weight: 900;
         }
         table.items th.r { text-align: right; }
         table.items td {
             padding: 1px 0;
             vertical-align: top;
+            font-weight: 900;
         }
         table.items td.r { text-align: right; }
         .totals {
             width: 100%;
-            font-size: 9px;
+            font-size: 8px;
         }
-        .totals td { padding: 1px 0; }
-        .totals td.r { text-align: right; font-weight: bold; }
+        .totals td { padding: 1px 0; font-weight: 900; }
+        .totals td.r { text-align: right; font-weight: 900; }
         .totals .grand td {
             font-size: 11px;
-            font-weight: bold;
+            font-weight: 900;
             padding-top: 2px;
         }
         .bank-info {
             font-size: 8px;
+            font-weight: 900;
             margin-top: 4px;
             padding: 3px;
-            border: 1px solid #000;
+            border: 4px solid #000;
             text-align: center;
+            word-break: break-word;
         }
         .footer {
             text-align: center;
             font-size: 8px;
+            font-weight: 900;
             margin-top: 4px;
             padding-top: 4px;
-            border-top: 1px dashed #000;
+            border-top: 4px solid #000;
         }
         .paid-stamp {
             text-align: center;
             font-size: 12px;
-            font-weight: bold;
+            font-weight: 900;
             margin: 4px 0;
             padding: 3px;
-            border: 2px solid #000;
+            border: 4px solid #000;
             width: 100%;
         }
         .action-bar {
             text-align: center;
-            margin-top: 8px;
+            margin-top: 6px;
         }
         .action-bar button {
             font-family: 'Courier New', monospace;
@@ -137,15 +148,12 @@
             border: none;
         }
         @media print {
-            body { padding: 0; width: 46mm; }
+            body { width: 44mm; }
             .action-bar { display: none !important; }
-            @page {
-                margin: 0;
-            }
         }
         @page {
             size: 58mm auto;
-            margin: 2mm;
+            margin: 0;
         }
     </style>
 </head>

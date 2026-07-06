@@ -6,7 +6,7 @@
 <div class="page-header d-flex flex-wrap justify-content-between align-items-center">
     <div>
         <h2 class="mb-0"><i class="fa-solid fa-ticket me-2" style="color:var(--primary);"></i>Voucher WiFi</h2>
-        <p class="section-subtitle mb-0 mt-1">Generate, kelola, laporan, profile & router hotspot</p>
+        <p class="section-subtitle mb-0 mt-1">Generate, kelola, laporan, profile & template hotspot</p>
     </div>
     <div class="page-actions mt-2 mt-md-0 d-flex gap-2">
         @if($mikrotikConnected)
@@ -18,7 +18,7 @@
             </form>
         @endif
         <a href="{{ route('vouchers.create') }}" class="btn btn-primary px-4 py-2">
-            <i class="fa-solid fa-plus me-2"></i>Buat Voucher
+            <i class="fa-solid fa-plus me-2"></i>Generate Voucher
         </a>
     </div>
 </div>
@@ -58,11 +58,7 @@
             <i class="fa-solid fa-tags me-1"></i>Profile
         </a>
     </li>
-    <li class="nav-item" role="presentation">
-        <a class="nav-link {{ $tab === 'routers' ? 'active' : '' }}" href="{{ route('vouchers.index', ['tab' => 'routers']) }}" role="tab">
-            <i class="fa-solid fa-server me-1"></i>Router
-        </a>
-    </li>
+
     <li class="nav-item" role="presentation">
         <a class="nav-link {{ $tab === 'templates' ? 'active' : '' }}" href="{{ route('vouchers.index', ['tab' => 'templates']) }}" role="tab">
             <i class="fa-solid fa-palette me-1"></i>Template
@@ -163,7 +159,7 @@
                     </thead>
                     <tbody>
                         @forelse($vouchers as $v)
-                            <tr>
+                            <tr class="{{ $v->status === 'expired' ? 'table-warning' : ($v->status === 'used' ? 'table-danger' : '') }}">
                                 <td><input type="checkbox" name="ids[]" value="{{ $v->id }}" class="voucher-check"></td>
                                 <td><code style="font-size:0.85rem;">{{ $v->username }}</code></td>
                                 <td><code style="font-size:0.85rem;">{{ $v->password }}</code></td>
@@ -182,7 +178,7 @@
                                         $badge = match($v->status) {
                                             'active' => ['bg' => '#f0fdf4', 'text' => '#059669'],
                                             'used' => ['bg' => '#fef2f2', 'text' => '#dc2626'],
-                                            'expired' => ['bg' => '#f1f5f9', 'text' => '#94a3b8'],
+                                            'expired' => ['bg' => '#fef3c7', 'text' => '#92400e'],
                                             default => ['bg' => '#f1f5f9', 'text' => '#64748b'],
                                         };
                                     @endphp
@@ -362,14 +358,14 @@
 </div>
 @endif
 
-{{-- TAB 3: PROFILES --}}
+{{-- TAB 3: PROFILES (MikroTik) --}}
 @if($tab === 'profiles')
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
-        <span class="text-muted">Kelola profile paket voucher hotspot</span>
+        <span class="text-muted">Profile hotspot dari MikroTik</span>
     </div>
-    <button type="button" class="btn btn-primary px-3 py-2" data-bs-toggle="modal" data-bs-target="#createProfileModal">
-        <i class="fa-solid fa-plus me-1"></i>Tambah Profile
+    <button type="button" class="btn btn-primary px-3 py-2" data-bs-toggle="modal" data-bs-target="#createMikrotikProfileModal">
+        <i class="fa-solid fa-plus me-1"></i>Buat Profile
     </button>
 </div>
 
@@ -379,44 +375,57 @@
             <table class="table mb-0 align-middle">
                 <thead>
                     <tr>
-                        <th>Nama</th>
-                        <th>Speed</th>
-                        <th>Harga</th>
-                        <th>Time Limit</th>
-                        <th>Kuota</th>
-                        <th>Masa Berlaku</th>
-                        <th>Shared</th>
-                        <th>Status</th>
+                        <th>Name</th>
+                        <th>Address Pool</th>
+                        <th>Shared Users</th>
+                        <th>Rate Limit</th>
+                        <th>Price</th>
+                        <th>Selling Price</th>
+                        <th>Lock User</th>
+                        <th>Parent Queue</th>
+                        <th>Router</th>
                         <th class="text-center">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($profiles as $profile)
+                    @forelse($mikrotikProfiles as $profile)
                         <tr>
-                            <td class="fw-semibold">{{ $profile->name }}</td>
-                            <td>{{ $profile->speed ?? '-' }}</td>
-                            <td>Rp {{ number_format($profile->price, 0, ',', '.') }}</td>
-                            <td>{{ $profile->time_limit ? $profile->time_limit.' Jam' : 'Unlimited' }}</td>
-                            <td>{{ $profile->quota_limit ? number_format($profile->quota_limit).' MB' : 'Unlimited' }}</td>
-                            <td>{{ $profile->validity_days ? $profile->validity_days.' Hari' : '-' }}</td>
-                            <td class="text-center">{{ $profile->shared_users }}</td>
-                            <td>
-                                <span class="badge" style="background:{{ $profile->is_active ? '#f0fdf4' : '#f1f5f9' }};color:{{ $profile->is_active ? '#059669' : '#64748b' }};">
-                                    {{ $profile->is_active ? 'Aktif' : 'Nonaktif' }}
-                                </span>
-                            </td>
+                            <td class="fw-semibold">{{ $profile['name'] }}</td>
+                            <td>{{ $profile['address_pool'] ?? '-' }}</td>
+                            <td class="text-center">{{ $profile['shared_users'] }}</td>
+                            <td><code>{{ $profile['speed'] ?? '-' }}</code></td>
+                            <td>Rp {{ number_format($profile['price'] ?? 0, 0, ',', '.') }}</td>
+                            <td>{{ $profile['selling_price'] ? 'Rp '.number_format($profile['selling_price'], 0, ',', '.') : '-' }}</td>
                             <td class="text-center">
-                                <button type="button" class="btn btn-sm btn-outline-primary px-2" data-bs-toggle="modal" data-bs-target="#editProfileModal{{ $profile->id }}">
+                                @if($profile['lock_user'])
+                                    <span class="badge" style="background:#f0fdf4;color:#059669;">Enable</span>
+                                @else
+                                    <span class="badge" style="background:#f1f5f9;color:#64748b;">Disable</span>
+                                @endif
+                            </td>
+                            <td>{{ $profile['parent_queue'] ?? '-' }}</td>
+                            <td><span class="badge" style="background:#eef2ff;color:#4f46e5;">{{ $profile['router'] }}</span></td>
+                            <td class="text-center">
+                                <button type="button" class="btn btn-sm btn-outline-primary px-2 edit-mikrotik-profile-btn"
+                                    data-id="{{ $profile['id'] }}"
+                                    data-name="{{ $profile['name'] }}"
+                                    data-speed="{{ $profile['speed'] ?? '' }}"
+                                    data-shared="{{ $profile['shared_users'] }}"
+                                    data-address-pool="{{ $profile['address_pool'] ?? '' }}"
+                                    data-lock-user="{{ $profile['lock_user'] ? '1' : '0' }}"
+                                    data-price="{{ $profile['price'] ?? 0 }}"
+                                    data-selling-price="{{ $profile['selling_price'] ?? '' }}"
+                                    data-parent-queue="{{ $profile['parent_queue'] ?? '' }}">
                                     <i class="fa-solid fa-pen"></i>
                                 </button>
-                                <form method="POST" action="{{ route('voucher-profiles.destroy', $profile) }}" class="d-inline" onsubmit="return confirm('Hapus profile {{ $profile->name }}?')">
-                                    @csrf @method('DELETE')
+                                <form method="POST" action="{{ route('voucher-profiles.destroy-mikrotik', $profile['id']) }}" class="d-inline" onsubmit="return confirm('Hapus profile &quot;{{ $profile['name'] }}&quot; dari MikroTik?')">
+                                    @csrf
                                     <button type="submit" class="btn btn-sm btn-outline-danger px-2"><i class="fa-solid fa-trash"></i></button>
                                 </form>
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="9" class="text-center py-4 text-muted">Belum ada profile voucher</td></tr>
+                        <tr><td colspan="10" class="text-center py-4 text-muted">Tidak ada profile MikroTik</td></tr>
                     @endforelse
                 </tbody>
             </table>
@@ -424,305 +433,128 @@
     </div>
 </div>
 
-{{-- Create Profile Modal --}}
-<div class="modal fade" id="createProfileModal" tabindex="-1">
-    <div class="modal-dialog">
+{{-- Create MikroTik Profile Modal --}}
+<div class="modal fade" id="createMikrotikProfileModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <form method="POST" action="{{ route('voucher-profiles.store') }}">
                 @csrf
                 <div class="modal-header">
-                    <h5 class="modal-title">Tambah Profile Voucher</h5>
+                    <h5 class="modal-title">Buat Profile di MikroTik</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Nama Profile</label>
-                        <input type="text" name="name" class="form-control" placeholder="Contoh: Paket 10GB" required>
-                    </div>
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">Speed</label>
-                            <input type="text" name="speed" class="form-control" placeholder="10Mbps">
+                            <label class="form-label fw-semibold">Name <span class="text-danger">*</span></label>
+                            <input type="text" name="name" class="form-control" placeholder="Profile name" required>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">Harga (Rp)</label>
-                            <input type="number" name="price" class="form-control" value="0" min="0" required>
-                        </div>
-                    </div>
-                    <div class="row g-3 mt-1">
-                        <div class="col-md-4">
-                            <label class="form-label fw-semibold">Time Limit (Jam)</label>
-                            <input type="number" name="time_limit" class="form-control" placeholder="Kosongkan jika unlimited">
+                            <label class="form-label fw-semibold">Address Pool</label>
+                            <input type="text" name="address_pool" class="form-control" placeholder="none">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label fw-semibold">Kuota (MB)</label>
-                            <input type="number" name="quota_limit" class="form-control" placeholder="Kosongkan jika unlimited">
+                            <label class="form-label fw-semibold">Shared Users</label>
+                            <input type="number" name="shared_users" class="form-control" value="1" min="1" max="100">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label fw-semibold">Masa Berlaku (Hari)</label>
-                            <input type="number" name="validity_days" class="form-control" placeholder="Kosongkan jika 1 hari">
+                            <label class="form-label fw-semibold">Rate limit [up/down]</label>
+                            <input type="text" name="speed" class="form-control" placeholder="Example : 512k/1M">
                         </div>
-                    </div>
-                    <div class="mb-3 mt-3">
-                        <label class="form-label fw-semibold">Shared Users</label>
-                        <input type="number" name="shared_users" class="form-control" value="1" min="1" max="100">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Deskripsi</label>
-                        <textarea name="description" class="form-control" rows="2" placeholder="Opsional"></textarea>
-                    </div>
-                    <div class="form-check">
-                        <input type="checkbox" name="is_active" class="form-check-input" id="createProfileIsActive" checked>
-                        <label class="form-check-label" for="createProfileIsActive">Aktif</label>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Price Rp</label>
+                            <input type="number" name="price" class="form-control" value="0" min="0">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Selling Price Rp</label>
+                            <input type="number" name="selling_price" class="form-control" value="0" min="0">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold d-flex align-items-center gap-2">
+                                Lock User
+                                <div class="form-check form-switch mb-0">
+                                    <input type="checkbox" name="lock_user" class="form-check-input" id="createMkLockUser" value="1">
+                                    <label class="form-check-label" for="createMkLockUser">Disable</label>
+                                </div>
+                            </label>
+                            <small class="text-muted d-block">Username can only be used on 1 device only.</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Parent Queue</label>
+                            <input type="text" name="parent_queue" class="form-control" placeholder="none">
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-primary">Simpan</button>
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-upload me-1"></i>Buat di MikroTik</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
-
-{{-- Edit Profile Modals --}}
-@foreach($profiles as $profile)
-<div class="modal fade" id="editProfileModal{{ $profile->id }}" tabindex="-1">
-    <div class="modal-dialog">
+{{-- Edit MikroTik Profile Modal --}}
+<div class="modal fade" id="editMikrotikProfileModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <form method="POST" action="{{ route('voucher-profiles.update', $profile) }}">
-                @csrf @method('PUT')
-                <div class="modal-header">
-                    <h5 class="modal-title">Edit Profile</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Nama Profile</label>
-                        <input type="text" name="name" class="form-control" value="{{ $profile->name }}" required>
-                    </div>
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Speed</label>
-                            <input type="text" name="speed" class="form-control" value="{{ $profile->speed }}">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Harga (Rp)</label>
-                            <input type="number" name="price" class="form-control" value="{{ $profile->price }}" min="0" required>
-                        </div>
-                    </div>
-                    <div class="row g-3 mt-1">
-                        <div class="col-md-4">
-                            <label class="form-label fw-semibold">Time Limit (Jam)</label>
-                            <input type="number" name="time_limit" class="form-control" value="{{ $profile->time_limit }}">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label fw-semibold">Kuota (MB)</label>
-                            <input type="number" name="quota_limit" class="form-control" value="{{ $profile->quota_limit }}">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label fw-semibold">Masa Berlaku (Hari)</label>
-                            <input type="number" name="validity_days" class="form-control" value="{{ $profile->validity_days }}">
-                        </div>
-                    </div>
-                    <div class="mb-3 mt-3">
-                        <label class="form-label fw-semibold">Shared Users</label>
-                        <input type="number" name="shared_users" class="form-control" value="{{ $profile->shared_users }}" min="1" max="100">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Deskripsi</label>
-                        <textarea name="description" class="form-control" rows="2">{{ $profile->description }}</textarea>
-                    </div>
-                    <div class="form-check">
-                        <input type="checkbox" name="is_active" class="form-check-input" id="editProfileIsActive{{ $profile->id }}" {{ $profile->is_active ? 'checked' : '' }}>
-                        <label class="form-check-label" for="editProfileIsActive{{ $profile->id }}">Aktif</label>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-primary">Simpan</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-@endforeach
-@endif
-
-{{-- TAB 4: ROUTERS --}}
-@if($tab === 'routers')
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <div>
-        <span class="text-muted">Kelola router MikroTik untuk push voucher hotspot</span>
-    </div>
-    <button type="button" class="btn btn-primary px-3 py-2" data-bs-toggle="modal" data-bs-target="#createRouterModal">
-        <i class="fa-solid fa-plus me-1"></i>Tambah Router
-    </button>
-</div>
-
-<div class="card shadow-sm border-0">
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table mb-0 align-middle">
-                <thead>
-                    <tr>
-                        <th>Nama</th>
-                        <th>Host</th>
-                        <th>Port</th>
-                        <th>Hotspot Server</th>
-                        <th>Status</th>
-                        <th>Voucher</th>
-                        <th class="text-center">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($routers as $router)
-                        <tr>
-                            <td class="fw-semibold">{{ $router->name }}</td>
-                            <td><code>{{ $router->host }}:{{ $router->port }}</code></td>
-                            <td>{{ $router->port }}</td>
-                            <td>{{ $router->hotspot_server ?: 'default' }}</td>
-                            <td>
-                                <span class="badge" style="background:{{ $router->is_active ? '#f0fdf4' : '#f1f5f9' }};color:{{ $router->is_active ? '#059669' : '#64748b' }};">
-                                    {{ $router->is_active ? 'Aktif' : 'Nonaktif' }}
-                                </span>
-                            </td>
-                            <td>{{ $router->vouchers()->count() }}</td>
-                            <td class="text-center">
-                                <form method="POST" action="{{ route('mikrotik-routers.test', $router) }}" class="d-inline">
-                                    @csrf
-                                    <button type="submit" class="btn btn-sm btn-outline-success px-2" title="Test Koneksi">
-                                        <i class="fa-solid fa-plug"></i>
-                                    </button>
-                                </form>
-                                <button type="button" class="btn btn-sm btn-outline-primary px-2" data-bs-toggle="modal" data-bs-target="#editRouterModal{{ $router->id }}">
-                                    <i class="fa-solid fa-pen"></i>
-                                </button>
-                                <form method="POST" action="{{ route('mikrotik-routers.destroy', $router) }}" class="d-inline" onsubmit="return confirm('Hapus router {{ $router->name }}?')">
-                                    @csrf @method('DELETE')
-                                    <button type="submit" class="btn btn-sm btn-outline-danger px-2"><i class="fa-solid fa-trash"></i></button>
-                                </form>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr><td colspan="7" class="text-center py-4 text-muted">Belum ada router</td></tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
-
-{{-- Create Router Modal --}}
-<div class="modal fade" id="createRouterModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form method="POST" action="{{ route('mikrotik-routers.store') }}">
+            <form method="POST" action="">
                 @csrf
                 <div class="modal-header">
-                    <h5 class="modal-title">Tambah Router MikroTik</h5>
+                    <h5 class="modal-title">Edit Profile di MikroTik</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Nama Router</label>
-                        <input type="text" name="name" class="form-control" placeholder="Contoh: RB-Main" required>
-                    </div>
                     <div class="row g-3">
-                        <div class="col-md-8">
-                            <label class="form-label fw-semibold">Host/IP</label>
-                            <input type="text" name="host" class="form-control" placeholder="192.168.1.1" required>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Name <span class="text-danger">*</span></label>
+                            <input type="text" name="name" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Address Pool</label>
+                            <input type="text" name="address_pool" class="form-control" placeholder="none">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label fw-semibold">Port</label>
-                            <input type="number" name="port" class="form-control" value="8728" min="1" max="65535" required>
+                            <label class="form-label fw-semibold">Shared Users</label>
+                            <input type="number" name="shared_users" class="form-control" min="1" max="100">
                         </div>
-                    </div>
-                    <div class="row g-3 mt-1">
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Rate limit [up/down]</label>
+                            <input type="text" name="speed" class="form-control" placeholder="Example : 512k/1M">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Price Rp</label>
+                            <input type="number" name="price" class="form-control" min="0">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Selling Price Rp</label>
+                            <input type="number" name="selling_price" class="form-control" min="0">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold d-flex align-items-center gap-2">
+                                Lock User
+                                <div class="form-check form-switch mb-0">
+                                    <input type="checkbox" name="lock_user" class="form-check-input" id="editMkLockUser" value="1">
+                                    <label class="form-check-label" for="editMkLockUser">Disable</label>
+                                </div>
+                            </label>
+                            <small class="text-muted d-block">Username can only be used on 1 device only.</small>
+                        </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">Username</label>
-                            <input type="text" name="username" class="form-control" placeholder="admin" required>
+                            <label class="form-label fw-semibold">Parent Queue</label>
+                            <input type="text" name="parent_queue" class="form-control" placeholder="none">
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Password</label>
-                            <input type="password" name="password" class="form-control" placeholder="Password">
-                        </div>
-                    </div>
-                    <div class="mb-3 mt-3">
-                        <label class="form-label fw-semibold">Hotspot Server</label>
-                        <input type="text" name="hotspot_server" class="form-control" placeholder="Kosongkan untuk default">
-                    </div>
-                    <div class="form-check">
-                        <input type="checkbox" name="is_active" class="form-check-input" id="createRouterIsActive" checked>
-                        <label class="form-check-label" for="createRouterIsActive">Aktif</label>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-primary">Simpan</button>
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-save me-1"></i>Simpan</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
-
-{{-- Edit Router Modals --}}
-@foreach($routers as $router)
-<div class="modal fade" id="editRouterModal{{ $router->id }}" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form method="POST" action="{{ route('mikrotik-routers.update', $router) }}">
-                @csrf @method('PUT')
-                <div class="modal-header">
-                    <h5 class="modal-title">Edit Router</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Nama Router</label>
-                        <input type="text" name="name" class="form-control" value="{{ $router->name }}" required>
-                    </div>
-                    <div class="row g-3">
-                        <div class="col-md-8">
-                            <label class="form-label fw-semibold">Host/IP</label>
-                            <input type="text" name="host" class="form-control" value="{{ $router->host }}" required>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label fw-semibold">Port</label>
-                            <input type="number" name="port" class="form-control" value="{{ $router->port }}" min="1" max="65535" required>
-                        </div>
-                    </div>
-                    <div class="row g-3 mt-1">
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Username</label>
-                            <input type="text" name="username" class="form-control" value="{{ $router->username }}" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Password</label>
-                            <input type="password" name="password" class="form-control" placeholder="Kosongkan jika tidak diubah">
-                        </div>
-                    </div>
-                    <div class="mb-3 mt-3">
-                        <label class="form-label fw-semibold">Hotspot Server</label>
-                        <input type="text" name="hotspot_server" class="form-control" value="{{ $router->hotspot_server }}">
-                    </div>
-                    <div class="form-check">
-                        <input type="checkbox" name="is_active" class="form-check-input" id="editRouterIsActive{{ $router->id }}" {{ $router->is_active ? 'checked' : '' }}>
-                        <label class="form-check-label" for="editRouterIsActive{{ $router->id }}">Aktif</label>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-primary">Simpan</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-@endforeach
 @endif
-
-{{-- TAB 5: TEMPLATES --}}
+{{-- TAB 4: TEMPLATES --}}
 @if($tab === 'templates')
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
@@ -740,7 +572,7 @@
                 <thead>
                     <tr>
                         <th>Nama</th>
-                        <th>Konten</th>
+                        <th>Tipe</th>
                         <th>Status</th>
                         <th>Voucher</th>
                         <th class="text-center">Aksi</th>
@@ -750,10 +582,16 @@
                     @forelse($templates as $tpl)
                         <tr>
                             <td class="fw-semibold">{{ $tpl->name }}</td>
-                            <td style="max-width:300px;">
-                                <div class="text-truncate text-muted small" style="max-height:40px;overflow:hidden;">
-                                    {{ $tpl->content ? strip_tags(substr($tpl->content, 0, 100)) : '-' }}
-                                </div>
+                            <td>
+                                @if($tpl->hasFiles())
+                                    <span class="badge" style="background:#f0fdf4;color:#059669;">
+                                        <i class="fa-solid fa-folder me-1"></i>Folder
+                                    </span>
+                                @else
+                                    <span class="badge" style="background:#f1f5f9;color:#64748b;">
+                                        <i class="fa-solid fa-database me-1"></i>Database
+                                    </span>
+                                @endif
                             </td>
                             <td>
                                 <span class="badge" style="background:{{ $tpl->is_active ? '#f0fdf4' : '#f1f5f9' }};color:{{ $tpl->is_active ? '#059669' : '#64748b' }};">
@@ -762,9 +600,15 @@
                             </td>
                             <td>{{ $tpl->vouchers()->count() }}</td>
                             <td class="text-center">
-                                <a href="{{ route('voucher-templates.preview', $tpl) }}" class="btn btn-sm btn-outline-info px-2" target="_blank" title="Preview">
-                                    <i class="fa-solid fa-eye"></i>
-                                </a>
+                                @if($tpl->hasFiles())
+                                    <a href="{{ url('hotspot/templates/' . $tpl->id . '/login.html') }}" class="btn btn-sm btn-outline-info px-2" target="_blank" title="Preview">
+                                        <i class="fa-solid fa-eye"></i>
+                                    </a>
+                                @else
+                                    <a href="{{ route('voucher-templates.preview', $tpl) }}" class="btn btn-sm btn-outline-info px-2" target="_blank" title="Preview">
+                                        <i class="fa-solid fa-eye"></i>
+                                    </a>
+                                @endif
                                 <button type="button" class="btn btn-sm btn-outline-primary px-2" data-bs-toggle="modal" data-bs-target="#editTemplateModal{{ $tpl->id }}">
                                     <i class="fa-solid fa-pen"></i>
                                 </button>
@@ -787,7 +631,7 @@
 <div class="modal fade" id="createTemplateModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <form method="POST" action="{{ route('voucher-templates.store') }}">
+            <form method="POST" action="{{ route('voucher-templates.store') }}" enctype="multipart/form-data">
                 @csrf
                 <div class="modal-header">
                     <h5 class="modal-title">Tambah Template Landing Page</h5>
@@ -799,58 +643,19 @@
                         <input type="text" name="name" class="form-control" placeholder="Contoh: Premium Blue" required>
                     </div>
 
-                    <ul class="nav nav-tabs mb-3" id="createTemplateTabs" role="tablist">
-                        <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#createLogin" role="tab">login.html</a></li>
-                        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#createStatus" role="tab">status.html</a></li>
-                        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#createRedirect" role="tab">redirect.html</a></li>
-                        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#createError" role="tab">error.html</a></li>
-                        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#createAlive" role="tab">alive.html</a></li>
-                        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#createLogout" role="tab">logout.html</a></li>
-                    </ul>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">File Template (ZIP)</label>
+                        <div class="border rounded p-3" style="background:#f8fafc;">
+                            <input type="file" name="template_file" class="form-control" accept=".zip" required>
+                            <div class="form-text mt-2">
+                                <i class="fa-solid fa-info-circle me-1"></i>Upload file <strong>.zip</strong> yang berisi folder template hotspot.
+                                <br>Pastikan di dalamnya ada file <code>login.html</code>, <code>status.html</code>, dll beserta asset pendukung (CSS, JS, gambar).
+                            </div>
+                        </div>
+                    </div>
 
-                    <div class="tab-content">
-                        <div class="tab-pane fade show active" id="createLogin">
-                            <div class="mb-3">
-                                <label class="form-label fw-semibold">Halaman Login <code>login.html</code></label>
-                                <textarea name="content" class="form-control font-monospace" rows="8" placeholder="&lt;!-- HTML login page --&gt;"></textarea>
-                                <div class="form-text">Halaman login hotspot — user melihat form login di sini.</div>
-                            </div>
-                        </div>
-                        <div class="tab-pane fade" id="createStatus">
-                            <div class="mb-3">
-                                <label class="form-label fw-semibold">Halaman Status <code>status.html</code></label>
-                                <textarea name="status_page" class="form-control font-monospace" rows="8" placeholder="&lt;!-- HTML status page --&gt;"></textarea>
-                                <div class="form-text">Halaman setelah login berhasil — menampilkan status koneksi.</div>
-                            </div>
-                        </div>
-                        <div class="tab-pane fade" id="createRedirect">
-                            <div class="mb-3">
-                                <label class="form-label fw-semibold">Halaman Redirect <code>redirect.html</code></label>
-                                <textarea name="redirect_page" class="form-control font-monospace" rows="8" placeholder="&lt;!-- HTML redirect page --&gt;"></textarea>
-                                <div class="form-text">Halaman pengalihan setelah login sukses.</div>
-                            </div>
-                        </div>
-                        <div class="tab-pane fade" id="createError">
-                            <div class="mb-3">
-                                <label class="form-label fw-semibold">Halaman Error <code>error.html</code></label>
-                                <textarea name="error_page" class="form-control font-monospace" rows="8" placeholder="&lt;!-- HTML error page --&gt;"></textarea>
-                                <div class="form-text">Halaman yang tampil saat login gagal (username/password salah).</div>
-                            </div>
-                        </div>
-                        <div class="tab-pane fade" id="createAlive">
-                            <div class="mb-3">
-                                <label class="form-label fw-semibold">Halaman Alive <code>alive.html</code></label>
-                                <textarea name="alive_page" class="form-control font-monospace" rows="8" placeholder="&lt;!-- HTML alive page --&gt;"></textarea>
-                                <div class="form-text">Halaman keep-alive — MikroTik ping halaman ini untuk cek status session.</div>
-                            </div>
-                        </div>
-                        <div class="tab-pane fade" id="createLogout">
-                            <div class="mb-3">
-                                <label class="form-label fw-semibold">Halaman Logout <code>logout.html</code></label>
-                                <textarea name="logout_page" class="form-control font-monospace" rows="8" placeholder="&lt;!-- HTML logout page --&gt;"></textarea>
-                                <div class="form-text">Halaman yang tampil setelah user logout dari hotspot.</div>
-                            </div>
-                        </div>
+                    <div class="alert alert-info py-2 mb-0">
+                        <small><i class="fa-solid fa-lightbulb me-1"></i>Template akan otomatis disalin ke folder hotspot aktif jika status <strong>Aktif</strong> dicentang.</small>
                     </div>
 
                     <div class="form-check mt-3">
@@ -872,7 +677,7 @@
 <div class="modal fade" id="editTemplateModal{{ $tpl->id }}" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <form method="POST" action="{{ route('voucher-templates.update', $tpl) }}">
+            <form method="POST" action="{{ route('voucher-templates.update', $tpl) }}" enctype="multipart/form-data">
                 @csrf @method('PUT')
                 <div class="modal-header">
                     <h5 class="modal-title">Edit Template: {{ $tpl->name }}</h5>
@@ -884,53 +689,37 @@
                         <input type="text" name="name" class="form-control" value="{{ $tpl->name }}" required>
                     </div>
 
-                    <ul class="nav nav-tabs mb-3" id="editTemplateTabs{{ $tpl->id }}" role="tablist">
-                        <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#editLogin{{ $tpl->id }}" role="tab">login.html</a></li>
-                        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#editStatus{{ $tpl->id }}" role="tab">status.html</a></li>
-                        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#editRedirect{{ $tpl->id }}" role="tab">redirect.html</a></li>
-                        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#editError{{ $tpl->id }}" role="tab">error.html</a></li>
-                        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#editAlive{{ $tpl->id }}" role="tab">alive.html</a></li>
-                        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#editLogout{{ $tpl->id }}" role="tab">logout.html</a></li>
-                    </ul>
-
-                    <div class="tab-content">
-                        <div class="tab-pane fade show active" id="editLogin{{ $tpl->id }}">
-                            <div class="mb-3">
-                                <label class="form-label fw-semibold">Halaman Login <code>login.html</code></label>
-                                <textarea name="content" class="form-control font-monospace" rows="8">{{ $tpl->content }}</textarea>
-                            </div>
-                        </div>
-                        <div class="tab-pane fade" id="editStatus{{ $tpl->id }}">
-                            <div class="mb-3">
-                                <label class="form-label fw-semibold">Halaman Status <code>status.html</code></label>
-                                <textarea name="status_page" class="form-control font-monospace" rows="8">{{ $tpl->status_page }}</textarea>
-                            </div>
-                        </div>
-                        <div class="tab-pane fade" id="editRedirect{{ $tpl->id }}">
-                            <div class="mb-3">
-                                <label class="form-label fw-semibold">Halaman Redirect <code>redirect.html</code></label>
-                                <textarea name="redirect_page" class="form-control font-monospace" rows="8">{{ $tpl->redirect_page }}</textarea>
-                            </div>
-                        </div>
-                        <div class="tab-pane fade" id="editError{{ $tpl->id }}">
-                            <div class="mb-3">
-                                <label class="form-label fw-semibold">Halaman Error <code>error.html</code></label>
-                                <textarea name="error_page" class="form-control font-monospace" rows="8">{{ $tpl->error_page }}</textarea>
-                            </div>
-                        </div>
-                        <div class="tab-pane fade" id="editAlive{{ $tpl->id }}">
-                            <div class="mb-3">
-                                <label class="form-label fw-semibold">Halaman Alive <code>alive.html</code></label>
-                                <textarea name="alive_page" class="form-control font-monospace" rows="8">{{ $tpl->alive_page }}</textarea>
-                            </div>
-                        </div>
-                        <div class="tab-pane fade" id="editLogout{{ $tpl->id }}">
-                            <div class="mb-3">
-                                <label class="form-label fw-semibold">Halaman Logout <code>logout.html</code></label>
-                                <textarea name="logout_page" class="form-control font-monospace" rows="8">{{ $tpl->logout_page }}</textarea>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Ganti File Template (ZIP)</label>
+                        <div class="border rounded p-3" style="background:#f8fafc;">
+                            <input type="file" name="template_file" class="form-control" accept=".zip">
+                            <div class="form-text mt-2">
+                                <i class="fa-solid fa-info-circle me-1"></i>Kosongkan jika tidak ingin mengganti file template.
+                                <br>Upload file <strong>.zip</strong> berisi folder template hotspot baru jika ingin mengganti.
                             </div>
                         </div>
                     </div>
+
+                    @if($tpl->hasFiles())
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">File Saat Ini</label>
+                            <div class="border rounded p-3" style="background:#f0fdf4;">
+                                <small class="text-muted">
+                                    <i class="fa-solid fa-folder-open me-1"></i>
+                                    Template ini menggunakan file dari folder <code>hotspot/templates/{{ $tpl->id }}/</code>
+                                </small>
+                                <div class="mt-2">
+                                    <a href="{{ url('hotspot/templates/' . $tpl->id . '/login.html') }}" class="btn btn-sm btn-outline-info" target="_blank">
+                                        <i class="fa-solid fa-eye me-1"></i>Lihat Template
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    @else
+                        <div class="alert alert-warning py-2">
+                            <small><i class="fa-solid fa-triangle-exclamation me-1"></i>Template ini menggunakan konten dari database. Upload file ZIP untuk beralih ke folder-based template.</small>
+                        </div>
+                    @endif
 
                     <div class="form-check mt-3">
                         <input type="checkbox" name="is_active" class="form-check-input" id="editTemplateActive{{ $tpl->id }}" {{ $tpl->is_active ? 'checked' : '' }}>
@@ -938,9 +727,9 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <a href="{{ route('voucher-templates.preview', $tpl) }}" class="btn btn-outline-info" target="_blank">
+                    <button type="button" class="btn btn-outline-info" onclick="window.open('{{ $tpl->hasFiles() ? url('hotspot/templates/'.$tpl->id.'/login.html') : route('voucher-templates.preview', $tpl) }}', '_blank')">
                         <i class="fa-solid fa-eye me-1"></i>Preview
-                    </a>
+                    </button>
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
                     <button type="submit" class="btn btn-primary">Simpan</button>
                 </div>
@@ -954,6 +743,7 @@
 
 @push('scripts')
 <script>
+    // ── Select all / Print ──
     const selectAll = document.getElementById('select-all');
     const checks = document.querySelectorAll('.voucher-check');
     const printBtn = document.getElementById('print-selected');
@@ -979,5 +769,35 @@
     });
 
     updatePrintBtn();
+
+    // ── Edit MikroTik Profile ──
+    document.querySelectorAll('.edit-mikrotik-profile-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            const id = this.dataset.id;
+            const name = this.dataset.name;
+            const speed = this.dataset.speed;
+            const shared = this.dataset.shared;
+            const addressPool = this.dataset.addressPool;
+            const lockUser = this.dataset.lockUser;
+            const price = this.dataset.price;
+            const sellingPrice = this.dataset.sellingPrice;
+            const parentQueue = this.dataset.parentQueue;
+
+            const modal = document.getElementById('editMikrotikProfileModal');
+            const form = modal.querySelector('form');
+            form.action = '{{ route("voucher-profiles.update-mikrotik", "_id_") }}'.replace('_id_', id);
+            form.querySelector('[name="name"]').value = name;
+            form.querySelector('[name="speed"]').value = speed;
+            form.querySelector('[name="shared_users"]').value = shared;
+            form.querySelector('[name="address_pool"]').value = addressPool;
+            form.querySelector('[name="price"]').value = price;
+            form.querySelector('[name="selling_price"]').value = sellingPrice;
+            form.querySelector('[name="parent_queue"]').value = parentQueue;
+            form.querySelector('[name="lock_user"]').checked = lockUser === '1';
+
+            const bsModal = new bootstrap.Modal(modal);
+            bsModal.show();
+        });
+    });
 </script>
 @endpush

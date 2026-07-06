@@ -9,6 +9,12 @@
         <p class="section-subtitle mb-0 mt-1">Kelola profile user hotspot MikroTik — rate limit, shared users</p>
     </div>
     <div class="page-actions mt-2 mt-md-0">
+        <form method="POST" action="{{ route('mikrotik.profiles.sync') }}" class="d-inline">
+            @csrf
+            <button type="submit" class="btn btn-outline-primary px-3 me-2" title="Sync dari MikroTik">
+                <i class="fa-solid fa-rotate me-1"></i>Sync
+            </button>
+        </form>
         <a href="{{ route('mikrotik.dashboard', ['router' => request('router')]) }}" class="btn btn-outline-secondary px-3">
             <i class="fa-solid fa-arrow-left me-1"></i>Monitor
         </a>
@@ -86,6 +92,14 @@
                                 <td><code>{{ $p['rate-limit'] ?? '-' }}</code></td>
                                 <td>{{ $p['shared-users'] ?? '1' }}</td>
                                 <td class="text-center">
+                                    <button type="button" class="btn btn-sm btn-outline-warning px-2 me-1" title="Edit"
+                                        data-bs-toggle="modal" data-bs-target="#editProfileModal"
+                                        data-id="{{ $p['.id'] ?? '' }}"
+                                        data-name="{{ $p['name'] ?? '' }}"
+                                        data-rate-limit="{{ $p['rate-limit'] ?? '' }}"
+                                        data-shared-users="{{ $p['shared-users'] ?? '1' }}">
+                                        <i class="fa-solid fa-pen"></i>
+                                    </button>
                                     <form method="POST" action="{{ route('mikrotik.profiles.destroy', $p['.id'] ?? '') }}" class="d-inline" onsubmit="return confirm('Hapus profile {{ $p['name'] }}?')">
                                         @csrf @method('DELETE')
                                         <button type="submit" class="btn btn-sm btn-outline-danger px-2" title="Hapus">
@@ -103,4 +117,62 @@
         </div>
     </div>
 </div>
+
+{{-- MODAL EDIT --}}
+<div class="modal fade" id="editProfileModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="" id="editProfileForm">
+                @csrf @method('PUT')
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fa-solid fa-pen me-2"></i>Edit Hotspot Profile</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Nama Profile</label>
+                        <input type="text" name="name" id="edit_name" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Rate Limit</label>
+                        <input type="text" name="rate_limit" id="edit_rate_limit" class="form-control" placeholder="10M/10M">
+                        <small class="text-muted">Format: tx-rate/rx-rate (contoh: 10M/10M)</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Shared Users</label>
+                        <input type="text" name="shared_users" id="edit_shared_users" class="form-control" placeholder="1">
+                        <small class="text-muted">Jumlah user yang bisa login bersamaan</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-warning"><i class="fa-solid fa-save me-1"></i>Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const modal = document.getElementById('editProfileModal');
+    modal.addEventListener('show.bs.modal', function (event) {
+        const btn = event.relatedTarget;
+        const id = btn.getAttribute('data-id');
+        const name = btn.getAttribute('data-name');
+        const rateLimit = btn.getAttribute('data-rate-limit');
+        const sharedUsers = btn.getAttribute('data-shared-users');
+
+        document.getElementById('edit_name').value = name;
+        document.getElementById('edit_rate_limit').value = rateLimit;
+        document.getElementById('edit_shared_users').value = sharedUsers;
+
+        const action = '{{ route("mikrotik.profiles.update", "__ID__") }}'.replace('__ID__', id);
+        document.getElementById('editProfileForm').action = action;
+    });
+});
+</script>
+@endpush
+
 @endsection

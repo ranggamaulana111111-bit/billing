@@ -41,14 +41,14 @@
 | Package | `PackageController.php` | 135 | Package | CRUD, Mass billing, Proteksi delete |
 | Invoice | `InvoiceController.php` | 269 | Invoice | CRUD, Filter, Print, PDF, WA/Email reminder |
 | Payment | `PaymentController.php` | 71 | Payment | CRUD, History, Auto-update invoice |
-| OLT | `OltController.php` | 650 | Olt, OltPort, Onu | CRUD OLT, Scan, Reboot, Monitoring, Map |
-| MikroTik | `MikrotikController.php` | — | MikrotikRouter | Dashboard, Hotspot, PPP, Queue, Monitoring |
-| Voucher | `VoucherController.php` | 355 | Voucher | Generate, Print, Push, Sync, Report |
+| OLT | `OltController.php` | 700 | Olt, OltPort, Onu | CRUD OLT, Scan, Reboot, Monitoring, Map |
+| MikroTik | `MikrotikController.php` | 690 | MikrotikRouter | Dashboard, Hotspot, PPP, Queue, Monitoring, Hotspot Users, PPPoE Profiles, Queue Update |
+| Voucher | `VoucherController.php` | 630 | Voucher | Generate, Print, Push, Sync, Report, Batch Print |
 | Distribution | `DistributionController.php` | 259 | Odc, Odp, OdcPort, OdpPort | CRUD, Map Interaktif, Port Grid |
 | Portal | `PortalController.php` | 110 | — | Cek Tagihan, Bayar Midtrans |
-| Voucher Template | `VoucherTemplateController.php` | 96 | VoucherTemplate | CRUD, Preview 6 halaman hotspot |
-| Voucher Profile | `VoucherProfileController.php` | 75 | VoucherProfile | CRUD, Proteksi delete |
-| Router | `MikrotikRouterController.php` | 92 | MikrotikRouter | CRUD, Test koneksi |
+| Voucher Template | `VoucherTemplateController.php` | 210 | VoucherTemplate | CRUD, Preview 6 halaman hotspot, templatePath() |
+| Voucher Profile | `VoucherProfileController.php` | 410 | VoucherProfile | CRUD, Sync/Delete/Update MikroTik langsung |
+| Router | `MikrotikRouterController.php` | 104 | MikrotikRouter | CRUD, Test koneksi, SSH port |
 | Isolir | `IsolirController.php` | — | — | Halaman publik redirect pelanggan isolir |
 | Setting | `SettingController.php` | 76 | Setting | Key-value store |
 | Report | `ReportController.php` | 70 | — | Revenue, Outstanding, Charts |

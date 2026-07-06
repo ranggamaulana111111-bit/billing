@@ -138,7 +138,54 @@ Flow:
 
 ---
 
-## 6. Scheduled Tasks
+## 6. MikroTik SSH Fallback Pattern
+
+Automatic fallback dari REST API ke SSH ketika REST API MikroTik tidak tersedia.
+
+### Arsitektur
+
+```
+MikrotikService (REST API utama)
+  ├── safeGet() → REST API → sukses? return data
+  │              → gagal?   → fallback ke SSH via MikrotikSshService
+  ├── Method Mapping (15+ endpoint)
+  │   ├── /system/resource       → getSystemResource()
+  │   ├── /system/health         → getSystemHealth()
+  │   ├── /interface             → getInterfaces()
+  │   ├── /ip/hotspot/user       → getHotspotUsers()
+  │   ├── /ppp/active            → getPppActive()
+  │   ├── /queue/simple          → getSimpleQueues()
+  │   └── /log                   → getLog()
+  └── initSsh() — auto-init jika router punya ssh_port
+
+MikrotikSshService (via phpseclib3\Net\SSH2)
+  ├── testConnection()
+  ├── getSystemResource(), getSystemIdentity(), getSystemHealth()
+  ├── getInterfaces(), getInterfaceTraffic(interface)
+  ├── getHotspotUsers(), getHotspotProfiles(), getHotspotServers()
+  ├── getActiveHotspotSessions()
+  ├── getPppActive(), getPppSecrets(), getPppProfiles()
+  ├── getSimpleQueues()
+  └── getLatency(), getLog(top)
+```
+
+### Flow
+
+```
+safeGet('/system/resource')
+  → SSH tersedia? → SSH::getSystemResource() → return
+  → REST API?    → client()->get() → sukses? return
+                 → gagal? → Log warning → return []
+```
+
+### Konfigurasi
+
+Field baru di `mikrotik_routers` table: `ssh_port` (default 22).
+Jika diisi, MikrotikService akan auto-init SSH dan menggunakannya sebagai fallback.
+
+---
+
+## 7. Scheduled Tasks
 
 | Command | Schedule | Fungsi |
 |---------|----------|--------|

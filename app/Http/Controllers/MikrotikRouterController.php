@@ -25,12 +25,16 @@ class MikrotikRouterController extends Controller
             'username' => 'required|string|max:255',
             'password' => 'nullable|string|max:255',
             'hotspot_server' => 'nullable|string|max:255',
-            'is_active' => 'boolean',
             'type' => 'required|in:pppoe,bandwidth,general',
+            'ssh_port' => 'nullable|integer|min:1|max:65535',
         ]);
 
         $validated['is_active'] = $request->has('is_active');
         $validated['password'] = $validated['password'] ?? '';
+
+        if (blank($validated['hotspot_server'] ?? null)) {
+            $validated['hotspot_server'] = 'all';
+        }
 
         MikrotikRouter::create($validated);
 
@@ -48,14 +52,18 @@ class MikrotikRouterController extends Controller
             'username' => 'required|string|max:255',
             'password' => 'nullable|string|max:255',
             'hotspot_server' => 'nullable|string|max:255',
-            'is_active' => 'boolean',
             'type' => 'required|in:pppoe,bandwidth,general',
+            'ssh_port' => 'nullable|integer|min:1|max:65535',
         ]);
 
         $validated['is_active'] = $request->has('is_active');
 
         if (blank($validated['password'])) {
             unset($validated['password']);
+        }
+
+        if (blank($validated['hotspot_server'] ?? null)) {
+            $validated['hotspot_server'] = 'all';
         }
 
         $mikrotikRouter->update($validated);

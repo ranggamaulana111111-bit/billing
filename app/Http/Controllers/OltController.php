@@ -444,8 +444,33 @@ class OltController extends Controller
             $q->with('oltPort.olt')->latest('last_seen_at');
         }])->get();
 
-        $customerSignals = $customers->map(function ($customer) {
+        $onusWithSignal = Onu::with('oltPort.olt', 'customer')
+            ->whereNotNull('rx_power')
+            ->latest('last_seen_at')
+            ->get()
+            ->groupBy(fn ($onu) => $onu->customer_id ?? 'onu_' . $onu->id);
+
+        $customerSignals = $customers->map(function ($customer) use ($onusWithSignal) {
             $onu = $customer->onus->first();
+
+            if ($onu?->rx_power === null && $onusWithSignal->has($customer->id)) {
+                $oltOnu = $onusWithSignal->get($customer->id)->first();
+                if ($oltOnu) {
+                    $onu = $oltOnu;
+                }
+            }
+
+            if ($onu?->rx_power === null && $customer->pppoe_username) {
+                foreach ($onusWithSignal as $groupId => $group) {
+                    foreach ($group as $maybe) {
+                        if ($maybe->caller_id && $customer->pppoe_username
+                            && str_contains($maybe->caller_id, $customer->pppoe_username)) {
+                            $onu = $maybe;
+                            break 2;
+                        }
+                    }
+                }
+            }
 
             return [
                 'customer' => $customer,
@@ -460,6 +485,35 @@ class OltController extends Controller
                 'oltPort' => $onu?->oltPort,
             ];
         })->sortBy([
+            fn ($a) => $a['rx_power'] ?? PHP_FLOAT_MAX,
+        ])->values();
+
+        $unlinkedOnus = Onu::with('oltPort.olt')
+            ->whereNotNull('rx_power')
+            ->whereNull('customer_id')
+            ->latest('last_seen_at')
+            ->get();
+
+        foreach ($unlinkedOnus as $onu) {
+            $customerSignals->push([
+                'customer' => (object) [
+                    'id' => null,
+                    'name' => 'Unlinked: ' . ($onu->serial_number ?: $onu->onu_id),
+                    'phone' => null,
+                ],
+                'onu' => $onu,
+                'rx_power' => $onu->rx_power,
+                'tx_power' => $onu->tx_power,
+                'status' => $onu->status ?? 'unknown',
+                'onu_id' => $onu->onu_id,
+                'serial' => $onu->serial_number,
+                'last_seen' => $onu->last_seen_at,
+                'olt' => $onu->oltPort?->olt,
+                'oltPort' => $onu->oltPort,
+            ]);
+        }
+
+        $customerSignals = $customerSignals->sortBy([
             fn ($a) => $a['rx_power'] ?? PHP_FLOAT_MAX,
         ])->values();
 

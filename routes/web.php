@@ -33,6 +33,26 @@ use App\Http\Controllers\VoucherTemplateController;
 use Illuminate\Support\Facades\Route;
 
 // ── HOTSPOT STATIC PAGES ──
+Route::match(['GET', 'POST'], '/hotspot/templates/{template}/{path?}', function (\App\Models\VoucherTemplate $template, string $path = '', \Illuminate\Http\Request $request) {
+    if ($request->isMethod('POST')) {
+        $loginUrl = url('hotspot/templates/' . $template->id . '/login.html');
+
+        $dst = $request->input('dst', $loginUrl);
+
+        return redirect($dst . (str_contains($dst, '?') ? '&' : '?') . 'error=login-failed');
+    }
+
+    $filePath = $template->templatePath() . DIRECTORY_SEPARATOR . ltrim($path, '/\\');
+
+    if (str_contains($path, '..') || ! file_exists($filePath) || is_dir($filePath)) {
+        abort(404);
+    }
+
+    $mime = mime_content_type($filePath) ?: 'application/octet-stream';
+
+    return response()->file($filePath, ['Content-Type' => $mime]);
+})->where('path', '.*');
+
 Route::get('/hotspot/{page}', function (string $page) {
     $path = public_path("hotspot/$page");
     if (! str_contains($page, '..') && file_exists($path)) {
@@ -55,7 +75,9 @@ Route::get('/auth/{provider}/redirect', [SocialiteController::class, 'redirect']
 Route::get('/auth/{provider}/callback', [SocialiteController::class, 'callback'])->name('auth.callback');
 
 Route::get('/', function () {
-    return view('welcome');
+    $packages = \App\Models\Package::where('is_active', true)->orderBy('price')->get();
+
+    return view('welcome', compact('packages'));
 });
 
 // ── MIDTRANS (auth required for pay & finish, not for notification) ──
@@ -111,11 +133,17 @@ Route::middleware(['auth', 'teknisi'])->group(function () {
 
     Route::get('/mikrotik', [MikrotikController::class, 'dashboard'])->name('mikrotik.dashboard');
     Route::get('/mikrotik/profiles', [MikrotikController::class, 'profiles'])->name('mikrotik.profiles');
+    Route::post('/mikrotik/profiles/sync', [MikrotikController::class, 'syncProfiles'])->name('mikrotik.profiles.sync');
     Route::get('/mikrotik/active', [MikrotikController::class, 'activeSessions'])->name('mikrotik.active');
     Route::post('/mikrotik/active/disconnect/{sessionId}', [MikrotikController::class, 'disconnectHotspot'])->name('mikrotik.active.disconnect');
     Route::post('/mikrotik/active/ppp-disconnect/{sessionId}', [MikrotikController::class, 'disconnectPpp'])->name('mikrotik.active.ppp-disconnect');
     Route::get('/mikrotik/ppp', [MikrotikController::class, 'pppSecrets'])->name('mikrotik.ppp');
     Route::get('/mikrotik/queues', [MikrotikController::class, 'queues'])->name('mikrotik.queues');
+    Route::post('/mikrotik/queues/sync', [MikrotikController::class, 'syncQueue'])->name('mikrotik.queues.sync');
+    Route::get('/mikrotik/ppp-profiles', [MikrotikController::class, 'pppProfiles'])->name('mikrotik.ppp-profiles');
+    Route::post('/mikrotik/ppp-profiles/sync', [MikrotikController::class, 'syncPppProfiles'])->name('mikrotik.ppp-profiles.sync');
+    Route::get('/mikrotik/hotspot-users', [MikrotikController::class, 'hotspotUsers'])->name('mikrotik.hotspot-users');
+    Route::post('/mikrotik/hotspot-users/sync', [MikrotikController::class, 'syncHotspotUsers'])->name('mikrotik.hotspot-users.sync');
     Route::get('/monitoring', [MikrotikController::class, 'monitoring'])->name('monitoring.index');
 
     Route::get('/logs', [LogController::class, 'index'])->name('logs.index');
@@ -177,19 +205,28 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
 
     Route::post('/mikrotik/profiles', [MikrotikController::class, 'storeProfile'])->name('mikrotik.profiles.store');
+    Route::put('/mikrotik/profiles/{profileId}', [MikrotikController::class, 'updateProfile'])->name('mikrotik.profiles.update');
     Route::delete('/mikrotik/profiles/{profileId}', [MikrotikController::class, 'destroyProfile'])->name('mikrotik.profiles.destroy');
     Route::post('/mikrotik/ppp', [MikrotikController::class, 'storePppSecret'])->name('mikrotik.ppp.store');
     Route::delete('/mikrotik/ppp/{secretId}', [MikrotikController::class, 'destroyPppSecret'])->name('mikrotik.ppp.destroy');
     Route::post('/mikrotik/queues', [MikrotikController::class, 'storeQueue'])->name('mikrotik.queues.store');
+    Route::put('/mikrotik/queues/{queueId}', [MikrotikController::class, 'updateQueue'])->name('mikrotik.queues.update');
     Route::delete('/mikrotik/queues/{queueId}', [MikrotikController::class, 'destroyQueue'])->name('mikrotik.queues.destroy');
+    Route::post('/mikrotik/ppp-profiles', [MikrotikController::class, 'storePppProfile'])->name('mikrotik.ppp-profiles.store');
+    Route::put('/mikrotik/ppp-profiles/{profileId}', [MikrotikController::class, 'updatePppProfile'])->name('mikrotik.ppp-profiles.update');
+    Route::delete('/mikrotik/ppp-profiles/{profileId}', [MikrotikController::class, 'destroyPppProfile'])->name('mikrotik.ppp-profiles.destroy');
+    Route::post('/mikrotik/hotspot-users', [MikrotikController::class, 'storeHotspotUser'])->name('mikrotik.hotspot-users.store');
+    Route::put('/mikrotik/hotspot-users/{userId}', [MikrotikController::class, 'updateHotspotUser'])->name('mikrotik.hotspot-users.update');
+    Route::delete('/mikrotik/hotspot-users/{userId}', [MikrotikController::class, 'destroyHotspotUser'])->name('mikrotik.hotspot-users.destroy');
     Route::post('/mikrotik/backup', [MikrotikController::class, 'backup'])->name('mikrotik.backup');
     Route::get('/mikrotik/live', [MikrotikController::class, 'liveData'])->name('mikrotik.live');
 
-    // ── VOUCHER PROFILES ──
+    // ── VOUCHER PROFILES (MikroTik) ──
     Route::get('/voucher-profiles', [VoucherProfileController::class, 'index'])->name('voucher-profiles.index');
     Route::post('/voucher-profiles', [VoucherProfileController::class, 'store'])->name('voucher-profiles.store');
-    Route::put('/voucher-profiles/{voucherProfile}', [VoucherProfileController::class, 'update'])->name('voucher-profiles.update');
-    Route::delete('/voucher-profiles/{voucherProfile}', [VoucherProfileController::class, 'destroy'])->name('voucher-profiles.destroy');
+    Route::post('/voucher-profiles/sync-mikrotik', [VoucherProfileController::class, 'syncMikrotik'])->name('voucher-profiles.sync-mikrotik');
+    Route::post('/voucher-profiles/delete-mikrotik/{profileId}', [VoucherProfileController::class, 'destroyMikrotik'])->name('voucher-profiles.destroy-mikrotik');
+    Route::post('/voucher-profiles/update-mikrotik/{profileId}', [VoucherProfileController::class, 'updateMikrotik'])->name('voucher-profiles.update-mikrotik');
 
     // ── MIKROTIK ROUTERS ──
     Route::get('/mikrotik-routers', [MikrotikRouterController::class, 'index'])->name('mikrotik-routers.index');

@@ -32,7 +32,7 @@
     <div class="header">
         <div class="brand">
             @if(!empty($settings['company_logo']))
-                <img src="{{ storage_path('app/public/' . $settings['company_logo']) }}" alt="Logo" style="height:36px;width:auto;border-radius:6px;margin-bottom:6px;"><br>
+                <img src="{{ storage_path('app/public/' . $settings['company_logo']) }}" alt="Logo" style="height:76px;width:auto;border-radius:30px;margin-bottom:8px;"><br>
             @endif
             <h1>{{ $settings['company_name'] ?? 'ALKONEK' }}</h1>
             <small>{{ $settings['company_address'] ?? '' }}</small><br>

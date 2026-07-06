@@ -10,7 +10,7 @@ class MikrotikRouter extends Model
     use BelongsToTenant;
 
     protected $fillable = [
-        'tenant_id', 'name', 'host', 'port', 'username',
+        'tenant_id', 'name', 'host', 'port', 'ssh_port', 'username',
         'password', 'hotspot_server', 'is_active', 'type',
     ];
 
@@ -18,6 +18,7 @@ class MikrotikRouter extends Model
     {
         return [
             'is_active' => 'boolean',
+            'ssh_port' => 'integer',
         ];
     }
 

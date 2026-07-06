@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\MikrotikRouter;
 use App\Models\Setting;
+use App\Services\MikrotikSshService;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -20,6 +21,8 @@ class MikrotikService
 
     protected ?string $hotspotServer;
 
+    protected ?MikrotikSshService $ssh = null;
+
     public function __construct(MikrotikRouter|int|null $router = null)
     {
         if ($router instanceof MikrotikRouter) {
@@ -28,6 +31,9 @@ class MikrotikService
             $this->pass = $router->password;
             $this->port = (int) $router->port;
             $this->hotspotServer = $router->hotspot_server;
+            if ($router->ssh_port) {
+                $this->initSsh($router);
+            }
         } elseif ($router !== null) {
             $router = MikrotikRouter::find($router);
             if ($router) {
@@ -36,6 +42,9 @@ class MikrotikService
                 $this->pass = $router->password;
                 $this->port = (int) $router->port;
                 $this->hotspotServer = $router->hotspot_server;
+                if ($router->ssh_port) {
+                    $this->initSsh($router);
+                }
             }
         } else {
             $router = MikrotikRouter::where('is_active', true)
@@ -59,7 +68,7 @@ class MikrotikService
 
     public function isConfigured(): bool
     {
-        return $this->host && $this->user && $this->pass;
+        return $this->host && $this->user;
     }
 
     protected function client(): PendingRequest
@@ -77,8 +86,26 @@ class MikrotikService
         return "{$scheme}://{$this->host}:{$this->port}/rest{$path}";
     }
 
+    protected function initSsh(MikrotikRouter $router): void
+    {
+        try {
+            $this->ssh = new MikrotikSshService($router);
+        } catch (\Exception $e) {
+            Log::warning('SSH init gagal: '.$e->getMessage());
+        }
+    }
+
     protected function safeGet(string $path, array $query = []): array
     {
+        if ($this->ssh) {
+            try {
+                return $this->sshSafeGet($path, $query);
+            } catch (\Exception $e) {
+                Log::error("SSH GET {$path} gagal: ".$e->getMessage());
+                return [];
+            }
+        }
+
         try {
             return $this->client()->get($this->restUrl($path), $query)->json();
         } catch (\Exception $e) {
@@ -88,10 +115,61 @@ class MikrotikService
         }
     }
 
+    protected function sshSafeGet(string $path, array $query): array
+    {
+        // Special case: interface monitor-traffic
+        if ($path === '/interface/monitor-traffic' && isset($query['interface'])) {
+            return $this->ssh->getInterfaceTraffic($query['interface']);
+        }
+
+        // /system/identity: REST returns [{...}], SSH returns {...} — wrap for compatibility
+        if ($path === '/system/identity') {
+            $id = $this->ssh->getSystemIdentity();
+            return [$id];
+        }
+
+        $map = [
+            '/system/resource' => 'getSystemResource',
+            '/system/health' => 'getSystemHealth',
+            '/interface' => 'getInterfaces',
+            '/ip/hotspot/active' => 'getActiveHotspotSessions',
+            '/ip/hotspot/user' => 'getHotspotUsers',
+            '/ip/hotspot' => 'getHotspotServers',
+            '/ip/hotspot/user/profile' => 'getHotspotProfiles',
+            '/ppp/active' => 'getPppActive',
+            '/ppp/secret' => 'getPppSecrets',
+            '/ppp/profile' => 'getPppProfiles',
+            '/queue/simple' => 'getSimpleQueues',
+        ];
+
+        $method = $map[$path] ?? null;
+
+        if ($method && method_exists($this->ssh, $method)) {
+            return $this->ssh->$method();
+        }
+
+        if ($path === '/log') {
+            return $this->ssh->getLog($query['.top'] ?? 50);
+        }
+
+        throw new \Exception("SSH fallback not available for {$path}");
+    }
+
     // ── SISTEM ──
 
     public function testConnection(): array
     {
+        if ($this->ssh) {
+            try {
+                return $this->ssh->testConnection();
+            } catch (\Exception $e) {
+                return [
+                    'success' => false,
+                    'message' => 'Gagal SSH: '.$e->getMessage(),
+                ];
+            }
+        }
+
         try {
             $res = $this->client()->get($this->restUrl('/system/resource'))->json();
 
@@ -141,7 +219,7 @@ class MikrotikService
 
     // ── HOTSPOT ──
 
-    public function addHotspotUser(string $username, string $password, ?string $server = null, ?int $limitUptimeHours = null): array
+    public function addHotspotUser(string $username, string $password, ?string $server = null, ?int $limitUptimeHours = null, ?string $profile = null): array
     {
         $server = $server ?: $this->hotspotServer ?: Setting::get('mikrotik_hotspot_server', 'all');
 
@@ -154,6 +232,10 @@ class MikrotikService
 
             if ($limitUptimeHours) {
                 $data['limit-uptime'] = "{$limitUptimeHours}h";
+            }
+
+            if ($profile) {
+                $data['profile'] = $profile;
             }
 
             $this->client()->put($this->restUrl('/ip/hotspot/user'), $data);
@@ -186,6 +268,28 @@ class MikrotikService
         }
     }
 
+    public function removeHotspotUserById(string $userId): array
+    {
+        try {
+            $this->client()->delete($this->restUrl("/ip/hotspot/user/{$userId}"));
+
+            return ['success' => true, 'message' => 'User berhasil dihapus dari MikroTik'];
+        } catch (\Exception $e) {
+            return ['success' => false, 'message' => $e->getMessage()];
+        }
+    }
+
+    public function updateHotspotUser(string $userId, array $params): array
+    {
+        try {
+            $this->client()->patch($this->restUrl("/ip/hotspot/user/{$userId}"), $params);
+
+            return ['success' => true, 'message' => 'User berhasil diperbarui'];
+        } catch (\Exception $e) {
+            return ['success' => false, 'message' => $e->getMessage()];
+        }
+    }
+
     public function getHotspotUsers(): array
     {
         return $this->safeGet('/ip/hotspot/user');
@@ -206,6 +310,11 @@ class MikrotikService
     public function getActiveHotspotSessions(): array
     {
         return $this->safeGet('/ip/hotspot/active');
+    }
+
+    public function getHotspotServers(): array
+    {
+        return $this->safeGet('/ip/hotspot');
     }
 
     public function disconnectHotspotSession(string $sessionId): array
@@ -244,6 +353,17 @@ class MikrotikService
             $this->client()->delete($this->restUrl("/ip/hotspot/user/profile/{$profileId}"));
 
             return ['success' => true, 'message' => 'Profile berhasil dihapus'];
+        } catch (\Exception $e) {
+            return ['success' => false, 'message' => $e->getMessage()];
+        }
+    }
+
+    public function updateHotspotProfile(string $profileId, array $params): array
+    {
+        try {
+            $this->client()->patch($this->restUrl("/ip/hotspot/user/profile/{$profileId}"), $params);
+
+            return ['success' => true, 'message' => 'Profile berhasil diperbarui'];
         } catch (\Exception $e) {
             return ['success' => false, 'message' => $e->getMessage()];
         }
@@ -448,6 +568,17 @@ class MikrotikService
         }
     }
 
+    public function updateProfileById(string $profileId, array $params): array
+    {
+        try {
+            $this->client()->patch($this->restUrl("/ppp/profile/{$profileId}"), $params);
+
+            return ['success' => true, 'message' => 'PPP profile updated'];
+        } catch (\Exception $e) {
+            return ['success' => false, 'message' => $e->getMessage()];
+        }
+    }
+
     public function updateProfile(string $name, array $params): array
     {
         try {
@@ -464,6 +595,17 @@ class MikrotikService
             $this->client()->patch($this->restUrl("/ppp/profile/{$id}"), $params);
 
             return ['success' => true, 'message' => "Profile {$name} updated"];
+        } catch (\Exception $e) {
+            return ['success' => false, 'message' => $e->getMessage()];
+        }
+    }
+
+    public function removePppProfile(string $profileId): array
+    {
+        try {
+            $this->client()->delete($this->restUrl("/ppp/profile/{$profileId}"));
+
+            return ['success' => true, 'message' => 'PPP profile berhasil dihapus'];
         } catch (\Exception $e) {
             return ['success' => false, 'message' => $e->getMessage()];
         }
@@ -728,17 +870,41 @@ class MikrotikService
         return $this->safeGet('/queue/simple');
     }
 
-    public function addSimpleQueue(string $name, string $target, string $maxLimit, string $parent = 'all'): array
+    public function addSimpleQueue(string $name, string $maxLimit, string $target = ''): array
     {
         try {
-            $this->client()->put($this->restUrl('/queue/simple'), [
+            $data = [
                 'name' => $name,
-                'target' => $target,
                 'max-limit' => $maxLimit,
-                'parent' => $parent,
-            ]);
+            ];
+
+            if ($target) {
+                $data['target'] = $target;
+            }
+
+            $this->client()->put($this->restUrl('/queue/simple'), $data);
 
             return ['success' => true, 'message' => "Queue {$name} ditambahkan"];
+        } catch (\Exception $e) {
+            return ['success' => false, 'message' => $e->getMessage()];
+        }
+    }
+
+    public function updateSimpleQueue(string $queueId, string $name, string $maxLimit, string $target = ''): array
+    {
+        try {
+            $data = [
+                'name' => $name,
+                'max-limit' => $maxLimit,
+            ];
+
+            if ($target) {
+                $data['target'] = $target;
+            }
+
+            $this->client()->patch($this->restUrl("/queue/simple/{$queueId}"), $data);
+
+            return ['success' => true, 'message' => "Queue {$name} diperbarui"];
         } catch (\Exception $e) {
             return ['success' => false, 'message' => $e->getMessage()];
         }
@@ -774,6 +940,14 @@ class MikrotikService
     {
         if (! $this->isConfigured()) {
             return null;
+        }
+
+        if ($this->ssh) {
+            try {
+                return $this->ssh->getLatency();
+            } catch (\Exception $e) {
+                return null;
+            }
         }
 
         try {

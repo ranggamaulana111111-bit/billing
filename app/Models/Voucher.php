@@ -14,6 +14,7 @@ class Voucher extends Model
     protected $fillable = [
         'tenant_id', 'voucher_profile_id', 'voucher_template_id', 'username', 'password', 'duration_hours',
         'price', 'prefix', 'speed', 'quota_limit', 'validity_days', 'shared_users',
+        'description', 'hotspot_server',
         'printed_count', 'downloaded', 'uploaded', 'total_traffic',
         'ip_address', 'mac_address', 'last_login_at', 'router_id',
         'status', 'used_at', 'expires_at',
@@ -46,28 +47,36 @@ class Voucher extends Model
 
     public static function generate(int $durationHours, int $count = 1, ?array $extra = null): array
     {
-        $usernameLen = (int) (Setting::get('voucher_username_length') ?: 8);
-        $passwordLen = (int) (Setting::get('voucher_password_length') ?: 6);
+        $usernameLen = (int) ($extra['name_length'] ?? Setting::get('voucher_username_length') ?: 8);
+        $passwordLen = (int) ($extra['password_length'] ?? Setting::get('voucher_password_length') ?: 6);
         $prefix = $extra['prefix'] ?? '';
+        $useNumeric = ($extra['character_type'] ?? 'random') === 'numeric';
+        $passwordSameAsUsername = $extra['password_same_as_username'] ?? false;
 
         $vouchers = [];
 
         for ($i = 0; $i < $count; $i++) {
-            $raw = strtoupper(Str::random($usernameLen));
+            $raw = $useNumeric
+                ? substr(str_shuffle('123456789'), 0, $usernameLen)
+                : strtoupper(Str::random($usernameLen));
             $username = $prefix ? $prefix.$raw : $raw;
             while (static::where('username', $username)->exists()) {
-                $raw = strtoupper(Str::random($usernameLen));
+                $raw = $useNumeric
+                    ? substr(str_shuffle('123456789'), 0, $usernameLen)
+                    : strtoupper(Str::random($usernameLen));
                 $username = $prefix ? $prefix.$raw : $raw;
             }
 
-            $password = $extra['password'] ?? Str::random($passwordLen);
+            $password = $passwordSameAsUsername
+                ? $username
+                : ($extra['password'] ?? Str::random($passwordLen));
 
             $data = [
                 'username' => $username,
                 'password' => $password,
                 'duration_hours' => $durationHours,
                 'status' => 'active',
-                'expires_at' => now()->addHours($durationHours),
+                'expires_at' => null, // diisi saat pertama dipakai
                 'printed_count' => 0,
                 'downloaded' => 0,
                 'uploaded' => 0,
@@ -86,6 +95,8 @@ class Voucher extends Model
                 $data['shared_users'] = $extra['shared_users'] ?? 1;
                 $data['router_id'] = $extra['router_id'] ?? null;
                 $data['voucher_template_id'] = $extra['voucher_template_id'] ?? null;
+                $data['description'] = $extra['description'] ?? null;
+                $data['hotspot_server'] = $extra['hotspot_server'] ?? null;
             }
 
             $vouchers[] = static::create($data);

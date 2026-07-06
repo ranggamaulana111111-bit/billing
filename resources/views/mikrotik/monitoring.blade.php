@@ -177,7 +177,8 @@
     }
 
     function fetchLive() {
-        fetch('{{ route("mikrotik.live") }}')
+        var qs = window.location.search;
+        fetch('{{ route("mikrotik.live") }}' + qs)
             .then(r => r.json())
             .then(d => {
                 $('#stat-ping').textContent = d.ping !== null ? d.ping + ' ms' : '-';

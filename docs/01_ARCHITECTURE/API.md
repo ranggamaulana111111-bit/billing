@@ -12,6 +12,12 @@
 | GET | `/api/v1/odc/{odc}/ports` | `PortController@odcPorts` | Data realtime port ODC |
 | POST | `/api/v1/mikrotik/hotspot-login` | `MikrotikHotspotController@hotspotLogin` | Callback voucher login dari MikroTik hotspot |
 
+### Public Routes (no auth)
+
+| Method | Endpoint | Fungsi |
+|--------|----------|--------|
+| GET/POST | `/hotspot/templates/{template}/{path?}` | Serve file hotspot template (MikroTik hotspot pages) |
+
 ### Internal AJAX API (via `routes/web.php`)
 
 | Method | Endpoint | Controller | Fungsi |
@@ -19,7 +25,7 @@
 | GET | `/api/odp-routes` | `OdpruteController@routes` | Data route untuk Leaflet map |
 | GET | `/api/odp-points` | `OdpruteController@points` | Data point untuk Leaflet map |
 | GET | `/olts/{olt}/live` | `OltController@live` | Live data OLT |
-| GET | `/mikrotik/live` | `MikrotikController@live` | Live data MikroTik |
+| GET | `/mikrotik/live` | `MikrotikController@liveData` | Live data MikroTik |
 
 ---
 

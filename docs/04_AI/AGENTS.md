@@ -1,10 +1,10 @@
-# AGENTS.md — e-billing (RabegNet ISP Billing System v1.1)
+# AGENTS.md — e-billing (RabegNet ISP Billing System v1.2)
 
 ## Stack
 
 - **Framework:** Laravel 12 (PHP ^8.2)
 - **Database:** MySQL via Laragon (local `.env` uses `DB_CONNECTION=mysql`), Aiven MySQL (Vercel prod)
-- **Frontend:** Bootstrap 5.3 + custom CSS (~1570 baris `resources/css/app.css`) + Tailwind CSS v4 (import saja, tidak aktif) + Vite via `laravel-vite-plugin`
+- **Frontend:** Bootstrap 5.3 + custom CSS (~2064 baris `resources/css/app.css`) + Tailwind CSS v4 (import saja, tidak aktif) + Vite via `laravel-vite-plugin`
 - **CSS Framework Utama:** **Bootstrap 5.3** (bukan Tailwind) — custom design system dengan CSS custom properties, gradient, glassmorphism. Tailwind di-import tapi tidak digunakan.
 - **Asset JS:** Chart.js (via NPM + Vite), Leaflet 1.9.4 + MarkerCluster, Alpine.js, Bootstrap JS
 - **QR Code:** `simplesoftwareio/simple-qrcode` v4.2 (inline SVG, no external API)
@@ -16,10 +16,12 @@
 ## PHP CLI note
 
 PHP CLI default (`php`) = 8.1.10 (tidak cukup untuk Laravel 12).
-Gunakan path lengkap ke Laragon's PHP 8.2:
+Gunakan path lengkap ke Laragon's PHP 8.3:
 ```
-C:\laragon\bin\php\php-8.2.31-Win32-vs16-x64\php.exe artisan {command}
+C:\laragon\bin\php\php-8.3.31-Win32-vs16-x64 (1)\php.exe artisan {command}
 ```
+
+> **Catatan:** Folder PHP 8.3 di Laragon Anda bernama `php-8.3.31-Win32-vs16-x64 (1)` — gunakan path tersebut.
 
 ## Commands
 
@@ -32,8 +34,8 @@ C:\laragon\bin\php\php-8.2.31-Win32-vs16-x64\php.exe artisan {command}
 | `npm run dev` | `vite` (dev server) |
 | `./vendor/bin/pint` | Auto-format code (default Laravel rules) |
 | `php artisan migrate` | Run pending migrations |
-| **Test via CLI** | `C:\laragon\bin\php\php-8.2.31-Win32-vs16-x64\php.exe vendor/bin/phpunit` |
-| **Artisan via CLI** | `C:\laragon\bin\php\php-8.2.31-Win32-vs16-x64\php.exe artisan {command}` |
+| **Test via CLI** | `C:\laragon\bin\php\php-8.3.31-Win32-vs16-x64 (1)\php.exe vendor/bin/phpunit` |
+| **Artisan via CLI** | `C:\laragon\bin\php\php-8.3.31-Win32-vs16-x64 (1)\php.exe artisan {command}` |
 
 ## Artisan Commands
 
@@ -60,7 +62,7 @@ C:\laragon\bin\php\php-8.2.31-Win32-vs16-x64\php.exe artisan {command}
 
 ## Architecture
 
-**RabegNet** adalah sistem billing ISP lengkap dengan ~80 file PHP di `app/`, 46 migrations, 28 tabel database, dan ~151 route.
+**RabegNet** adalah sistem billing ISP lengkap dengan ~85 file PHP di `app/`, 54 migrations, 28 tabel database, dan ~170 route.
 
 ### Multi-Tenancy
 - **`BelongsToTenant` trait** (bukan `BelongsToUser`) — global scope `tenant_id` pada semua model utama
@@ -71,6 +73,7 @@ C:\laragon\bin\php\php-8.2.31-Win32-vs16-x64\php.exe artisan {command}
 - Monolithic dengan Controller → Service → Model
 - **Driver Pattern** untuk OLT multi-brand (Huawei, ZTE, FiberHome, C-Data)
 - Decorator Pattern untuk Jump Host SSH tunnel & MikroTik SSH Proxy
+- **SSH Fallback Pattern** — `MikrotikService` auto-fallback dari REST API ke SSH (`phpseclib3`) jika REST gagal
 - Event-driven API untuk sinkronasi voucher MikroTik (`POST /api/v1/mikrotik/hotspot-login`)
 - Isolir subsystem: auto-suspend + firewall integration MikroTik
 
@@ -110,14 +113,14 @@ app/
 ├── Jobs/                   # PollOltJob, SendWhatsAppNotification
 ├── Mail/                   # InvoiceReminder, PaymentConfirmation
 ├── Models/                 # 19 models + 2 traits (BelongsToTenant, BelongsToUser legacy)
-└── Services/               # MidtransService, MikrotikService, Olt/ (drivers, factory, SSH tunnel)
+└── Services/               # MidtransService, MikrotikService, MikrotikSshService, Olt/ (drivers, factory, SSH tunnel)
 database/
-├── migrations/             # 46 files (28 tables)
+├── migrations/             # 54 files (28 tables)
 ├── factories/              # 5 factories
 └── seeders/                # 5 seeders (DatabaseSeeder, BillingSeeder, SettingSeeder, dll)
-resources/views/            # 58 blade files + 1 orphan backup
+resources/views/            # 62 blade files + hotspot templates
 routes/
-├── web.php                 # ~148 routes
+├── web.php                 # ~170 routes
 ├── api.php                 # POST /api/v1/mikrotik/hotspot-login
 └── console.php             # 5 scheduled commands
 ```

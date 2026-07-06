@@ -2,28 +2,44 @@
 
 ---
 
-## v1.1 (Current)
+## v1.2 (Current)
 
-**Tanggal:** 2026-06-30
+**Tanggal:** 2026-07-07
 
 ### Added
-- Realtime port status (polling 15 detik) di halaman ODP & ODC detail
-- API endpoint `GET /api/v1/odp/{odp}/ports` untuk data realtime port ODP
-- API endpoint `GET /api/v1/odc/{odc}/ports` untuk data realtime port ODC
-- Toggle layer Satelit/Street di semua peta Leaflet
-- Esri World Imagery sebagai default tile layer
-- Dokumentasi DESCRIPTION.md lengkap (18 seksi)
-- Dokumentasi PRD.md lengkap (12 seksi)
-- Struktur folder `docs/` terorganisir
+- **SSH fallback** untuk koneksi MikroTik — auto-switch dari REST API ke SSH via `phpseclib3` jika REST gagal
+- **MikrotikSshService** — service baru untuk koneksi SSH langsung ke MikroTik, 18 method mapping
+- **Hotspot Users management** — halaman CRUD + sync user hotspot dari MikroTik
+- **PPPoE Profiles management** — halaman CRUD + sync PPP profile dari MikroTik
+- **Queue management** — update & sync queue simple queue MikroTik
+- **Hotspot Profiles update** — update profile hotspot via UI
+- **Voucher improvement:**
+  - Username numeric-only option
+  - Password same-as-username option
+  - Custom name/password length per generate
+  - `description` & `hotspot_server` field pada voucher
+  - `expires_at` diisi saat pertama dipakai (bukan saat generate)
+- **Voucher Profile sync** — sync/delete/update profile langsung ke MikroTik
+- **Hotspot template serving** — route publik `GET /hotspot/templates/{template}/{path}` untuk serve file hotspot template
+- **Welcome page** — menampilkan daftar paket aktif dari database
+- **Migrations baru:**
+  - `bandwidth_profiles` table
+  - `ssh_port` field di `mikrotik_routers`
+  - `description` & `hotspot_server` field di `vouchers`
+  - Fields tambahan di `voucher_profiles`
 
 ### Changed
-- Tile layer peta dari OpenStreetMap ke Esri Satellite (bisa toggle)
-- ODP show: menampilkan info customer (nama + package) di setiap port
-- ODP show: menampilkan port ODC tujuan di jalur distribusi
-- ODC show: menampilkan jumlah pelanggan per port ODC
+- `MikrotikService::safeGet()` — auto-fallback ke SSH jika REST gagal, dengan method mapping 15+ endpoint
+- `Voucher::generate()` — lebih fleksibel: opsi numeric, password same-as-username, custom length
+- `VoucherProfileController` — dari CRUD lokal jadi sync langsung ke MikroTik
+- `MikrotikController` — 690 baris (dari 298), +12 method baru (hotspot users, ppp profiles, queue update, dll)
+- `resources/css/app.css` — bertambah 494 baris (styling baru)
+- `settings/index.blade.php` — redesign besar (731 baris)
+- Voucher views redesign — create, index, print-batch dirombak total
+- Hotspot HTML pages — login, error, status, redirect, logout di-refactor
 
 ### Security
-- Catatan keamanan didokumentasikan di DESCRIPTION.md
+- Proteksi path traversal pada route `hotspot/templates/{template}/{path}`
 
 ---
 
