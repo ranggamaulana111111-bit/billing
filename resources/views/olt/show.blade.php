@@ -1,14 +1,11 @@
 @extends('layouts.app')
-
 @section('title', $olt->name)
-
 @push('styles')
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <style>
     #map-show { height: 220px; border-radius: 12px; z-index: 0; }
 </style>
 @endpush
-
 @section('content')
 <div class="page-header d-flex flex-wrap justify-content-between align-items-center">
     <div>
@@ -51,14 +48,12 @@
         </a>
     </div>
 </div>
-
 @if(session('success'))
     <div class="alert alert-custom alert-success mb-4">{{ session('success') }}</div>
 @endif
 @if(session('error'))
     <div class="alert alert-custom alert-danger mb-4">{{ session('error') }}</div>
 @endif
-
 <div class="row g-4 mb-4">
     <div class="col-md-3 fade-in" style="animation-delay:0s">
         <div class="card shadow-sm border-0">
@@ -96,7 +91,6 @@
         </div>
     </div>
 </div>
-
 {{-- MINI MAP --}}
 @if($olt->latitude && $olt->longitude)
 <div class="card shadow-sm border-0 mb-4">
@@ -113,7 +107,6 @@
     </div>
 </div>
 @endif
-
 {{-- PORTS --}}
 @forelse($olt->ports as $port)
     <div class="card mb-3">
@@ -130,9 +123,8 @@
             <span class="text-muted small" id="onu-count-{{ $port->id }}">{{ $port->onus->count() }} ONU</span>
         </div>
         @if($port->onus->isNotEmpty())
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead>
+            <div class="mon-table-wrap">
+<table class="table table-hover align-middle mb-0 mon-table">
                         <tr>
                             <th>ONU ID</th>
                             <th>Serial Number</th>
@@ -143,7 +135,7 @@
                             <th>Pelanggan</th>
                             <th class="text-end">Aksi</th>
                         </tr>
-                    </thead>
+
                     <tbody id="onu-tbody-{{ $port->id }}">
                         @foreach($port->onus as $onu)
                             <tr>
@@ -239,7 +231,6 @@
         </div>
     </div>
 </div>
-
 <script>
 let portIndex = 1;
 function addPortRow() {
@@ -262,9 +253,7 @@ function addPortRow() {
     portIndex++;
 }
 </script>
-
 @endsection
-
 @push('scripts')
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
@@ -273,20 +262,17 @@ function addPortRow() {
 <script>
 (function() {
     const $ = (sel, ctx) => (ctx || document).querySelector(sel);
-
     var csrfToken = '{{ csrf_token() }}';
     var oltId = {{ $olt->id }};
     var consecutiveErrors = 0;
     var polling = false;
     var errorBadge = null;
-
     function esc(s) {
         if (s == null || s === '') return '-';
         var d = document.createElement('div');
         d.textContent = s;
         return d.innerHTML;
     }
-
     function showError(show) {
         if (!errorBadge) {
             var p = $('#live-badge');
@@ -299,11 +285,9 @@ function addPortRow() {
         }
         errorBadge.classList.toggle('d-none', !show);
     }
-
     function fetchLive() {
         if (polling) return;
         polling = true;
-
         fetch('{{ route("olt.live", $olt) }}')
             .then(r => {
                 if (!r.ok) throw new Error('HTTP ' + r.status);
@@ -312,18 +296,15 @@ function addPortRow() {
             .then(d => {
                 consecutiveErrors = 0;
                 showError(false);
-
                 var pingEl = $('#olt-ping');
                 if (pingEl) pingEl.textContent = d.ping !== null ? d.ping + ' ms' : '-';
                 var totalOnuEl = $('#olt-total-onu');
                 if (totalOnuEl) totalOnuEl.textContent = d.total_onus;
                 var onlineOnuEl = $('#olt-online-onu');
                 if (onlineOnuEl) onlineOnuEl.textContent = d.online_onus;
-
                 d.ports.forEach(function(p) {
                     var tbody = $('#onu-tbody-' + p.id);
                     if (!tbody) return;
-
                     if (p.onus.length) {
                         tbody.innerHTML = p.onus.map(function(o) {
                             var statusBadge = o.status === 'online'
@@ -336,7 +317,6 @@ function addPortRow() {
                                 ? '<a href="{{ route("customers.index") }}?search=' + encodeURIComponent(o.customer_name) + '" class="text-decoration-none">' + esc(o.customer_name) + '</a>'
                                 : '<span class="text-muted">Belum ditautkan</span>';
                             var csrfInput = '<input type="hidden" name="_token" value="' + csrfToken + '">';
-
                             return '<tr>' +
                                 '<td><code>' + esc(o.onu_id) + '</code></td>' +
                                 '<td><code>' + esc(o.serial_number || '-') + '</code></td>' +
@@ -354,11 +334,9 @@ function addPortRow() {
                     } else {
                         tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-3">Tidak ada ONU di port ini.</td></tr>';
                     }
-
                     var countEl = $('#onu-count-' + p.id);
                     if (countEl) countEl.textContent = p.onus.length + ' ONU';
                 });
-
                 polling = false;
                 scheduleNext();
             })
@@ -369,14 +347,12 @@ function addPortRow() {
                 scheduleNext();
             });
     }
-
     function scheduleNext() {
         var delay = consecutiveErrors > 0
             ? Math.min(5000 * Math.pow(2, consecutiveErrors), 30000)
             : 5000;
         setTimeout(fetchLive, delay);
     }
-
     // Initial load after 1s
     setTimeout(fetchLive, 1000);
 })();
@@ -386,7 +362,6 @@ function addPortRow() {
 document.addEventListener('DOMContentLoaded', function() {
     var lat = {{ $olt->latitude }};
     var lng = {{ $olt->longitude }};
-
     var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
             attribution: '&copy; OpenStreetMap',
@@ -397,7 +372,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     var map = L.map('map-show', { layers: [sat] }).setView([lat, lng], 16);
     L.control.layers({ 'Satelit': sat, 'Street': osm }).addTo(map);
-
     L.marker([lat, lng], {
         icon: L.divIcon({
             className: 'custom-marker',

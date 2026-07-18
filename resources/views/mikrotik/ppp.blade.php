@@ -1,7 +1,5 @@
 @extends('layouts.app')
-
 @section('title', 'PPP Secrets')
-
 @section('content')
 <div class="page-header d-flex flex-wrap justify-content-between align-items-center">
     <div>
@@ -14,16 +12,13 @@
         </a>
     </div>
 </div>
-
 @include('mikrotik._router_switcher')
-
 @if(session('success'))
     <div class="alert alert-custom alert-success mb-4">{{ session('success') }}</div>
 @endif
 @if(session('error'))
     <div class="alert alert-custom alert-danger mb-4">{{ session('error') }}</div>
 @endif
-
 <div class="row g-4">
     {{-- FORM TAMBAH --}}
     <div class="col-lg-4">
@@ -70,7 +65,6 @@
             </div>
         </div>
     </div>
-
     {{-- DAFTAR --}}
     <div class="col-lg-8">
         <div class="card shadow-sm border-0">
@@ -82,8 +76,6 @@
                 </div>
             </div>
             <div class="card-body p-0">
-                <table class="table mb-0">
-                    <thead>
                         <tr>
                             <th>Username</th>
                             <th>Service</th>
@@ -91,7 +83,7 @@
                             <th>Local Address</th>
                             <th class="text-center">Aksi</th>
                         </tr>
-                    </thead>
+
                     <tbody>
                         @forelse($secrets as $s)
                             <tr>
@@ -116,6 +108,7 @@
                             <tr><td colspan="5" class="text-center py-4 text-muted">Belum ada PPP secrets</td></tr>
                         @endforelse
                     </tbody>
+<table class="table table-hover align-middle mb-0 mon-table">
                 </table>
             </div>
         </div>

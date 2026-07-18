@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\MikrotikRouter;
 use Exception;
-use Illuminate\Support\Facades\Log;
 use phpseclib3\Net\SSH2;
 
 class MikrotikSshService
@@ -50,6 +49,7 @@ class MikrotikSshService
         $start = microtime(true);
         $this->exec('/system resource print');
         $elapsed = (microtime(true) - $start) * 1000;
+
         return round($elapsed, 1);
     }
 
@@ -57,6 +57,7 @@ class MikrotikSshService
     {
         $out = $this->exec('/system resource print');
         $pairs = $this->parseColonLines($out);
+
         return [
             'uptime' => $pairs['uptime'] ?? null,
             'cpu-load' => $this->parsePercent($pairs['cpu-load'] ?? null),
@@ -73,6 +74,7 @@ class MikrotikSshService
     {
         $out = $this->exec('/system identity print');
         $pairs = $this->parseColonLines($out);
+
         return [
             'name' => $pairs['name'] ?? null,
         ];
@@ -81,60 +83,70 @@ class MikrotikSshService
     public function getInterfaces(): array
     {
         $out = $this->exec('/interface print terse');
+
         return $this->parseTerseTable($out);
     }
 
     public function getInterfaceTraffic(string $interface): array
     {
         $out = $this->exec("/interface monitor-traffic {$interface} once");
+
         return $this->parseTersePairs($out);
     }
 
     public function getActiveHotspotSessions(): array
     {
         $out = $this->exec('/ip hotspot active print terse');
+
         return $this->parseTerseTable($out);
     }
 
     public function getPppActive(): array
     {
         $out = $this->exec('/ppp active print terse');
+
         return $this->parseTerseTable($out);
     }
 
     public function getHotspotUsers(): array
     {
         $out = $this->exec('/ip hotspot user print terse');
+
         return $this->parseTerseTable($out);
     }
 
     public function getSimpleQueues(): array
     {
         $out = $this->exec('/queue simple print terse');
+
         return $this->parseTerseTable($out);
     }
 
     public function getPppSecrets(): array
     {
         $out = $this->exec('/ppp secret print terse');
+
         return $this->parseTerseTable($out);
     }
 
     public function getHotspotServers(): array
     {
         $out = $this->exec('/ip hotspot print terse');
+
         return $this->parseTerseTable($out);
     }
 
     public function getHotspotProfiles(): array
     {
         $out = $this->exec('/ip hotspot user profile print terse');
+
         return $this->parseTerseTable($out);
     }
 
     public function getPppProfiles(): array
     {
         $out = $this->exec('/ppp profile print terse');
+
         return $this->parseTerseTable($out);
     }
 
@@ -142,6 +154,7 @@ class MikrotikSshService
     {
         try {
             $out = $this->exec('/system health print');
+
             return $this->parseTersePairs($out);
         } catch (Exception $e) {
             return [];
@@ -151,6 +164,7 @@ class MikrotikSshService
     public function getLog(int $count = 50): array
     {
         $out = $this->exec("/log print terse .top={$count}");
+
         return $this->parseTerseTable($out);
     }
 
@@ -162,6 +176,7 @@ class MikrotikSshService
         if ($out === false) {
             throw new Exception("SSH command failed: {$command}");
         }
+
         return trim($out);
     }
 
@@ -196,12 +211,14 @@ class MikrotikSshService
             if ($i === 0) {
                 // Index number
                 $row['.id'] = '*'.$part;
+
                 continue;
             }
 
             // Check if it's a flag (single uppercase letter like R, X, D, S)
             if (preg_match('/^[A-Z]$/', $part) && $i < 5) {
                 $flags .= $part;
+
                 continue;
             }
 
@@ -255,6 +272,7 @@ class MikrotikSshService
         if ($value === null) {
             return null;
         }
+
         // Strip trailing %, return numeric value as string
         return preg_replace('/[^0-9.]/', '', $value);
     }
@@ -314,6 +332,7 @@ class MikrotikSshService
         if (preg_match('/'.preg_quote($key, '/').'="?([^"\n]*)"?/i', $output, $m)) {
             return $m[1];
         }
+
         return null;
     }
 }

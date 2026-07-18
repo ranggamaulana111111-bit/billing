@@ -1,7 +1,5 @@
 @extends('layouts.app')
-
 @section('title', 'Status Voucher')
-
 @section('content')
 <div class="container py-5">
     <div class="row justify-content-center">
@@ -33,8 +31,6 @@
                         <h4 class="mt-2">Status Voucher</h4>
                         <span class="badge bg-{{ $statusClass }} fs-6">{{ $statusLabel }}</span>
                     </div>
-
-                    <table class="table table-borderless">
                         <tr>
                             <td class="text-muted">Username</td>
                             <td class="fw-bold">{{ $voucher->username }}</td>
@@ -97,8 +93,8 @@
                             <td class="fw-bold">{{ $voucher->mac_address }}</td>
                         </tr>
                         @endif
+<table class="table table-hover align-middle mb-0 mon-table">
                     </table>
-
                     <div class="text-center mt-3">
                         <a href="{{ route('vouchers.public.check') }}" class="btn btn-outline-primary">
                             <i class="fa-solid fa-search me-1"></i>Cek Lain

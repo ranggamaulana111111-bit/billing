@@ -1,12 +1,10 @@
 @extends('layouts.app')
-
 @section('title', 'Riwayat Pembayaran')
-
 @section('content')
 <div class="page-header d-flex flex-wrap justify-content-between align-items-center">
     <div>
         <h2 class="mb-0"><i class="fa-solid fa-clock-rotate-left me-2" style="color:var(--primary);"></i>Riwayat Pembayaran</h2>
-        <p class="section-subtitle mb-0 mt-1">{{ $invoice->invoice_code }} — {{ $invoice->customer->name }}</p>
+        <p class="section-subtitle mb-0 mt-1">{{ $invoice->invoice_display }} — {{ $invoice->customer->name }}</p>
     </div>
     <div class="page-actions mt-2 mt-md-0">
         <a href="{{ route('invoice.print', $invoice->id) }}" class="btn btn-outline-secondary px-3" target="_blank">
@@ -14,11 +12,9 @@
         </a>
     </div>
 </div>
-
 @if(session('success'))
     <div class="alert alert-custom alert-success mb-4">{{ session('success') }}</div>
 @endif
-
 <div class="card shadow-sm border-0">
     <div class="card-header bg-white">
         <div class="d-flex align-items-center gap-2">
@@ -30,7 +26,7 @@
         <div class="row g-3 mb-4">
             <div class="col-md-4">
                 <small class="text-muted d-block">Invoice</small>
-                <span class="fw-bold">{{ $invoice->invoice_code }}</span>
+                <span class="fw-bold">{{ $invoice->invoice_display }}</span>
             </div>
             <div class="col-md-4">
                 <small class="text-muted d-block">Total Tagihan</small>
@@ -45,10 +41,7 @@
                 @endif
             </div>
         </div>
-
         @if($payments->count())
-            <table class="table">
-                <thead>
                     <tr>
                         <th>Tanggal</th>
                         <th>Metode</th>
@@ -56,7 +49,7 @@
                         <th>Catatan</th>
                         <th class="text-center">Aksi</th>
                     </tr>
-                </thead>
+
                 <tbody>
                     @foreach($payments as $p)
                         <tr>
@@ -85,11 +78,11 @@
                         </tr>
                     @endforeach
                 </tbody>
+<table class="table table-hover align-middle mb-0 mon-table">
             </table>
         @else
             <p class="text-center text-muted py-3">Belum ada pembayaran tercatat.</p>
         @endif
-
         <div class="mt-3">
             <a href="{{ route('invoices.index') }}" class="btn btn-outline-secondary">
                 <i class="fa-solid fa-arrow-left me-1"></i>Kembali

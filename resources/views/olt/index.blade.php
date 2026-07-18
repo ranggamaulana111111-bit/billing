@@ -1,7 +1,5 @@
 @extends('layouts.app')
-
 @section('title', 'OLT')
-
 @section('content')
 <div class="page-header d-flex flex-wrap justify-content-between align-items-center">
     <div>
@@ -20,14 +18,12 @@
         </a>
     </div>
 </div>
-
 @if(session('success'))
     <div class="alert alert-custom alert-success mb-4">{{ session('success') }}</div>
 @endif
 @if(session('error'))
     <div class="alert alert-custom alert-danger mb-4">{{ session('error') }}</div>
 @endif
-
 {{-- STATS --}}
 <div class="row g-4 mb-4">
     <div class="col-md-3 fade-in" style="animation-delay:0.05s">
@@ -67,13 +63,11 @@
         </div>
     </div>
 </div>
-
 {{-- OLT LIST --}}
 <div class="card">
     <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead>
+        <div class="mon-table-wrap">
+<table class="table table-hover align-middle mb-0 mon-table">
                     <tr>
                         <th>Nama</th>
                         <th>Brand</th>
@@ -83,7 +77,7 @@
                         <th>Last Polled</th>
                         <th class="text-end">Aksi</th>
                     </tr>
-                </thead>
+
                 <tbody>
                     @forelse($olts as $olt)
                         <tr>
@@ -114,23 +108,34 @@
                                     <span class="badge bg-secondary">Belum pernah</span>
                                 @endif
                             </td>
-                            <td class="text-end">
-                                <form action="{{ route('olt.test', $olt) }}" method="POST" class="d-inline">
-                                    @csrf
-                                    <button type="submit" class="btn btn-sm btn-outline-success px-2" title="Test Connection">
-                                        <i class="fa-solid fa-plug"></i>
-                                    </button>
-                                </form>
-                                <a href="{{ route('olt.show', $olt) }}" class="btn btn-sm btn-outline-primary px-2" title="Detail">
-                                    <i class="fa-solid fa-eye"></i>
-                                </a>
-                                <a href="{{ route('olt.edit', $olt) }}" class="btn btn-sm btn-outline-secondary px-2" title="Edit">
-                                    <i class="fa-solid fa-pen"></i>
-                                </a>
-                                <form action="{{ route('olt.destroy', $olt) }}" method="POST" class="d-inline" onsubmit="return confirm('Hapus OLT ini?')">
-                                    @csrf @method('DELETE')
-                                    <button class="btn btn-sm btn-outline-danger px-2" title="Hapus"><i class="fa-solid fa-trash"></i></button>
-                                </form>
+                            <td class="text-center">
+                                <div class="d-flex justify-content-center gap-1">
+                                    <a href="{{ route('olt.show', $olt) }}" class="btn btn-sm btn-outline-primary px-2" title="Detail">
+                                        <i class="fa-solid fa-eye"></i>
+                                    </a>
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-outline-secondary px-2 dropdown-toggle" data-bs-toggle="dropdown" title="Lainnya" style="font-size:0.7rem;">
+                                            <i class="fa-solid fa-ellipsis-vertical"></i>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end" style="font-size:0.8rem;min-width:160px;">
+                                            <li><a class="dropdown-item" href="{{ route('olt.show', $olt) }}"><i class="fa-solid fa-eye me-2 text-primary"></i>Detail</a></li>
+                                            <li><a class="dropdown-item" href="{{ route('olt.edit', $olt) }}"><i class="fa-solid fa-pen me-2 text-secondary"></i>Edit</a></li>
+                                            <li>
+                                                <form method="POST" action="{{ route('olt.test', $olt) }}">
+                                                    @csrf
+                                                    <button type="submit" class="dropdown-item"><i class="fa-solid fa-plug me-2 text-success"></i>Test Connection</button>
+                                                </form>
+                                            </li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li>
+                                                <form method="POST" action="{{ route('olt.destroy', $olt) }}" onsubmit="return confirm('Hapus OLT ini?')">
+                                                    @csrf @method('DELETE')
+                                                    <button type="submit" class="dropdown-item text-danger"><i class="fa-solid fa-trash me-2"></i>Hapus</button>
+                                                </form>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
                             </td>
                         </tr>
                     @empty

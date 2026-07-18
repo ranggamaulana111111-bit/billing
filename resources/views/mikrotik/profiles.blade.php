@@ -1,7 +1,5 @@
 @extends('layouts.app')
-
 @section('title', 'Hotspot Profiles')
-
 @section('content')
 <div class="page-header d-flex flex-wrap justify-content-between align-items-center">
     <div>
@@ -20,16 +18,13 @@
         </a>
     </div>
 </div>
-
 @include('mikrotik._router_switcher')
-
 @if(session('success'))
     <div class="alert alert-custom alert-success mb-4">{{ session('success') }}</div>
 @endif
 @if(session('error'))
     <div class="alert alert-custom alert-danger mb-4">{{ session('error') }}</div>
 @endif
-
 <div class="row g-4">
     {{-- FORM TAMBAH --}}
     <div class="col-lg-4">
@@ -64,7 +59,6 @@
             </div>
         </div>
     </div>
-
     {{-- DAFTAR PROFILES --}}
     <div class="col-lg-8">
         <div class="card shadow-sm border-0">
@@ -76,15 +70,13 @@
                 </div>
             </div>
             <div class="card-body p-0">
-                <table class="table mb-0">
-                    <thead>
                         <tr>
                             <th>Nama</th>
                             <th>Rate Limit</th>
                             <th>Shared Users</th>
                             <th class="text-center">Aksi</th>
                         </tr>
-                    </thead>
+
                     <tbody>
                         @forelse($profiles as $p)
                             <tr>
@@ -92,32 +84,45 @@
                                 <td><code>{{ $p['rate-limit'] ?? '-' }}</code></td>
                                 <td>{{ $p['shared-users'] ?? '1' }}</td>
                                 <td class="text-center">
-                                    <button type="button" class="btn btn-sm btn-outline-warning px-2 me-1" title="Edit"
-                                        data-bs-toggle="modal" data-bs-target="#editProfileModal"
-                                        data-id="{{ $p['.id'] ?? '' }}"
-                                        data-name="{{ $p['name'] ?? '' }}"
-                                        data-rate-limit="{{ $p['rate-limit'] ?? '' }}"
-                                        data-shared-users="{{ $p['shared-users'] ?? '1' }}">
-                                        <i class="fa-solid fa-pen"></i>
-                                    </button>
-                                    <form method="POST" action="{{ route('mikrotik.profiles.destroy', $p['.id'] ?? '') }}" class="d-inline" onsubmit="return confirm('Hapus profile {{ $p['name'] }}?')">
-                                        @csrf @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-outline-danger px-2" title="Hapus">
-                                            <i class="fa-solid fa-trash"></i>
+                                    <div class="d-flex justify-content-center gap-1">
+                                        <button type="button" class="btn btn-sm btn-outline-primary px-2" title="Edit"
+                                            data-bs-toggle="modal" data-bs-target="#editProfileModal"
+                                            data-id="{{ $p['.id'] ?? '' }}"
+                                            data-name="{{ $p['name'] ?? '' }}"
+                                            data-rate-limit="{{ $p['rate-limit'] ?? '' }}"
+                                            data-shared-users="{{ $p['shared-users'] ?? '1' }}">
+                                            <i class="fa-solid fa-pen"></i>
                                         </button>
-                                    </form>
+                                        <div class="dropdown">
+                                            <button class="btn btn-sm btn-outline-secondary px-2 dropdown-toggle" data-bs-toggle="dropdown" style="font-size:0.7rem;"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+                                            <ul class="dropdown-menu dropdown-menu-end" style="font-size:0.8rem;min-width:160px;">
+                                                <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editProfileModal"
+                                                    data-id="{{ $p['.id'] ?? '' }}"
+                                                    data-name="{{ $p['name'] ?? '' }}"
+                                                    data-rate-limit="{{ $p['rate-limit'] ?? '' }}"
+                                                    data-shared-users="{{ $p['shared-users'] ?? '1' }}"><i class="fa-solid fa-pen me-2 text-primary"></i>Edit</a></li>
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li>
+                                                    <form method="POST" action="{{ route('mikrotik.profiles.destroy', $p['.id'] ?? '') }}" onsubmit="return confirm('Hapus profile {{ $p['name'] }}?')">
+                                                        @csrf @method('DELETE')
+                                                        <button type="submit" class="dropdown-item text-danger"><i class="fa-solid fa-trash me-2"></i>Hapus</button>
+                                                    </form>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
                                 </td>
                             </tr>
                         @empty
                             <tr><td colspan="4" class="text-center py-4 text-muted">Belum ada profile</td></tr>
                         @endforelse
                     </tbody>
+<table class="table table-hover align-middle mb-0 mon-table">
                 </table>
             </div>
         </div>
     </div>
 </div>
-
 {{-- MODAL EDIT --}}
 <div class="modal fade" id="editProfileModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
@@ -152,7 +157,6 @@
         </div>
     </div>
 </div>
-
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
@@ -163,16 +167,13 @@ document.addEventListener('DOMContentLoaded', function () {
         const name = btn.getAttribute('data-name');
         const rateLimit = btn.getAttribute('data-rate-limit');
         const sharedUsers = btn.getAttribute('data-shared-users');
-
         document.getElementById('edit_name').value = name;
         document.getElementById('edit_rate_limit').value = rateLimit;
         document.getElementById('edit_shared_users').value = sharedUsers;
-
         const action = '{{ route("mikrotik.profiles.update", "__ID__") }}'.replace('__ID__', id);
         document.getElementById('editProfileForm').action = action;
     });
 });
 </script>
 @endpush
-
 @endsection

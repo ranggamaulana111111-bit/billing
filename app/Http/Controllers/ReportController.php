@@ -57,6 +57,16 @@ class ReportController extends Controller
             ->take(10)
             ->get();
 
+        // Paid invoices (already paid) for selected month
+        $paidInvoices = Invoice::with(['customer', 'payments'])
+            ->where('payment_status', 'paid')
+            ->whereYear('paid_at', $year)
+            ->whereMonth('paid_at', $month)
+            ->orderByDesc('paid_at')
+            ->get();
+
+        $paidTotal = $paidInvoices->sum('amount');
+
         return view('reports.index', compact(
             'year', 'month',
             'monthlyRevenue', 'monthlyCount',
@@ -65,6 +75,7 @@ class ReportController extends Controller
             'months', 'revenueData',
             'methodBreakdown',
             'topUnpaid',
+            'paidInvoices', 'paidTotal',
         ));
     }
 }

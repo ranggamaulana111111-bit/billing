@@ -117,7 +117,7 @@
         @if($invoice)
             <div class="info-box">
                 <div class="label">Tagihan</div>
-                <div class="value">{{ $invoice->invoice_code }}</div>
+                <div class="value">{{ $invoice->invoice_display }}</div>
             </div>
             <div class="info-box">
                 <div class="label">Jumlah Tagihan</div>

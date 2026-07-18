@@ -10,6 +10,24 @@ use Illuminate\Support\Facades\DB;
 
 class PaymentController extends Controller
 {
+    public function index()
+    {
+        $payments = Payment::with('invoice.customer.package')
+            ->latest()
+            ->paginate(30);
+
+        $stats = [
+            'total' => Payment::sum('amount'),
+            'today' => Payment::whereDate('payment_date', today())->sum('amount'),
+            'month' => Payment::whereMonth('payment_date', now()->month)
+                ->whereYear('payment_date', now()->year)
+                ->sum('amount'),
+            'count' => Payment::count(),
+        ];
+
+        return view('payments.index', compact('payments', 'stats'));
+    }
+
     public function create(Invoice $invoice)
     {
         if ($invoice->payment_status === 'paid') {

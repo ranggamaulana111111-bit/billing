@@ -1,7 +1,5 @@
 @extends('layouts.app')
-
 @section('title', 'Monitoring')
-
 @section('content')
 <div class="page-header d-flex flex-wrap justify-content-between align-items-center">
     <div>
@@ -13,7 +11,6 @@
         </p>
     </div>
 </div>
-
 {{-- STATS CARDS --}}
 <div class="row g-4 dashboard-section-gap">
     @foreach([
@@ -58,7 +55,6 @@
     </div>
     @endforeach
 </div>
-
 {{-- MAIN CONTENT ROW --}}
 <div class="row g-5 dashboard-section-gap">
     <div class="col-lg-6 d-flex flex-column gap-5">
@@ -69,10 +65,8 @@
                 <span>Status OLT</span>
             </div>
             <div class="card-body p-0 table-scroll">
-                <table class="table mb-0">
-                    <thead>
                         <tr><th>Nama</th><th>IP</th><th>Brand</th><th class="text-center">ONU Online</th><th class="text-center">Status</th></tr>
-                    </thead>
+
                     <tbody>
                         @forelse($olts as $olt)
                         <tr>
@@ -96,10 +90,10 @@
                         <tr><td colspan="5" class="text-center py-4 text-muted">Belum ada OLT terdaftar</td></tr>
                         @endforelse
                     </tbody>
+<table class="table table-hover align-middle mb-0 mon-table">
                 </table>
             </div>
         </div>
-
         {{-- RECENT OFFLINE ONUS --}}
         <div class="card dash-table-unpaid overflow-hidden">
             <div class="card-header d-flex align-items-center gap-2">
@@ -108,7 +102,6 @@
                 <span class="badge ms-2" style="background:#fef2f2;color:#dc2626;">{{ $recentOnuOffline->count() }}</span>
             </div>
             <div class="card-body p-0 table-scroll">
-                <table class="table mb-0">
                     <tbody>
                         @forelse($recentOnuOffline as $onu)
                         <tr>
@@ -127,11 +120,11 @@
                         <tr><td class="text-center py-4 text-muted">Semua ONU online</td></tr>
                         @endforelse
                     </tbody>
+<table class="table table-hover align-middle mb-0 mon-table">
                 </table>
             </div>
         </div>
     </div>
-
     <div class="col-lg-6 d-flex flex-column gap-5">
         {{-- ODP USAGE --}}
         <div class="card dash-table-odp overflow-hidden">
@@ -141,15 +134,13 @@
                 <small class="text-muted ms-2">{{ $odps->count() }} titik</small>
             </div>
             <div class="card-body p-0 table-scroll" style="max-height:360px;overflow-y:auto;">
-                <table class="table mb-0">
-                    <thead>
                         <tr><th>Kode</th><th>Lokasi</th><th class="text-end">Port</th></tr>
-                    </thead>
+
                     <tbody>
                         @forelse($odps as $o)
                         <tr>
                             <td class="fw-semibold">{{ $o->name }}</td>
-                            <td class="text-muted small">{{ $o->address ?? '-' }}</td>
+                            <td class="text-muted small">{{ $o->odc?->nama_odc ?? $o->koordinat ?? '-' }}</td>
                             <td class="text-end">
                                 <div class="d-flex align-items-center justify-content-end gap-2">
                                     <small class="text-muted">{{ $o->port_used_actual }}/{{ $o->port_capacity }}</small>
@@ -163,10 +154,10 @@
                         <tr><td colspan="3" class="text-center py-4 text-muted">Belum ada titik ODP</td></tr>
                         @endforelse
                     </tbody>
+<table class="table table-hover align-middle mb-0 mon-table">
                 </table>
             </div>
         </div>
-
         {{-- ACTIVITY LOGS --}}
         <div class="card dash-table-customers overflow-hidden">
             <div class="card-header d-flex align-items-center gap-2">
@@ -175,7 +166,6 @@
                 <span class="badge ms-2 badge-soft-primary">{{ $activityLogs->count() }}</span>
             </div>
             <div class="card-body p-0 table-scroll">
-                <table class="table mb-0">
                     <tbody>
                         @forelse($activityLogs as $log)
                         <tr>
@@ -192,6 +182,7 @@
                         <tr><td class="text-center py-4 text-muted">Belum ada aktivitas</td></tr>
                         @endforelse
                     </tbody>
+<table class="table table-hover align-middle mb-0 mon-table">
                 </table>
             </div>
         </div>

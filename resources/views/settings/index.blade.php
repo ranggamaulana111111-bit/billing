@@ -40,6 +40,10 @@
                 <i class="fa-solid fa-bell"></i>
                 <span>Notifikasi & Voucher</span>
             </button>
+            <button type="button" class="settings-tab" data-tab="tab-isolir">
+                <i class="fa-solid fa-ban"></i>
+                <span>Halaman Isolir</span>
+            </button>
         </div>
 
         {{-- TAB CONTENT --}}
@@ -435,6 +439,73 @@
                                         </div>
                                         <div class="form-text">Nama server hotspot di MikroTik (biasanya <code>hotspot1</code>).</div>
                                     </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- TAB 5: HALAMAN ISOLIR --}}
+            <div class="settings-panel" id="tab-isolir">
+                <div class="row g-4">
+                    <div class="col-lg-12">
+                        <div class="card settings-card stagger-card" data-accent="#dc2626">
+                            <div class="card-header">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="settings-icon-badge" style="background:linear-gradient(135deg,#dc2626,#f87171);">
+                                        <i class="fa-solid fa-ban"></i>
+                                    </div>
+                                    <div>
+                                        <h5 class="mb-0">Halaman Isolir</h5>
+                                        <small class="text-muted">Desain halaman yang dilihat pelanggan saat isolir</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body text-center py-5">
+                                <div class="mb-4">
+                                    <i class="fa-solid fa-palette fa-3x mb-3" style="color:#dc2626;opacity:.6;"></i>
+                                    <h5>Visual Page Editor</h5>
+                                    <p class="text-muted mb-4">Buka editor untuk mendesain halaman isolir secara visual dengan drag-and-drop, live preview, dan property panel.</p>
+                                    <div class="row g-3 mb-4 justify-content-center">
+                                        <div class="col-auto">
+                                            <div class="d-flex align-items-center gap-2 text-start" style="background:#f8fafc;padding:10px 16px;border-radius:10px;">
+                                                <i class="fa-solid fa-grip-vertical" style="color:#3b82f6;"></i>
+                                                <div><small class="fw-semibold d-block">Drag & Drop</small><small class="text-muted">Susun elemen</small></div>
+                                            </div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <div class="d-flex align-items-center gap-2 text-start" style="background:#f8fafc;padding:10px 16px;border-radius:10px;">
+                                                <i class="fa-solid fa-eye" style="color:#8b5cf6;"></i>
+                                                <div><small class="fw-semibold d-block">Live Preview</small><small class="text-muted">Langsung terlihat</small></div>
+                                            </div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <div class="d-flex align-items-center gap-2 text-start" style="background:#f8fafc;padding:10px 16px;border-radius:10px;">
+                                                <i class="fa-solid fa-sliders" style="color:#f59e0b;"></i>
+                                                <div><small class="fw-semibold d-block">Property Panel</small><small class="text-muted">Edit detail</small></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <a href="{{ route('settings.isolir-editor') }}" class="btn btn-primary btn-lg px-5 py-3">
+                                        <i class="fa-solid fa-pen-ruler me-2"></i>Buka Editor Isolir
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="card settings-card stagger-card" data-accent="#f59e0b">
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold small">Admin Phone (WA)</label>
+                                    <input type="text" name="admin_phone" class="form-control"
+                                           value="{{ old('admin_phone', $settings['admin_phone'] ?? '') }}" placeholder="62812xxxxxxx">
+                                </div>
+                                <div class="mb-0">
+                                    <label class="form-label fw-semibold small">Nama Admin</label>
+                                    <input type="text" name="admin_name" class="form-control"
+                                           value="{{ old('admin_name', $settings['admin_name'] ?? 'Admin') }}">
                                 </div>
                             </div>
                         </div>

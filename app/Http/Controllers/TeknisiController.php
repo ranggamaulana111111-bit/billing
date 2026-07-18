@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ActivityLog;
 use App\Models\Customer;
-use App\Models\OdpPoint;
+use App\Models\Odp;
 use App\Models\Olt;
 use App\Models\Onu;
 
@@ -26,14 +26,15 @@ class TeknisiController extends Controller
             return $olt;
         });
 
-        $odps = OdpPoint::with('customers')->get()->map(function (OdpPoint $odp) {
-            $used = $odp->customers->count();
-            $capacity = (int) $odp->port_capacity;
+        $odps = Odp::with('ports', 'customers', 'odc')->get()->map(function ($odp) {
+            $capacity = (int) $odp->kapasitas_port;
+            $used = $odp->usedPortsCount();
             $usagePercent = $capacity > 0 ? round(($used / $capacity) * 100) : 0;
 
             $odp->port_used_actual = $used;
             $odp->port_usage_percent = $usagePercent;
             $odp->port_usage_color = $usagePercent >= 80 ? '#dc2626' : ($usagePercent >= 50 ? '#d97706' : '#059669');
+            $odp->port_capacity = $capacity;
 
             return $odp;
         });

@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\ActivityLog;
+use App\Models\Customer;
 use App\Models\MikrotikRouter;
+use App\Models\Onu;
 use App\Services\MikrotikService;
 use Illuminate\Http\Request;
 
@@ -248,6 +250,23 @@ class MikrotikController extends Controller
         return back()->with('error', $result['message']);
     }
 
+    public function toggleHotspotUser(Request $request, string $userId)
+    {
+        $mikrotik = $this->resolveMikrotik();
+
+        $disable = $request->boolean('disable');
+        $result = $mikrotik->updateHotspotUser($userId, ['disabled' => $disable ? 'yes' : 'no']);
+
+        if ($result['success']) {
+            $label = $disable ? 'dinonaktifkan' : 'diaktifkan';
+            ActivityLog::log('Toggle Hotspot User', "Hotspot user ID {$userId} {$label}");
+
+            return back()->with('success', "User {$label}");
+        }
+
+        return back()->with('error', $result['message']);
+    }
+
     public function syncHotspotUsers()
     {
         $mikrotik = $this->resolveMikrotik();
@@ -286,6 +305,8 @@ class MikrotikController extends Controller
         $result = $mikrotik->disconnectHotspotSession($sessionId);
 
         if ($result['success']) {
+            ActivityLog::log('Disconnect Hotspot', 'Memutus sesi hotspot '.$sessionId);
+
             return back()->with('success', $result['message']);
         }
 
@@ -455,6 +476,10 @@ class MikrotikController extends Controller
 
         $profiles = $mikrotik->getPppProfiles();
 
+        if ($mikrotik->getLastError()) {
+            return back()->with('error', 'Gagal terhubung ke MikroTik: '.$mikrotik->getLastError());
+        }
+
         ActivityLog::log('Sync PPP Profile', 'Menyinkronkan daftar PPP profile dari MikroTik');
 
         return redirect()->route('mikrotik.ppp-profiles', ['router' => request('router')])->with('success', 'Daftar PPP profile berhasil disinkronkan ('.count($profiles).' profile)');
@@ -608,10 +633,27 @@ class MikrotikController extends Controller
             return back()->with('error', 'MikroTik belum dikonfigurasi.');
         }
 
-        $sessions = $mikrotik->getActiveHotspotSessions();
-        $pppActive = $mikrotik->getPppActive();
-        $interfaces = $mikrotik->getInterfaces();
-        $queues = $mikrotik->getSimpleQueues();
+        $sessions = [];
+        $pppActive = [];
+        $interfaces = [];
+        $queues = [];
+
+        try {
+            $sessions = $mikrotik->getActiveHotspotSessions();
+        } catch (\Exception $e) {
+        }
+        try {
+            $pppActive = $mikrotik->getPppActive();
+        } catch (\Exception $e) {
+        }
+        try {
+            $interfaces = $mikrotik->getInterfaces();
+        } catch (\Exception $e) {
+        }
+        try {
+            $queues = $mikrotik->getSimpleQueues();
+        } catch (\Exception $e) {
+        }
 
         $totalBandwidthRx = 0;
         $totalBandwidthTx = 0;
@@ -626,9 +668,11 @@ class MikrotikController extends Controller
             $totalBandwidthTx += (int) ($p['bytes-out'] ?? 0);
         }
 
+        $modemClients = $this->buildModemClients($sessions, $pppActive);
+
         return view('mikrotik.monitoring', compact(
             'sessions', 'pppActive', 'interfaces', 'queues',
-            'totalBandwidthRx', 'totalBandwidthTx'
+            'totalBandwidthRx', 'totalBandwidthTx', 'modemClients'
         ));
     }
 
@@ -642,10 +686,27 @@ class MikrotikController extends Controller
             return response()->json(['error' => 'MikroTik not configured'], 400);
         }
 
-        $interfaces = $mikrotik->getInterfaces();
-        $sessions = $mikrotik->getActiveHotspotSessions();
-        $pppActive = $mikrotik->getPppActive();
-        $ping = $mikrotik->getLatency();
+        $interfaces = [];
+        $sessions = [];
+        $pppActive = [];
+        $ping = null;
+
+        try {
+            $interfaces = $mikrotik->getInterfaces();
+        } catch (\Exception $e) {
+        }
+        try {
+            $sessions = $mikrotik->getActiveHotspotSessions();
+        } catch (\Exception $e) {
+        }
+        try {
+            $pppActive = $mikrotik->getPppActive();
+        } catch (\Exception $e) {
+        }
+        try {
+            $ping = $mikrotik->getLatency();
+        } catch (\Exception $e) {
+        }
 
         $totalRx = 0;
         $totalTx = 0;
@@ -658,12 +719,15 @@ class MikrotikController extends Controller
             $totalTx += (int) ($p['bytes-out'] ?? 0);
         }
 
+        $modemClients = $this->buildModemClients($sessions, $pppActive);
+
         return response()->json([
             'ping' => $ping,
             'total_rx' => $totalRx,
             'total_tx' => $totalTx,
             'hotspot_count' => count($sessions),
             'ppp_count' => count($pppActive),
+            'modem_count' => count($modemClients),
             'interfaces' => collect($interfaces)->map(fn ($i) => [
                 'name' => $i['name'] ?? '-',
                 'type' => $i['type'] ?? '-',
@@ -685,6 +749,121 @@ class MikrotikController extends Controller
                 'bytes_out' => (int) ($p['bytes-out'] ?? 0),
                 'uptime' => $p['uptime'] ?? '-',
             ])->values(),
+            'modems' => $modemClients,
         ]);
+    }
+
+    private function buildModemClients(array $sessions, array $pppActive): array
+    {
+        $allUsernames = collect();
+        $allIps = collect();
+
+        foreach ($sessions as $s) {
+            $allUsernames->push($s['user'] ?? null);
+            $allIps->push($s['address'] ?? null);
+        }
+        foreach ($pppActive as $p) {
+            $allUsernames->push($p['name'] ?? null);
+            $allIps->push($p['address'] ?? null);
+        }
+
+        $allUsernames = $allUsernames->filter()->unique()->values();
+        $allIps = $allIps->filter()->unique()->values();
+
+        if ($allUsernames->isEmpty() && $allIps->isEmpty()) {
+            return [];
+        }
+
+        $customersByPppoe = Customer::whereIn('pppoe_username', $allUsernames)->get()->keyBy('pppoe_username');
+        $customersByCode = Customer::whereIn('customer_code', $allUsernames)->get()->keyBy('customer_code');
+        $customerIds = $customersByPppoe->pluck('id')->merge($customersByCode->pluck('id'))->unique()->values();
+
+        $ipToCustomer = Customer::query()
+            ->whereRaw("INET_ATON(phone) IN ({$allIps->map(fn ($ip) => "'".addslashes($ip)."'")->implode(',')})")
+            ->get()
+            ->keyBy(fn ($c) => $c->phone);
+
+        $allCustomerIds = $customerIds->merge($ipToCustomer->pluck('id'))->unique()->values();
+
+        if ($allCustomerIds->isEmpty()) {
+            return [];
+        }
+
+        $onus = Onu::with('oltPort.olt', 'customer')
+            ->whereIn('customer_id', $allCustomerIds)
+            ->get()
+            ->keyBy('customer_id');
+
+        $modemClients = [];
+
+        foreach ($sessions as $s) {
+            $user = $s['user'] ?? null;
+            $ip = $s['address'] ?? null;
+
+            $customer = $customersByPppoe->get($user)
+                ?? $customersByCode->get($user)
+                ?? $ipToCustomer->get($ip);
+
+            if (! $customer) {
+                continue;
+            }
+
+            $onu = $onus->get($customer->id);
+
+            $modemClients[] = [
+                'user' => $user,
+                'ip' => $ip,
+                'customer_name' => $customer->name,
+                'customer_code' => $customer->customer_code,
+                'modem_sn' => $onu?->serial_number ?? $customer->modem_sn ?? '-',
+                'modem_model' => $onu?->model ?? '-',
+                'olt_name' => $onu?->oltPort?->olt?->name ?? '-',
+                'olt_port' => $onu?->oltPort ? ($onu->oltPort->slot_number.'/'.$onu->oltPort->port_number) : '-',
+                'rx_power' => $onu?->rx_power,
+                'tx_power' => $onu?->tx_power,
+                'distance' => $onu?->distance,
+                'onu_status' => $onu?->status ?? 'unknown',
+                'last_seen' => $onu?->last_seen_at?->format('d M H:i') ?? '-',
+                'source' => 'hotspot',
+            ];
+        }
+
+        foreach ($pppActive as $p) {
+            $user = $p['name'] ?? null;
+            $ip = $p['address'] ?? null;
+
+            $customer = $customersByPppoe->get($user)
+                ?? $customersByCode->get($user)
+                ?? $ipToCustomer->get($ip);
+
+            if (! $customer) {
+                continue;
+            }
+
+            if (in_array($user, array_column($modemClients, 'user'))) {
+                continue;
+            }
+
+            $onu = $onus->get($customer->id);
+
+            $modemClients[] = [
+                'user' => $user,
+                'ip' => $ip,
+                'customer_name' => $customer->name,
+                'customer_code' => $customer->customer_code,
+                'modem_sn' => $onu?->serial_number ?? $customer->modem_sn ?? '-',
+                'modem_model' => $onu?->model ?? '-',
+                'olt_name' => $onu?->oltPort?->olt?->name ?? '-',
+                'olt_port' => $onu?->oltPort ? ($onu->oltPort->slot_number.'/'.$onu->oltPort->port_number) : '-',
+                'rx_power' => $onu?->rx_power,
+                'tx_power' => $onu?->tx_power,
+                'distance' => $onu?->distance,
+                'onu_status' => $onu?->status ?? 'unknown',
+                'last_seen' => $onu?->last_seen_at?->format('d M H:i') ?? '-',
+                'source' => 'pppoe',
+            ];
+        }
+
+        return $modemClients;
     }
 }

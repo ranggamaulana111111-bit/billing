@@ -61,9 +61,9 @@ class VoucherProfileController extends Controller
                             'name' => $name,
                             'speed' => $p['rate-limit'] ?? null,
                             'shared_users' => $p['shared-users'] ?? 1,
-                        'address_pool' => $p['address-pool'] ?? null,
-                        'parent_queue' => $p['parent-queue'] ?? ($local->parent_queue ?? null),
-                        'lock_user' => ($p['add-mac-cookie'] ?? '') === 'yes' || ($local->lock_user ?? false),
+                            'address_pool' => $p['address-pool'] ?? null,
+                            'parent_queue' => $p['parent-queue'] ?? ($local->parent_queue ?? null),
+                            'lock_user' => ($p['add-mac-cookie'] ?? '') === 'yes' || ($local->lock_user ?? false),
                             'router' => 'Default',
                             'price' => $local->price ?? 0,
                             'selling_price' => $local->selling_price ?? null,
@@ -72,7 +72,7 @@ class VoucherProfileController extends Controller
                     }
                 }
             } catch (\Exception $e) {
-                $error = 'Gagal terhubung ke MikroTik: ' . $e->getMessage();
+                $error = 'Gagal terhubung ke MikroTik: '.$e->getMessage();
             }
         }
 
@@ -108,6 +108,7 @@ class VoucherProfileController extends Controller
         $local = VoucherProfile::where('mikrotik_profile', $name)->first();
         if ($local) {
             $local->update($data);
+
             return $local;
         }
 
@@ -162,7 +163,7 @@ class VoucherProfileController extends Controller
         }
 
         if (! $result || ! ($result['success'] ?? false)) {
-            return back()->with('error', 'Gagal membuat profile: ' . ($result['message'] ?? 'Tidak ada router terhubung'));
+            return back()->with('error', 'Gagal membuat profile: '.($result['message'] ?? 'Tidak ada router terhubung'));
         }
 
         $this->saveLocalRecord($request->name, [
@@ -175,9 +176,9 @@ class VoucherProfileController extends Controller
             'selling_price' => $request->selling_price,
         ]);
 
-        ActivityLog::log('Buat Profile MikroTik', 'Membuat hotspot profile: ' . $request->name);
+        ActivityLog::log('Buat Profile MikroTik', 'Membuat hotspot profile: '.$request->name);
 
-        return back()->with('success', 'Profile "' . $request->name . '" berhasil dibuat di MikroTik.');
+        return back()->with('success', 'Profile "'.$request->name.'" berhasil dibuat di MikroTik.');
     }
 
     public function destroyMikrotik(Request $request, string $profileId)
@@ -209,11 +210,12 @@ class VoucherProfileController extends Controller
         }
 
         if ($result && ($result['success'] ?? false)) {
-            ActivityLog::log('Hapus Profile MikroTik', 'Menghapus hotspot profile ID: ' . $profileId);
+            ActivityLog::log('Hapus Profile MikroTik', 'Menghapus hotspot profile ID: '.$profileId);
+
             return back()->with('success', 'Profile berhasil dihapus dari MikroTik.');
         }
 
-        return back()->with('error', 'Gagal menghapus profile: ' . ($result['message'] ?? 'Tidak ada router terhubung'));
+        return back()->with('error', 'Gagal menghapus profile: '.($result['message'] ?? 'Tidak ada router terhubung'));
     }
 
     public function updateMikrotik(Request $request, string $profileId)
@@ -259,7 +261,7 @@ class VoucherProfileController extends Controller
         }
 
         if (! $result || ! ($result['success'] ?? false)) {
-            return back()->with('error', 'Gagal mengupdate profile: ' . ($result['message'] ?? 'Tidak ada router terhubung'));
+            return back()->with('error', 'Gagal mengupdate profile: '.($result['message'] ?? 'Tidak ada router terhubung'));
         }
 
         $this->saveLocalRecord($request->name, [
@@ -272,20 +274,29 @@ class VoucherProfileController extends Controller
             'selling_price' => $request->selling_price,
         ]);
 
-        ActivityLog::log('Update Profile MikroTik', 'Mengupdate hotspot profile: ' . $request->name);
+        ActivityLog::log('Update Profile MikroTik', 'Mengupdate hotspot profile: '.$request->name);
 
-        return back()->with('success', 'Profile "' . $request->name . '" berhasil diperbarui.');
+        return back()->with('success', 'Profile "'.$request->name.'" berhasil diperbarui.');
     }
 
     public function syncMikrotik()
     {
-        $routers = MikrotikRouter::where('is_active', true)->whereIn('type', ['general'])->get();
+        $routers = MikrotikRouter::where('is_active', true)->whereIn('type', ['general', 'pppoe'])->get();
 
         $count = 0;
-        $processProfiles = function (MikrotikService $mikrotik, string $label) use (&$count) {
+        $lastError = null;
+        $processProfiles = function (MikrotikService $mikrotik, string $label) use (&$count, &$lastError) {
             try {
                 $profiles = $mikrotik->getHotspotProfiles();
             } catch (\Exception $e) {
+                $lastError = $e->getMessage();
+
+                return;
+            }
+
+            if ($mikrotik->getLastError()) {
+                $lastError = $mikrotik->getLastError();
+
                 return;
             }
 
@@ -332,6 +343,10 @@ class VoucherProfileController extends Controller
         }
 
         if ($count === 0) {
+            if ($lastError) {
+                return back()->with('error', 'Gagal terhubung ke MikroTik: '.$lastError);
+            }
+
             return back()->with('error', 'Tidak ada profile MikroTik yang tersedia untuk disinkronasi.');
         }
 

@@ -108,9 +108,9 @@ $isAdmin = auth()->user()->role === 'admin';
         <span class="badge bg-secondary" id="totalCount">{{ count($customerSignals) }} pelanggan</span>
     </div>
     <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover mb-0" id="redamanTable">
-                <thead>
+        <div class="mon-table-wrap">
+            <table class="table table-hover align-middle mb-0 mon-table" id="redamanTable">
+                <thead class="mon-thead">
                     <tr>
                         <th style="width:40px;">#</th>
                         <th>Pelanggan</th>
@@ -239,6 +239,17 @@ $isAdmin = auth()->user()->role === 'admin';
                                         <i class="fa-solid fa-rotate"></i>
                                     </button>
                                 </form>
+                                <form action="{{ route('olt.onu.unlink', $cs['onu']) }}" method="POST" class="d-inline">
+                                    @csrf
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Lepas tautan"
+                                        onclick="return confirm('Lepas ONU {{ $cs['onu']->onu_id }} dari {{ $cs['customer']->name }}?')">
+                                        <i class="fa-solid fa-link-slash"></i>
+                                    </button>
+                                </form>
+                                <button class="btn btn-sm btn-outline-primary" title="Ganti tautan"
+                                    onclick="openLinkModal('{{ $cs['onu']->id }}', '{{ $cs['onu']->onu_id }}', '{{ $cs['serial'] ?? '' }}')">
+                                    <i class="fa-solid fa-arrows-rotate"></i>
+                                </button>
                             @elseif($cs['onu'] && $cs['olt'])
                                 <button class="btn btn-sm btn-outline-primary" title="Tautkan ke Pelanggan"
                                     onclick="openLinkModal('{{ $cs['onu']->id }}', '{{ $cs['onu']->onu_id }}', '{{ $cs['serial'] ?? '' }}')">
@@ -275,8 +286,8 @@ $isAdmin = auth()->user()->role === 'admin';
                         <input type="text" id="linkCustomerSearch" class="form-control" placeholder="Ketik nama pelanggan..." onkeyup="filterLinkCustomers()">
                     </div>
                     <div class="mb-3" style="max-height:300px;overflow-y:auto;">
-                        <table class="table table-sm table-hover mb-0" id="linkCustomerTable">
-                            <thead>
+                        <table class="table table-sm table-hover align-middle mb-0 mon-table" id="linkCustomerTable">
+                            <thead class="mon-thead">
                                 <tr>
                                     <th style="width:40px;"></th>
                                     <th>Nama</th>
@@ -284,7 +295,7 @@ $isAdmin = auth()->user()->role === 'admin';
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach(\App\Models\Customer::orderBy('name')->get() as $c)
+                                @foreach($allCustomers as $c)
                                 <tr data-name="{{ strtolower($c->name) }}">
                                     <td>
                                         <input type="radio" name="customer_id" value="{{ $c->id }}" class="form-check-input">

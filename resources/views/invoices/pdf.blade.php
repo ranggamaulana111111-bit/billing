@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Invoice {{ $invoice->invoice_code }}</title>
+    <title>Invoice {{ $invoice->invoice_display }}</title>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
         body { font-family: 'Inter', 'DejaVu Sans', sans-serif; font-size:12px; color:#1e293b; padding:30px; }
@@ -40,7 +40,7 @@
         </div>
         <div class="title">
             <h2>FAKTUR TAGIHAN</h2>
-            <div class="code">{{ $invoice->invoice_code }}</div>
+            <div class="code">{{ $invoice->invoice_display }}</div>
             <div style="margin-top:4px;">
                 @if($invoice->payment_status === 'paid')
                     <span class="badge badge-green">LUNAS</span>
@@ -55,6 +55,7 @@
         <div class="info-box">
             <h4>Kepada</h4>
             <p>{{ $invoice->customer->name }}</p>
+            <small><strong style="color:#2563eb;">{{ $invoice->customer->customer_code }}</strong></small>
             <small>{{ $invoice->customer->location ?? '-' }}</small>
         </div>
         <div class="info-box" style="text-align:right;">

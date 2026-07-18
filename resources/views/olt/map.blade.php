@@ -1,7 +1,5 @@
 @extends('layouts.app')
-
 @section('title', 'Map OLT')
-
 @push('styles')
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
@@ -71,7 +69,6 @@
     }
 </style>
 @endpush
-
 @section('content')
 <div class="page-header d-flex flex-wrap justify-content-between align-items-center">
     <div>
@@ -84,11 +81,9 @@
         </a>
     </div>
 </div>
-
 @if(session('success'))
     <div class="alert alert-custom alert-success mb-4">{{ session('success') }}</div>
 @endif
-
 {{-- STATS --}}
 <div class="row g-4 mb-4">
     <div class="col-md-3">
@@ -128,7 +123,6 @@
         </div>
     </div>
 </div>
-
 {{-- MAP --}}
 <div class="card shadow-sm border-0 mb-4">
     <div class="card-header bg-white d-flex flex-wrap justify-content-between align-items-center">
@@ -153,13 +147,11 @@
         <div id="map"></div>
     </div>
 </div>
-
 {{-- OLT LIST --}}
 <div class="card">
     <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" id="oltTable">
-                <thead>
+        <div class="mon-table-wrap">
+<table class="table table-hover align-middle mb-0 mon-table">
                     <tr>
                         <th>Nama</th>
                         <th>Brand</th>
@@ -171,7 +163,7 @@
                         <th>Last Polled</th>
                         <th class="text-end">Aksi</th>
                     </tr>
-                </thead>
+
                 <tbody>
                     @forelse($oltData as $olt)
                         <tr>
@@ -203,7 +195,6 @@
     </div>
 </div>
 @endsection
-
 @push('scripts')
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script>
@@ -218,23 +209,19 @@
         });
         var map = L.map('map', { layers: [sat] }).setView([-6.476, 106.014], 14);
         L.control.layers({ 'Satelit': sat, 'Street': osm }).addTo(map);
-
         var olts = @json($oltData);
         var markers = [];
         var markerBounds = [];
-
         var statusColors = {
             active: '#22c55e',
             maintenance: '#f59e0b',
             inactive: '#ef4444'
         };
-
         var statusIcons = {
             active: 'fa-check-circle',
             maintenance: 'fa-wrench',
             inactive: 'fa-ban'
         };
-
         var mcg = L.markerClusterGroup({
             chunkedLoading: true,
             maxClusterRadius: 50,
@@ -250,22 +237,17 @@
                 });
             }
         });
-
         olts.forEach(function(olt) {
             if (olt.latitude && olt.longitude) {
                 var color = statusColors[olt.status] || '#64748b';
-
                 var icon = L.divIcon({
                     className: 'custom-marker',
                     html: `<div class="olt-marker" style="background:${color}"><i class="fa-solid ${statusIcons[olt.status] || 'fa-tower-cell'}"></i></div>`,
                     iconSize: [32, 32],
                     iconAnchor: [16, 16]
                 });
-
                 var marker = L.marker([olt.latitude, olt.longitude], { icon: icon });
-
                 var statusLabel = olt.status === 'active' ? 'Aktif' : (olt.status === 'maintenance' ? 'Maintenance' : 'Nonaktif');
-
                 marker.bindPopup(`
                     <div style="min-width:200px;">
                         <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
@@ -285,40 +267,32 @@
                         </div>
                     </div>
                 `, { className: 'custom-popup' });
-
                 mcg.addLayer(marker);
                 markers.push({ marker: marker, data: olt });
                 markerBounds.push([olt.latitude, olt.longitude]);
             }
         });
-
         map.addLayer(mcg);
-
         if (markerBounds.length > 0) {
             var bounds = L.latLngBounds(markerBounds);
             map.fitBounds(bounds, { padding: [40, 40] });
         }
-
         {{-- SEARCH FILTER --}}
         document.getElementById('searchOlt').addEventListener('input', function(e) {
             var query = e.target.value.toLowerCase().trim();
             var visibleCount = 0;
-
             mcg.clearLayers();
-
             markers.forEach(function(item) {
                 var olt = item.data;
                 var match = olt.name.toLowerCase().includes(query)
                     || olt.brand.toLowerCase().includes(query)
                     || olt.ip_address.toLowerCase().includes(query)
                     || (olt.location && olt.location.toLowerCase().includes(query));
-
                 if (match) {
                     mcg.addLayer(item.marker);
                     visibleCount++;
                 }
             });
-
             {{-- Show count in header --}}
             var badge = document.querySelector('.badge-premium');
             if (badge) {
@@ -327,4 +301,9 @@
         });
     });
 </script>
+@endpush
+
+@push('scripts')
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 @endpush

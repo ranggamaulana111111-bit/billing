@@ -1,7 +1,5 @@
 @extends('layouts.app')
-
 @section('title', 'Profile MikroTik')
-
 @section('content')
 <div class="page-header d-flex flex-wrap justify-content-between align-items-center">
     <div>
@@ -21,23 +19,19 @@
         </button>
     </div>
 </div>
-
 @if(session('success'))
     <div class="alert alert-success alert-dismissible fade show">{{ session('success') }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
 @endif
 @if(session('error'))
     <div class="alert alert-danger alert-dismissible fade show">{{ session('error') }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
 @endif
-
 @if($error)
     <div class="alert alert-warning"><i class="fa-solid fa-triangle-exclamation me-1"></i>{{ $error }}</div>
 @endif
-
 <div class="card shadow-sm border-0">
     <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table mb-0 align-middle">
-                <thead>
+        <div class="mon-table-wrap">
+<table class="table table-hover align-middle mb-0 mon-table">
                     <tr>
                         <th>Name</th>
                         <th>Address Pool</th>
@@ -50,7 +44,7 @@
                         <th>Router</th>
                         <th class="text-center">Aksi</th>
                     </tr>
-                </thead>
+
                 <tbody>
                     @forelse($mikrotikProfiles as $profile)
                         <tr>
@@ -98,7 +92,6 @@
         </div>
     </div>
 </div>
-
 {{-- CREATE MODAL --}}
 <div class="modal fade" id="createModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
@@ -159,7 +152,6 @@
         </div>
     </div>
 </div>
-
 {{-- EDIT MODAL --}}
 <div class="modal fade" id="editModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
@@ -220,7 +212,6 @@
         </div>
     </div>
 </div>
-
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
@@ -235,7 +226,6 @@ document.addEventListener('DOMContentLoaded', function () {
             const price = this.dataset.price;
             const sellingPrice = this.dataset.sellingPrice;
             const parentQueue = this.dataset.parentQueue;
-
             const modal = document.getElementById('editModal');
             const form = modal.querySelector('form');
             form.action = '{{ route("voucher-profiles.update-mikrotik", "_id_") }}'.replace('_id_', id);
@@ -247,7 +237,6 @@ document.addEventListener('DOMContentLoaded', function () {
             form.querySelector('[name="selling_price"]').value = sellingPrice;
             form.querySelector('[name="parent_queue"]').value = parentQueue;
             form.querySelector('[name="lock_user"]').checked = lockUser === '1';
-
             const bsModal = new bootstrap.Modal(modal);
             bsModal.show();
         });
@@ -255,5 +244,4 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 @endpush
-
 @endsection

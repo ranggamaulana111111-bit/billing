@@ -6,7 +6,7 @@
 <div class="page-header d-flex flex-wrap justify-content-between align-items-center">
     <div>
         <h2 class="mb-0"><i class="fa-solid fa-money-bill-wave me-2" style="color:#059669;"></i>Catat Pembayaran</h2>
-        <p class="section-subtitle mb-0 mt-1">Invoice: {{ $invoice->invoice_code }} — {{ $invoice->customer->name }}</p>
+        <p class="section-subtitle mb-0 mt-1">Invoice: {{ $invoice->invoice_display }} — {{ $invoice->customer->name }}</p>
     </div>
 </div>
 

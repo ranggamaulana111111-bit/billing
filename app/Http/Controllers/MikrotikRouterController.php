@@ -93,6 +93,8 @@ class MikrotikRouterController extends Controller
 
         $result = $service->testConnection();
 
+        ActivityLog::log('Test Router', 'Test koneksi router: '.$mikrotikRouter->name.' ('.$mikrotikRouter->host.')');
+
         if ($result['success']) {
             return back()->with('success', $result['message']);
         }

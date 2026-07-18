@@ -6,7 +6,7 @@
 <div class="page-header d-flex flex-wrap justify-content-between align-items-center">
     <div>
         <h2 class="mb-0"><i class="fa-solid fa-pen me-2" style="color:var(--primary);"></i>Edit Tagihan</h2>
-        <p class="section-subtitle mb-0 mt-1">{{ $invoice->invoice_code }}</p>
+        <p class="section-subtitle mb-0 mt-1">{{ $invoice->invoice_display }}</p>
     </div>
 </div>
 

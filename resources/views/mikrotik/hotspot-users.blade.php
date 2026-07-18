@@ -1,7 +1,5 @@
 @extends('layouts.app')
-
 @section('title', 'Hotspot Users')
-
 @section('content')
 <div class="page-header d-flex flex-wrap justify-content-between align-items-center">
     <div>
@@ -20,16 +18,13 @@
         </a>
     </div>
 </div>
-
 @include('mikrotik._router_switcher')
-
 @if(session('success'))
     <div class="alert alert-custom alert-success mb-4">{{ session('success') }}</div>
 @endif
 @if(session('error'))
     <div class="alert alert-custom alert-danger mb-4">{{ session('error') }}</div>
 @endif
-
 <div class="row g-4">
     {{-- FORM TAMBAH --}}
     <div class="col-lg-4">
@@ -72,7 +67,6 @@
             </div>
         </div>
     </div>
-
     {{-- DAFTAR USERS --}}
     <div class="col-lg-8">
         <div class="card shadow-sm border-0">
@@ -84,51 +78,77 @@
                 </div>
             </div>
             <div class="card-body p-0">
-                <table class="table mb-0">
-                    <thead>
                         <tr>
                             <th>Username</th>
                             <th>Profile</th>
                             <th>Limit Uptime</th>
                             <th>Server</th>
+                            <th>Status</th>
                             <th class="text-center">Aksi</th>
                         </tr>
-                    </thead>
+
                     <tbody>
                         @forelse($users as $u)
-                            <tr>
+                            @php $isDisabled = ($u['disabled'] ?? 'false') === 'true'; @endphp
+                            <tr style="{{ $isDisabled ? 'opacity:0.5;' : '' }}">
                                 <td class="fw-medium">{{ $u['name'] ?? '-' }}</td>
                                 <td><code>{{ $u['profile'] ?? '-' }}</code></td>
                                 <td>{{ $u['limit-uptime'] ?? '-' }}</td>
                                 <td>{{ $u['server'] ?? '-' }}</td>
+                                <td>
+                                    @if($isDisabled)
+                                        <span class="badge bg-danger">Disabled</span>
+                                    @else
+                                        <span class="badge bg-success">Active</span>
+                                    @endif
+                                </td>
                                 <td class="text-center">
-                                    <button type="button" class="btn btn-sm btn-outline-warning px-2 me-1" title="Edit"
-                                        data-bs-toggle="modal" data-bs-target="#editUserModal"
-                                        data-id="{{ $u['.id'] ?? '' }}"
-                                        data-name="{{ $u['name'] ?? '' }}"
-                                        data-password=""
-                                        data-profile="{{ $u['profile'] ?? '' }}"
-                                        data-limit-uptime="{{ $u['limit-uptime'] ?? '' }}">
-                                        <i class="fa-solid fa-pen"></i>
-                                    </button>
-                                    <form method="POST" action="{{ route('mikrotik.hotspot-users.destroy', $u['.id'] ?? '') }}" class="d-inline" onsubmit="return confirm('Hapus user {{ $u['name'] }}?')">
-                                        @csrf @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-outline-danger px-2" title="Hapus">
-                                            <i class="fa-solid fa-trash"></i>
-                                        </button>
-                                    </form>
+                                    <div class="d-flex justify-content-center gap-1">
+                                        <form method="POST" action="{{ route('mikrotik.hotspot-users.toggle', $u['.id'] ?? '') }}" class="d-inline">
+                                            @csrf
+                                            <input type="hidden" name="disable" value="{{ $isDisabled ? '0' : '1' }}">
+                                            <button type="submit" class="btn btn-sm {{ $isDisabled ? 'btn-outline-success' : 'btn-outline-warning' }} px-2" title="{{ $isDisabled ? 'Enable' : 'Disable' }}">
+                                                <i class="fa-solid {{ $isDisabled ? 'fa-toggle-on' : 'fa-toggle-off' }}"></i>
+                                            </button>
+                                        </form>
+                                        <div class="dropdown">
+                                            <button class="btn btn-sm btn-outline-secondary px-2 dropdown-toggle" data-bs-toggle="dropdown" style="font-size:0.7rem;"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+                                            <ul class="dropdown-menu dropdown-menu-end" style="font-size:0.8rem;min-width:160px;">
+                                                <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editUserModal"
+                                                    data-id="{{ $u['.id'] ?? '' }}"
+                                                    data-name="{{ $u['name'] ?? '' }}"
+                                                    data-password=""
+                                                    data-profile="{{ $u['profile'] ?? '' }}"
+                                                    data-limit-uptime="{{ $u['limit-uptime'] ?? '' }}"><i class="fa-solid fa-pen me-2 text-primary"></i>Edit</a></li>
+                                                <li>
+                                                    <form method="POST" action="{{ route('mikrotik.hotspot-users.toggle', $u['.id'] ?? '') }}">
+                                                        @csrf
+                                                        <input type="hidden" name="disable" value="{{ $isDisabled ? '0' : '1' }}">
+                                                        <button type="submit" class="dropdown-item"><i class="fa-solid fa-toggle-{{ $isDisabled ? 'on' : 'off' }} me-2 text-{{ $isDisabled ? 'success' : 'warning' }}"></i>{{ $isDisabled ? 'Enable' : 'Disable' }}</button>
+                                                    </form>
+                                                </li>
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li>
+                                                    <form method="POST" action="{{ route('mikrotik.hotspot-users.destroy', $u['.id'] ?? '') }}" onsubmit="return confirm('Hapus user {{ $u['name'] }}?')">
+                                                        @csrf @method('DELETE')
+                                                        <button type="submit" class="dropdown-item text-danger"><i class="fa-solid fa-trash me-2"></i>Hapus</button>
+                                                    </form>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
                                 </td>
                             </tr>
                         @empty
-                            <tr><td colspan="5" class="text-center py-4 text-muted">Belum ada hotspot user</td></tr>
+                            <tr><td colspan="6" class="text-center py-4 text-muted">Belum ada hotspot user</td></tr>
                         @endforelse
                     </tbody>
+<table class="table table-hover align-middle mb-0 mon-table">
                 </table>
             </div>
         </div>
     </div>
 </div>
-
 {{-- MODAL EDIT --}}
 <div class="modal fade" id="editUserModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
@@ -171,7 +191,6 @@
         </div>
     </div>
 </div>
-
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
@@ -183,17 +202,14 @@ document.addEventListener('DOMContentLoaded', function () {
         const password = btn.getAttribute('data-password');
         const profile = btn.getAttribute('data-profile');
         const limitUptime = btn.getAttribute('data-limit-uptime');
-
         document.getElementById('edit_name').value = name;
         document.getElementById('edit_password').value = '';
         document.getElementById('edit_profile').value = profile;
         document.getElementById('edit_limit_uptime').value = limitUptime;
-
         const action = '{{ route("mikrotik.hotspot-users.update", "__ID__") }}'.replace('__ID__', id);
         document.getElementById('editUserForm').action = action;
     });
 });
 </script>
 @endpush
-
 @endsection

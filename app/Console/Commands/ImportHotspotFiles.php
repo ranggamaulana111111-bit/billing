@@ -56,7 +56,7 @@ class ImportHotspotFiles extends Command
 
     private function hasRequiredFiles(string $dir): bool
     {
-        return file_exists($dir . DIRECTORY_SEPARATOR . 'login.html');
+        return file_exists($dir.DIRECTORY_SEPARATOR.'login.html');
     }
 
     private function countFiles(string $dir): int
@@ -88,8 +88,8 @@ class ImportHotspotFiles extends Command
                 continue;
             }
 
-            $srcFile = $src . DIRECTORY_SEPARATOR . $file;
-            $dstFile = $dst . DIRECTORY_SEPARATOR . $file;
+            $srcFile = $src.DIRECTORY_SEPARATOR.$file;
+            $dstFile = $dst.DIRECTORY_SEPARATOR.$file;
 
             if (is_dir($srcFile)) {
                 if (! is_dir($dstFile)) {

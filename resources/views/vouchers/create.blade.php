@@ -147,6 +147,21 @@
                         @error('description')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
                     </div>
 
+                    {{-- Template --}}
+                    <div class="mb-3">
+                        <div class="mt-label">Template Landing Page</div>
+                        <select name="template_id" class="form-select">
+                            <option value="">Tanpa Template</option>
+                            @foreach($templates as $tpl)
+                                <option value="{{ $tpl->id }}" {{ old('template_id') == $tpl->id ? 'selected' : '' }}>
+                                    {{ $tpl->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('template_id')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
+                        <div class="form-text">Tampilan halaman login WiFi setelah terhubung</div>
+                    </div>
+
                     {{-- Hidden fields --}}
                     <input type="hidden" name="duration" value="1">
                     <input type="hidden" name="duration_unit" value="hours">

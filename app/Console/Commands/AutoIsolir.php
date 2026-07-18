@@ -46,7 +46,6 @@ class AutoIsolir extends Command
             }
 
             $customer->update([
-                'original_ppp_profile' => $customer->package?->mikrotik_profile,
                 'status' => 'suspended',
                 'suspended_at' => now(),
             ]);
@@ -91,9 +90,11 @@ class AutoIsolir extends Command
 
     private function applyIsolirToRouter(MikrotikService $mikrotik, Customer $customer): void
     {
-        if ($customer->original_ppp_profile) {
-            $mikrotik->setPppSecretProfile($customer->pppoe_username, 'Profile-Isolir');
+        $currentProfile = $mikrotik->getPppSecretProfile($customer->pppoe_username);
+        if ($currentProfile) {
+            $customer->update(['original_ppp_profile' => $currentProfile]);
         }
+        $mikrotik->setPppSecretProfile($customer->pppoe_username, 'Profile-Isolir');
         $this->addCustomerIpToAddressList($mikrotik, $customer);
         $this->disconnectPppSession($mikrotik, $customer->pppoe_username);
     }

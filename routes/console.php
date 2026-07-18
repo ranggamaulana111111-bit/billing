@@ -14,3 +14,13 @@ Schedule::command('olt:poll')->hourly()->withoutOverlapping();
 Schedule::command('customers:onu-sync')->hourly()->withoutOverlapping();
 Schedule::command('customer:auto-isolir')->dailyAt('00:30')->withoutOverlapping();
 Schedule::command('customer:sync-isolir-ips')->everyFiveMinutes()->withoutOverlapping();
+Schedule::command('incident:check-sla')->hourly();
+Schedule::command('routeros:sync-config')->everyFifteenMinutes()->withoutOverlapping();
+Schedule::command('automation:scheduler')->everyMinute()->withoutOverlapping();
+Schedule::command('automation:worker --once')->everyMinute()->withoutOverlapping();
+
+Schedule::command('network:data-collect')->everyFiveMinutes()->withoutOverlapping();
+Schedule::command('network:data-collect --aggregate')->hourly()->withoutOverlapping();
+Schedule::command('network:data-collect --prune')->everySixHours()->withoutOverlapping();
+
+Schedule::command('qos:optimize')->everyFiveMinutes()->withoutOverlapping();

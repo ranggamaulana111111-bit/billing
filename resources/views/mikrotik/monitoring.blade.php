@@ -1,7 +1,5 @@
 @extends('layouts.app')
-
 @section('title', 'Monitoring Bandwidth')
-
 @section('content')
 <div class="page-header d-flex flex-wrap justify-content-between align-items-center">
     <div>
@@ -14,9 +12,7 @@
         </p>
     </div>
 </div>
-
 @include('mikrotik._router_switcher')
-
 <div class="row g-3 mb-4" id="stats-cards">
     <div class="col-md-3">
         <div class="card shadow-sm border-0">
@@ -51,7 +47,6 @@
         </div>
     </div>
 </div>
-
 <div class="row g-4">
     {{-- HOTSPOT SESSIONS --}}
     <div class="col-lg-6">
@@ -61,9 +56,8 @@
                 <span>Hotspot Aktif (<span id="hotspot-count">0</span>)</span>
             </div>
             <div class="card-body p-0">
-                <div class="table-responsive" style="max-height:400px;overflow-y:auto;">
-                    <table class="table mb-0 table-sm">
-                        <thead>
+                <div class="mon-table-wrap" style="max-height:400px;overflow-y:auto;">
+<table class="table table-hover align-middle mb-0 mon-table">
                             <tr>
                                 <th>User</th>
                                 <th>IP</th>
@@ -71,7 +65,7 @@
                                 <th>Upload</th>
                                 <th>Uptime</th>
                             </tr>
-                        </thead>
+
                         <tbody id="hotspot-tbody">
                             <tr><td colspan="5" class="text-center text-muted py-3">Memuat data...</td></tr>
                         </tbody>
@@ -80,7 +74,6 @@
             </div>
         </div>
     </div>
-
     {{-- PPP ACTIVE --}}
     <div class="col-lg-6">
         <div class="card shadow-sm border-0">
@@ -89,9 +82,8 @@
                 <span>PPPoE Aktif (<span id="ppp-count">0</span>)</span>
             </div>
             <div class="card-body p-0">
-                <div class="table-responsive" style="max-height:400px;overflow-y:auto;">
-                    <table class="table mb-0 table-sm">
-                        <thead>
+                <div class="mon-table-wrap" style="max-height:400px;overflow-y:auto;">
+<table class="table table-hover align-middle mb-0 mon-table">
                             <tr>
                                 <th>User</th>
                                 <th>IP</th>
@@ -99,7 +91,7 @@
                                 <th>Upload</th>
                                 <th>Uptime</th>
                             </tr>
-                        </thead>
+
                         <tbody id="ppp-tbody">
                             <tr><td colspan="5" class="text-center text-muted py-3">Memuat data...</td></tr>
                         </tbody>
@@ -108,7 +100,6 @@
             </div>
         </div>
     </div>
-
     {{-- INTERFACES --}}
     <div class="col-12">
         <div class="card shadow-sm border-0">
@@ -117,9 +108,8 @@
                 <span>Interface</span>
             </div>
             <div class="card-body p-0">
-                <div class="table-responsive" style="max-height:400px;overflow-y:auto;">
-                    <table class="table mb-0 table-sm">
-                        <thead>
+                <div class="mon-table-wrap" style="max-height:400px;overflow-y:auto;">
+<table class="table table-hover align-middle mb-0 mon-table">
                             <tr>
                                 <th>Nama</th>
                                 <th>Type</th>
@@ -129,7 +119,7 @@
                                 <th>Rx Total</th>
                                 <th>Tx Total</th>
                             </tr>
-                        </thead>
+
                         <tbody id="interface-tbody">
                             <tr><td colspan="7" class="text-center text-muted py-3">Memuat data...</td></tr>
                         </tbody>
@@ -139,13 +129,11 @@
         </div>
     </div>
 </div>
-
 {{-- No js fallback --}}
 <noscript>
     <div class="alert alert-warning mt-3">JavaScript diperlukan untuk live update. <a href="{{ url()->current() }}">Refresh manual</a></div>
 </noscript>
 @endsection
-
 @push('scripts')
 <style>
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
@@ -156,17 +144,14 @@
 (function() {
     const $ = (sel, ctx) => (ctx || document).querySelector(sel);
     const $$ = (sel, ctx) => (ctx || document).querySelectorAll(sel);
-
     let prevRx = {};
     let prevTx = {};
-
     function formatBytes(bytes) {
         if (bytes === 0) return '0 B';
         const units = ['B', 'KB', 'MB', 'GB', 'TB'];
         const i = Math.floor(Math.log(bytes) / Math.log(1024));
         return (bytes / Math.pow(1024, i)).toFixed(1) + ' ' + units[i];
     }
-
     function formatRate(bytesPerSec) {
         if (bytesPerSec <= 0) return '0 bps';
         const bits = bytesPerSec * 8;
@@ -175,7 +160,6 @@
         if (bits > 1000) return (bits / 1000).toFixed(1) + ' Kbps';
         return bits.toFixed(0) + ' bps';
     }
-
     function fetchLive() {
         var qs = window.location.search;
         fetch('{{ route("mikrotik.live") }}' + qs)
@@ -187,7 +171,6 @@
                 $('#stat-sessions').textContent = d.hotspot_count + d.ppp_count;
                 $('#hotspot-count').textContent = d.hotspot_count;
                 $('#ppp-count').textContent = d.ppp_count;
-
                 // Hotspot sessions
                 var htbody = $('#hotspot-tbody');
                 if (d.sessions.length) {
@@ -201,7 +184,6 @@
                 } else {
                     htbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-3">Tidak ada sesi aktif</td></tr>';
                 }
-
                 // PPP
                 var ptbody = $('#ppp-tbody');
                 if (d.ppp.length) {
@@ -215,7 +197,6 @@
                 } else {
                     ptbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-3">Tidak ada sesi aktif</td></tr>';
                 }
-
                 // Interfaces with rate
                 var itbody = $('#interface-tbody');
                 var now = Date.now();
@@ -231,7 +212,6 @@
                         }
                         prevRx[i.name] = { val: i.rx_byte, time: now };
                         prevTx[i.name] = { val: i.tx_byte, time: now };
-
                         return '<tr>' +
                             '<td class="fw-medium">' + esc(i.name) + '</td>' +
                             '<td>' + esc(i.type) + '</td>' +
@@ -253,17 +233,14 @@
                 // silently retry
             });
     }
-
     function esc(s) {
         if (s == null) return '-';
         var d = document.createElement('div');
         d.textContent = s;
         return d.innerHTML;
     }
-
     // Initial load
     fetchLive();
-
     // Poll every 3 seconds
     setInterval(fetchLive, 3000);
 })();

@@ -1,7 +1,5 @@
 @extends('layouts.app')
-
 @section('title', 'Backup Database')
-
 @section('content')
 <div class="page-header d-flex flex-wrap justify-content-between align-items-center">
     <div>
@@ -17,14 +15,12 @@
         </form>
     </div>
 </div>
-
 @if(session('success'))
     <div class="alert alert-custom alert-success mb-4">{{ session('success') }}</div>
 @endif
 @if(session('error'))
     <div class="alert alert-custom alert-danger mb-4">{{ session('error') }}</div>
 @endif
-
 <div class="card shadow-sm border-0">
     <div class="card-header bg-white">
         <div class="d-flex align-items-center gap-2">
@@ -34,10 +30,8 @@
         </div>
     </div>
     <div class="card-body p-0">
-        <table class="table mb-0">
-            <thead>
                 <tr><th>Nama File</th><th>Ukuran</th><th>Tanggal</th><th class="text-center">Aksi</th></tr>
-            </thead>
+
             <tbody>
                 @forelse($backups as $b)
                     <tr>
@@ -45,21 +39,31 @@
                         <td>{{ $b['size'] }} MB</td>
                         <td>{{ $b['date'] }}</td>
                         <td class="text-center">
-                            <a href="{{ route('backups.download', $b['name']) }}" class="btn btn-sm btn-outline-primary px-2" title="Download">
-                                <i class="fa-solid fa-download"></i>
-                            </a>
-                            <form method="POST" action="{{ route('backups.destroy', $b['name']) }}" class="d-inline" onsubmit="return confirm('Hapus backup {{ $b['name'] }}?')">
-                                @csrf @method('DELETE')
-                                <button type="submit" class="btn btn-sm btn-outline-danger px-2" title="Hapus">
-                                    <i class="fa-solid fa-trash"></i>
-                                </button>
-                            </form>
+                            <div class="d-flex justify-content-center gap-1">
+                                <a href="{{ route('backups.download', $b['name']) }}" class="btn btn-sm btn-outline-primary px-2" title="Download">
+                                    <i class="fa-solid fa-download"></i>
+                                </a>
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary px-2 dropdown-toggle" data-bs-toggle="dropdown" style="font-size:0.7rem;"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+                                    <ul class="dropdown-menu dropdown-menu-end" style="font-size:0.8rem;min-width:160px;">
+                                        <li><a class="dropdown-item" href="{{ route('backups.download', $b['name']) }}"><i class="fa-solid fa-download me-2 text-primary"></i>Download</a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <form method="POST" action="{{ route('backups.destroy', $b['name']) }}" onsubmit="return confirm('Hapus backup {{ $b['name'] }}?')">
+                                                @csrf @method('DELETE')
+                                                <button type="submit" class="dropdown-item text-danger"><i class="fa-solid fa-trash me-2"></i>Hapus</button>
+                                            </form>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
                         </td>
                     </tr>
                 @empty
                     <tr><td colspan="4" class="text-center py-4 text-muted">Belum ada backup</td></tr>
                 @endforelse
             </tbody>
+<table class="table table-hover align-middle mb-0 mon-table">
         </table>
     </div>
 </div>

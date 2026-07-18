@@ -3,13 +3,13 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Faktur {{ $invoice->invoice_code }}</title>
+    <title>Struk {{ $invoice->invoice_display }}</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Courier New', 'Consolas', 'Lucida Console', monospace;
-            font-size: 8px;
-            line-height: 1.2;
+            font-size: 7.5px;
+            line-height: 1.25;
             color: #000;
             width: 44mm;
             margin: 0;
@@ -18,122 +18,34 @@
             print-color-adjust: exact;
             text-shadow: 0 0 0 #000;
         }
-        .header {
-            text-align: center;
-            margin-bottom: 3px;
-            padding-bottom: 3px;
-            border-bottom: 4px solid #000;
-        }
-        .header .company {
-            font-size: 12px;
-            font-weight: 900;
-            text-transform: uppercase;
-        }
-        .header .sub {
-            font-size: 8px;
-            font-weight: 900;
-        }
-        .header .title {
-            font-size: 13px;
-            font-weight: 900;
-            margin-top: 1px;
-        }
-        .status {
-            text-align: center;
-            font-size: 10px;
-            font-weight: 900;
+        .line { border-top: 2px solid #000; margin: 2px 0; }
+        .line-thick { border-top: 3px solid #000; margin: 3px 0; }
+        .line-thin { border-top: 1px solid #000; margin: 2px 0; }
+        .center { text-align: center; }
+        .bold { font-weight: 900; }
+        .title-section { font-size: 8px; text-align: center; margin: 2px 0; }
+        .company-name { font-size: 10px; text-align: center; }
+        .company-sub { font-size: 6.5px; text-align: center; }
+        .company-logo { text-align: center; margin-bottom: 2px; }
+        .company-logo img { max-height: 20mm; width: auto; object-fit: contain; }
+        .info td { padding: 1px 0; vertical-align: top; font-weight: 900; }
+        .info td.lbl { width: 32%; }
+        .info td.sep { width: 2%; text-align: center; }
+        .info td.val { width: 66%; word-break: break-word; }
+        .costs td { padding: 1px 0; font-weight: 900; }
+        .costs td.lbl { width: 60%; }
+        .costs td.val { width: 40%; text-align: right; }
+        .total-row td {
             padding: 2px 0;
-            margin-bottom: 3px;
-            border-bottom: 4px solid #000;
-        }
-        .info {
-            width: 100%;
-            margin-bottom: 3px;
-            font-size: 8px;
+            font-size: 9px;
             font-weight: 900;
+            border-top: 2px solid #000;
+            border-bottom: 2px solid #000;
         }
-        .info td {
-            padding: 1px 0;
-            vertical-align: top;
-            font-weight: 900;
-        }
-        .info td.label {
-            width: 24%;
-        }
-        .info td.sep {
-            width: 2%;
-            text-align: center;
-        }
-        .info td.value {
-            width: 74%;
-            word-break: break-word;
-        }
-        .divider {
-            border-top: 4px solid #000;
-            margin: 4px 0;
-        }
-        .divider-double {
-            border-top: 5px double #000;
-            margin: 4px 0;
-        }
-        table.items {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 8px;
-            margin-bottom: 3px;
-        }
-        table.items th {
-            border-bottom: 4px solid #000;
-            padding: 1px 0;
-            text-align: left;
-            font-size: 8px;
-            text-transform: uppercase;
-            font-weight: 900;
-        }
-        table.items th.r { text-align: right; }
-        table.items td {
-            padding: 1px 0;
-            vertical-align: top;
-            font-weight: 900;
-        }
-        table.items td.r { text-align: right; }
-        .totals {
-            width: 100%;
-            font-size: 8px;
-        }
-        .totals td { padding: 1px 0; font-weight: 900; }
-        .totals td.r { text-align: right; font-weight: 900; }
-        .totals .grand td {
-            font-size: 11px;
-            font-weight: 900;
-            padding-top: 2px;
-        }
-        .bank-info {
-            font-size: 8px;
-            font-weight: 900;
-            margin-top: 4px;
-            padding: 3px;
-            border: 4px solid #000;
-            text-align: center;
-            word-break: break-word;
-        }
-        .footer {
-            text-align: center;
-            font-size: 8px;
-            font-weight: 900;
-            margin-top: 4px;
-            padding-top: 4px;
-            border-top: 4px solid #000;
-        }
-        .paid-stamp {
-            text-align: center;
-            font-size: 12px;
-            font-weight: 900;
-            margin: 4px 0;
-            padding: 3px;
-            border: 4px solid #000;
-            width: 100%;
-        }
+        .total-row td.lbl { width: 60%; }
+        .total-row td.val { width: 40%; text-align: right; }
+        .footer { text-align: center; font-size: 6.5px; margin-top: 3px; }
+        .section-title { font-size: 7.5px; font-weight: 900; margin: 3px 0 1px; }
         .action-bar {
             text-align: center;
             margin-top: 6px;
@@ -158,117 +70,112 @@
     </style>
 </head>
 <body>
-    <div class="header">
-        <div class="company">{{ $settings['company_name'] ?? 'ALKONEK' }}</div>
-        <div class="sub">{{ $settings['company_address'] ?? 'Internet Service Provider' }}</div>
-        <div class="sub">{{ $settings['company_phone'] ?? '' }}</div>
-        <div class="title">F A K T U R</div>
-        <div class="sub">No. {{ $invoice->invoice_code }}</div>
+    <div class="company-logo">
+        @if(!empty($settings['company_logo']))
+            <img src="{{ asset('storage/' . $settings['company_logo']) }}" alt="Logo">
+        @endif
     </div>
+    <div class="company-name bold">{{ $settings['company_name'] ?? 'PT. ALKONEK NETWORK ACCESS' }}</div>
+    <div class="company-sub">{{ $settings['company_address'] ?? 'Kp. Malangnengah Desa Bendungan, Banjarsari, Lebak-Banten, 42355' }}</div>
+    <div class="company-sub">Telp: {{ $settings['company_phone'] ?? '089531559066' }} | Email: {{ $settings['company_email'] ?? 'alkoneknetworkaccess@gmail.com' }}</div>
 
-    @if($invoice->payment_status === 'paid')
-        <div class="paid-stamp">LUNAS</div>
-    @else
-        <div class="status belum">STATUS: BELUM DIBAYAR</div>
-    @endif
+    <div class="section-title center bold">BUKTI PEMBAYARAN TAGIHAN INTERNET</div>
+    <div class="line-thick"></div>
 
     <table class="info">
         <tr>
-            <td class="label">Kepada</td>
+            <td class="lbl">No. Struk</td>
             <td class="sep">:</td>
-            <td class="value">{{ $invoice->customer->name }}</td>
-        </tr>
-        @if($invoice->customer->location)
-        <tr>
-            <td class="label">Alamat</td>
-            <td class="sep">:</td>
-            <td class="value">{{ $invoice->customer->location }}</td>
-        </tr>
-        @endif
-        @if($invoice->customer->phone)
-        <tr>
-            <td class="label">Telepon</td>
-            <td class="sep">:</td>
-            <td class="value">{{ $invoice->customer->phone }}</td>
-        </tr>
-        @endif
-        <tr>
-            <td class="label">Tanggal</td>
-            <td class="sep">:</td>
-            <td class="value">{{ $invoice->created_at->format('d/m/Y') }}</td>
+            <td class="val">{{ $invoice->invoice_display }}</td>
         </tr>
         <tr>
-            <td class="label">Periode</td>
+            <td class="lbl">Tanggal Bayar</td>
             <td class="sep">:</td>
-            <td class="value">{{ $invoice->billing_period ? \Carbon\Carbon::createFromFormat('Y-m', $invoice->billing_period)->format('M Y') : $invoice->created_at->format('M Y') }}</td>
+            <td class="val">
+                @if($invoice->paid_at)
+                    {{ $invoice->paid_at->format('d') }} {{ \Carbon\Carbon::parse($invoice->paid_at)->translatedFormat('F') }} {{ $invoice->paid_at->format('Y') }}, {{ $invoice->paid_at->format('H:i') }} WIB
+                @else
+                    -
+                @endif
+            </td>
         </tr>
         <tr>
-            <td class="label">Jatuh Tempo</td>
+            <td class="lbl">Metode Bayar</td>
             <td class="sep">:</td>
-            <td class="value">{{ $invoice->customer->due_date ? \Carbon\Carbon::parse($invoice->customer->due_date)->format('d/m/Y') : '-' }}</td>
+            <td class="val">{{ $invoice->payment_method ? strtoupper($invoice->payment_method) : '-' }}</td>
         </tr>
-        @if($invoice->payment_method)
         <tr>
-            <td class="label">Pembayaran</td>
+            <td class="lbl">Status</td>
             <td class="sep">:</td>
-            <td class="value">{{ strtoupper($invoice->payment_method) }}</td>
-        </tr>
-        @endif
-        @if($invoice->paid_at)
-        <tr>
-            <td class="label">Tgl. Bayar</td>
-            <td class="sep">:</td>
-            <td class="value">{{ $invoice->paid_at->format('d/m/Y H:i') }}</td>
-        </tr>
-        @endif
-    </table>
-
-    <div class="divider"></div>
-
-    <table class="items">
-        <thead>
-            <tr>
-                <th>Layanan</th>
-                <th class="r">Jumlah</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>
-                    {{ $invoice->customer->package->name ?? 'Internet' }}
-                    ({{ $invoice->customer->package->speed ?? '-' }} Mbps)
-                    <br>
-                    <span style="font-size:9px;">Periode {{ $invoice->billing_period ? \Carbon\Carbon::createFromFormat('Y-m', $invoice->billing_period)->format('M Y') : $invoice->created_at->format('M Y') }}</span>
-                    @if($invoice->customer->odp)
-                        <br><span style="font-size:9px;">ODP: {{ $invoice->customer->odp->name }}</span>
-                    @endif
-                </td>
-                <td class="r">Rp {{ number_format($invoice->amount, 0, ',', '.') }}</td>
-            </tr>
-        </tbody>
-    </table>
-
-    <div class="divider-double"></div>
-
-    <table class="totals">
-        <tr class="grand">
-            <td>TOTAL</td>
-            <td class="r">Rp {{ number_format($invoice->amount, 0, ',', '.') }}</td>
+            <td class="val bold">{{ $invoice->payment_status === 'paid' ? 'LUNAS' : 'BELUM DIBAYAR' }}</td>
         </tr>
     </table>
 
-    @if($invoice->payment_status !== 'paid')
-    <div class="bank-info">
-        Pembayaran via Transfer:<br>
-        <strong>{{ $settings['bank_name'] ?? 'Bank BCA' }}</strong><br>
-        {{ $settings['bank_account'] ?? '1234567890' }} &middot; a.n. {{ $settings['bank_holder'] ?? ($settings['company_name'] ?? 'ALKONEK') }}
-    </div>
-    @endif
+    <div class="line"></div>
+    <div class="section-title bold">DATA PELANGGAN</div>
+    <div class="line"></div>
 
+    <table class="info">
+        <tr>
+            <td class="lbl">Nama Pelanggan</td>
+            <td class="sep">:</td>
+            <td class="val">{{ $invoice->customer->name }}</td>
+        </tr>
+        <tr>
+            <td class="lbl">ID Pelanggan</td>
+            <td class="sep">:</td>
+            <td class="val bold">{{ $invoice->customer->customer_code }}</td>
+        </tr>
+        <tr>
+            <td class="lbl">Paket Berlangganan</td>
+            <td class="sep">:</td>
+            <td class="val">{{ $invoice->customer->package->name ?? '-' }} ({{ $invoice->customer->package->speed ?? '-' }} Mbps)</td>
+        </tr>
+        <tr>
+            <td class="lbl">Periode Tagihan</td>
+            <td class="sep">:</td>
+            <td class="val">{{ $invoice->billing_period ? \Carbon\Carbon::createFromFormat('Y-m', $invoice->billing_period)->format('M Y') : $invoice->created_at->format('M Y') }}</td>
+        </tr>
+    </table>
+
+    <div class="line"></div>
+    <div class="section-title bold">RINCIAN BIAYA</div>
+    <div class="line"></div>
+
+    @php
+        $basePrice = $invoice->amount;
+        $routerFee = 0;
+        $ppn = 0;
+    @endphp
+
+    <table class="costs" style="width:100%;">
+        <tr>
+            <td class="lbl">1. Berlangganan Paket</td>
+            <td class="val">Rp {{ number_format($basePrice, 0, ',', '.') }}</td>
+        </tr>
+        <tr>
+            <td class="lbl">2. Biaya Sewa Router</td>
+            <td class="val">Rp {{ number_format($routerFee, 0, ',', '.') }}</td>
+        </tr>
+        <tr>
+            <td class="lbl">3. PPN 11%</td>
+            <td class="val">Rp {{ number_format($ppn, 0, ',', '.') }}</td>
+        </tr>
+    </table>
+    <div class="line-thin"></div>
+    <table class="costs" style="width:100%;">
+        <tr class="total-row">
+            <td class="lbl bold">TOTAL BAYAR</td>
+            <td class="val bold">Rp {{ number_format($basePrice + $routerFee + $ppn, 0, ',', '.') }}</td>
+        </tr>
+    </table>
+
+    <div class="line-thick"></div>
     <div class="footer">
-        {{ $settings['invoice_footer'] ?? 'Terima kasih atas kepercayaan Anda.' }}<br>
-        {{ $settings['company_name'] ?? 'ALKONEK' }} &middot; Billing System
+        Terima kasih telah menggunakan layanan kami.<br>
+        Simpan struk ini sebagai bukti pembayaran yang sah.
     </div>
+    <div class="line-thick"></div>
 
     <div class="action-bar no-print">
         <button onclick="window.close()">TUTUP</button>

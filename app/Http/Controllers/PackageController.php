@@ -3,9 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\ActivityLog;
-use App\Models\Customer;
-use App\Models\Invoice;
 use App\Models\Package;
+use App\Services\Billing\BillingService;
+use App\Services\MikrotikService;
 use Illuminate\Http\Request;
 
 class PackageController extends Controller
@@ -29,7 +29,13 @@ class PackageController extends Controller
 
         $packages = $query->paginate(15)->withQueryString();
 
-        return view('packages.index', compact('packages'));
+        $mikrotikProfiles = [];
+        $mikrotik = new MikrotikService;
+        if ($mikrotik->isConfigured()) {
+            $mikrotikProfiles = $mikrotik->getPppProfiles();
+        }
+
+        return view('packages.index', compact('packages', 'mikrotikProfiles'));
     }
 
     public function store(Request $request)
@@ -41,17 +47,32 @@ class PackageController extends Controller
             'price' => 'required|numeric|min:0',
             'billing_cycle' => 'nullable|in:daily,weekly,monthly,yearly',
             'mikrotik_profile' => 'nullable|string|max:255',
+            'mikrotik_profile_manual' => 'nullable|string|max:255',
             'is_active' => 'nullable|boolean',
         ]);
+
+        if (($validated['mikrotik_profile'] ?? '') === '__custom__') {
+            $validated['mikrotik_profile'] = $validated['mikrotik_profile_manual'] ?? null;
+        }
+        unset($validated['mikrotik_profile_manual']);
 
         $validated['is_active'] = $request->has('is_active') ? $request->boolean('is_active') : true;
         $validated['billing_cycle'] = $validated['billing_cycle'] ?? 'monthly';
 
         Package::create($validated);
 
+        $mikrotikMessage = '';
+        if (! empty($validated['mikrotik_profile'])) {
+            $mikrotik = new MikrotikService;
+            if ($mikrotik->isConfigured()) {
+                $result = $mikrotik->addPppProfile($validated['mikrotik_profile']);
+                $mikrotikMessage = $result['success'] ? '' : ' (Profil MikroTik gagal: '.$result['message'].')';
+            }
+        }
+
         ActivityLog::log('Tambah Paket', 'Menambahkan paket: '.$validated['name']);
 
-        return redirect()->route('packages.index')->with('success', 'Paket berhasil ditambahkan.');
+        return redirect()->route('packages.index')->with('success', 'Paket berhasil ditambahkan.'.$mikrotikMessage);
     }
 
     public function update(Request $request, Package $package)
@@ -63,17 +84,44 @@ class PackageController extends Controller
             'price' => 'required|numeric|min:0',
             'billing_cycle' => 'nullable|in:daily,weekly,monthly,yearly',
             'mikrotik_profile' => 'nullable|string|max:255',
+            'mikrotik_profile_manual' => 'nullable|string|max:255',
             'is_active' => 'nullable|boolean',
         ]);
+
+        if (($validated['mikrotik_profile'] ?? '') === '__custom__') {
+            $validated['mikrotik_profile'] = $validated['mikrotik_profile_manual'] ?? null;
+        }
+        unset($validated['mikrotik_profile_manual']);
 
         $validated['is_active'] = $request->has('is_active') ? $request->boolean('is_active') : $package->is_active;
         $validated['billing_cycle'] = $validated['billing_cycle'] ?? 'monthly';
 
+        $oldProfile = $package->mikrotik_profile;
         $package->update($validated);
+
+        $mikrotikMessage = '';
+        $mikrotik = new MikrotikService;
+        if ($mikrotik->isConfigured()) {
+            $newProfile = $validated['mikrotik_profile'] ?? null;
+
+            if ($oldProfile && $oldProfile !== $newProfile) {
+                $profiles = $mikrotik->getPppProfiles();
+                $match = collect($profiles)->firstWhere('name', $oldProfile);
+                if ($match && isset($match['.id'])) {
+                    $result = $mikrotik->removePppProfile($match['.id']);
+                    $mikrotikMessage .= $result['success'] ? '' : ' (Hapus profil lama gagal: '.$result['message'].')';
+                }
+            }
+
+            if ($newProfile && $newProfile !== $oldProfile) {
+                $result = $mikrotik->addPppProfile($newProfile);
+                $mikrotikMessage .= $result['success'] ? '' : ' (Tambah profil baru gagal: '.$result['message'].')';
+            }
+        }
 
         ActivityLog::log('Ubah Paket', 'Mengubah paket: '.$package->name);
 
-        return redirect()->route('packages.index')->with('success', 'Paket berhasil diperbarui.');
+        return redirect()->route('packages.index')->with('success', 'Paket berhasil diperbarui.'.$mikrotikMessage);
     }
 
     public function destroy(Package $package)
@@ -85,50 +133,30 @@ class PackageController extends Controller
         }
 
         $name = $package->name;
+        $profileName = $package->mikrotik_profile;
         $package->delete();
+
+        $mikrotikMessage = '';
+        if ($profileName) {
+            $mikrotik = new MikrotikService;
+            if ($mikrotik->isConfigured()) {
+                $profiles = $mikrotik->getPppProfiles();
+                $match = collect($profiles)->firstWhere('name', $profileName);
+                if ($match && isset($match['.id'])) {
+                    $result = $mikrotik->removePppProfile($match['.id']);
+                    $mikrotikMessage = $result['success'] ? '' : ' (Hapus profil MikroTik gagal: '.$result['message'].')';
+                }
+            }
+        }
 
         ActivityLog::log('Hapus Paket', 'Menghapus paket: '.$name);
 
-        return redirect()->route('packages.index')->with('success', 'Paket '.$name.' berhasil dihapus.');
+        return redirect()->route('packages.index')->with('success', 'Paket '.$name.' berhasil dihapus.'.$mikrotikMessage);
     }
 
-    public function massBill()
+    public function massBill(BillingService $billing)
     {
-        $customers = Customer::with('package')->where('status', 'active')->get();
-        $generated = 0;
-
-        foreach ($customers as $customer) {
-            if (! $customer->package) {
-                continue;
-            }
-
-            $billingPeriod = now()->format('Y-m');
-
-            $exists = Invoice::where('customer_id', $customer->id)
-                ->where('billing_period', $billingPeriod)
-                ->exists();
-
-            if ($exists) {
-                continue;
-            }
-
-            $invoiceCode = 'INV-'.str_pad($customer->id, 4, '0', STR_PAD_LEFT).'-ALK-'.now()->format('m').'-PRDT';
-            $counter = 1;
-            while (Invoice::where('invoice_code', $invoiceCode)->exists()) {
-                $invoiceCode = 'INV-'.str_pad($customer->id, 4, '0', STR_PAD_LEFT).'-ALK-'.now()->format('m').'-PRDT-'.$counter;
-                $counter++;
-            }
-
-            Invoice::create([
-                'invoice_code' => $invoiceCode,
-                'customer_id' => $customer->id,
-                'amount' => $customer->package->price,
-                'payment_status' => 'unpaid',
-                'billing_period' => $billingPeriod,
-            ]);
-
-            $generated++;
-        }
+        $generated = $billing->generateMonthlyInvoices();
 
         ActivityLog::log('Tagih Massal', "Generate {$generated} tagihan untuk semua pelanggan aktif");
 

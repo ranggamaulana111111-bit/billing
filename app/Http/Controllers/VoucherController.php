@@ -309,6 +309,8 @@ class VoucherController extends Controller
         $vouchers = Voucher::whereIn('id', $ids)->get();
         $companyName = Setting::get('company_name', 'ALKONEK');
 
+        ActivityLog::log('Cetak Batch Voucher', 'Cetak batch '.$vouchers->count().' voucher');
+
         return view('vouchers.print-batch', compact('vouchers', 'companyName'));
     }
 
@@ -348,10 +350,11 @@ class VoucherController extends Controller
 
     public function syncMikrotik()
     {
-        $totals = ['synced' => 0, 'imported' => 0, 'expiredVouchers' => 0];
+        $totals = ['synced' => 0, 'imported' => 0, 'expiredVouchers' => 0, 'restored' => 0];
+        $errors = [];
 
         $routers = MikrotikRouter::where('is_active', true)
-            ->whereIn('type', ['general'])
+            ->whereIn('type', ['general', 'pppoe'])
             ->get();
 
         if ($routers->isEmpty()) {
@@ -361,6 +364,9 @@ class VoucherController extends Controller
             }
             $result = $this->doSync($mikrotik);
             $totals = array_merge($totals, $result);
+            if ($mikrotik->getLastError()) {
+                $errors[] = $mikrotik->getLastError();
+            }
         } else {
             foreach ($routers as $router) {
                 $mikrotik = new MikrotikService($router);
@@ -368,11 +374,28 @@ class VoucherController extends Controller
                 $totals['synced'] += $result['synced'];
                 $totals['imported'] += $result['imported'];
                 $totals['expiredVouchers'] += $result['expiredVouchers'];
+                $totals['restored'] += $result['restored'] ?? 0;
+                if ($mikrotik->getLastError()) {
+                    $errors[] = "[$router->name] ".$mikrotik->getLastError();
+                }
             }
         }
 
         $msg = "Sinkronasi selesai. Import {$totals['imported']} dari MikroTik, sync {$totals['synced']}, expired {$totals['expiredVouchers']}.";
+        if (! empty($totals['restored'])) {
+            $msg .= " {$totals['restored']} voucher dipulihkan ke aktif.";
+        }
         ActivityLog::log('Sync MikroTik', $msg);
+
+        if (! empty($errors)) {
+            $msg .= ' Error: '.implode('; ', $errors);
+        }
+
+        if ($totals['synced'] === 0 && $totals['imported'] === 0 && ! empty($errors)) {
+            return back()->with('error', $msg);
+        }
+
+        return back()->with('success', $msg);
 
         return back()->with('success', $msg);
     }
@@ -465,6 +488,9 @@ class VoucherController extends Controller
         $mikrotikUsers = $mikrotik->getHotspotUsers();
         $localUsernames = Voucher::pluck('username')->map(fn ($v) => strtolower($v))->toArray();
 
+        $activeSessions = $mikrotik->getActiveHotspotSessions();
+        $activeUsernames = array_map(fn ($s) => strtolower($s['user'] ?? ''), $activeSessions);
+
         foreach ($mikrotikUsers as $user) {
             $username = $user['name'] ?? null;
             if (! $username) {
@@ -472,13 +498,15 @@ class VoucherController extends Controller
             }
 
             if (! in_array(strtolower($username), $localUsernames)) {
+                $hasSession = in_array(strtolower($username), $activeUsernames);
+
                 Voucher::create([
                     'username' => $username,
                     'password' => $user['password'] ?? 'imported',
                     'duration_hours' => 0,
                     'price' => 0,
-                    'status' => 'used',
-                    'used_at' => now(),
+                    'status' => $hasSession ? 'used' : 'active',
+                    'used_at' => $hasSession ? now() : null,
                 ]);
                 $imported++;
             }
@@ -523,9 +551,27 @@ class VoucherController extends Controller
             ->where('expires_at', '<', now())
             ->update(['status' => 'expired']);
 
-        ActivityLog::log('Sync MikroTik', "Import: {$imported} dari MikroTik, Sync: {$synced} voucher, {$expiredVouchers} kadaluarsa");
+        $importedUsed = Voucher::where('status', 'used')
+            ->where('duration_hours', 0)
+            ->where('price', 0)
+            ->whereNull('voucher_profile_id')
+            ->get();
 
-        return compact('imported', 'synced', 'expiredVouchers');
+        $restored = 0;
+        foreach ($importedUsed as $voucher) {
+            $sessions = $mikrotik->getUserActiveSessions($voucher->username);
+            if (empty($sessions)) {
+                $user = $mikrotik->getUserByUsername($voucher->username);
+                if ($user) {
+                    $voucher->update(['status' => 'active', 'used_at' => null]);
+                    $restored++;
+                }
+            }
+        }
+
+        ActivityLog::log('Sync MikroTik', "Import: {$imported} dari MikroTik, Sync: {$synced} voucher, {$expiredVouchers} kadaluarsa, {$restored} dipulihkan ke aktif");
+
+        return compact('imported', 'synced', 'expiredVouchers', 'restored');
     }
 
     protected function parseWdhm(string $input): int

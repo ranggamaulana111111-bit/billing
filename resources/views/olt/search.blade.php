@@ -1,7 +1,5 @@
 @extends('layouts.app')
-
 @section('title', 'Cari ONU')
-
 @section('content')
 <div class="page-header d-flex flex-wrap justify-content-between align-items-center">
     <div>
@@ -14,14 +12,12 @@
         </a>
     </div>
 </div>
-
 @if(session('success'))
     <div class="alert alert-custom alert-success mb-4">{{ session('success') }}</div>
 @endif
 @if(session('error'))
     <div class="alert alert-custom alert-danger mb-4">{{ session('error') }}</div>
 @endif
-
 {{-- FILTER --}}
 <div class="card mb-4">
     <div class="card-body">
@@ -55,7 +51,6 @@
         </form>
     </div>
 </div>
-
 {{-- RESULTS --}}
 <div class="card">
     <div class="card-header bg-white d-flex justify-content-between align-items-center">
@@ -64,9 +59,8 @@
     </div>
     <div class="card-body p-0">
         @if($onus->count() > 0)
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead>
+        <div class="mon-table-wrap">
+<table class="table table-hover align-middle mb-0 mon-table">
                     <tr>
                         <th>OLT</th>
                         <th>Port</th>
@@ -78,7 +72,7 @@
                         <th>Pelanggan</th>
                         <th class="text-end">Aksi</th>
                     </tr>
-                </thead>
+
                 <tbody>
                     @foreach($onus as $onu)
                     <tr>

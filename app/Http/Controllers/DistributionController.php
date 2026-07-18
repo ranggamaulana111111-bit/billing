@@ -41,6 +41,7 @@ class DistributionController extends Controller
         $totalOdps = $newOdps->count();
         $fullOdps = $newOdps->filter(fn ($o) => $o->availablePortsCount() === 0)->count();
         $downOdps = $newOdps->filter(fn ($o) => $o->kondisi_jalur === 'DOWN_LINK_FAILURE')->count();
+        $gangguanOdps = $newOdps->filter(fn ($o) => $o->kondisi_jalur === 'GANGGUAN')->count();
 
         $chartLabels = $newOdps->pluck('nama_odp');
         $chartUsed = $newOdps->map(fn ($o) => $o->usedPortsCount());
@@ -48,7 +49,7 @@ class DistributionController extends Controller
 
         return view('distribution.index', compact(
             'odps', 'routes', 'odcs', 'newOdps', 'newOdpsJson',
-            'totalPorts', 'usedPorts', 'availablePorts', 'totalOdps', 'fullOdps', 'downOdps',
+            'totalPorts', 'usedPorts', 'availablePorts', 'totalOdps', 'fullOdps', 'downOdps', 'gangguanOdps',
             'chartLabels', 'chartUsed', 'chartCapacity'
         ));
     }
@@ -244,6 +245,24 @@ class DistributionController extends Controller
         ActivityLog::log('Hapus Titik ODP', 'Menghapus titik ODP: '.$name);
 
         return back()->with('success', 'Titik ODP berhasil dihapus.');
+    }
+
+    public function destroyOdp(Odp $odp)
+    {
+        $usedCount = $odp->ports()->where('status', 'used')->count();
+        if ($usedCount > 0) {
+            ActivityLog::log('Gagal Hapus ODP', 'ODP '.$odp->nama_odp.' masih memiliki '.$usedCount.' port terpakai');
+
+            return back()->with('error', 'ODP tidak bisa dihapus karena masih memiliki port yang terpakai.');
+        }
+
+        $name = $odp->nama_odp;
+        $odp->ports()->delete();
+        $odp->delete();
+
+        ActivityLog::log('Hapus ODP', 'Menghapus ODP: '.$name);
+
+        return redirect()->route('distribution.index')->with('success', 'ODP berhasil dihapus.');
     }
 
     private function parseCoordinates(?string $coordinates): array

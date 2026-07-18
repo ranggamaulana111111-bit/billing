@@ -4,9 +4,9 @@
 
 - **Framework:** Laravel 12 (PHP ^8.2)
 - **Database:** MySQL via Laragon (local `.env` uses `DB_CONNECTION=mysql`), Aiven MySQL (Vercel prod)
-- **Frontend:** Bootstrap 5.3 + custom CSS (~1570 baris `resources/css/app.css`) + Tailwind CSS v4 (import saja, tidak aktif) + Vite via `laravel-vite-plugin`
+- **Frontend:** Bootstrap 5.3 (CDN jsDelivr) + custom CSS (~5120 baris `resources/css/app.css`) + Tailwind CSS v4 (import saja, tidak aktif) + Vite via `laravel-vite-plugin`
 - **CSS Framework Utama:** **Bootstrap 5.3** (bukan Tailwind) — custom design system dengan CSS custom properties, gradient, glassmorphism. Tailwind di-import tapi tidak digunakan.
-- **Asset JS:** Chart.js (via NPM + Vite), Leaflet 1.9.4 + MarkerCluster, Alpine.js, Bootstrap JS
+- **Asset JS:** Chart.js & Leaflet di-load via CDN (`defer`) hanya di halaman perlu (`@push('scripts')`); Bootstrap JS via `resources/js/app.js`. Build Vite hanya `~103KB CSS + ~122KB JS`.
 - **QR Code:** `simplesoftwareio/simple-qrcode` v4.2 (inline SVG, no external API)
 - **WA Gateway:** Fonnte (via `App\Services\FonnteService`) — phone number auto-cleaned (strip `0`/`62` prefix), response validated & logged
 - **Code style:** Laravel Pint (default rules, no local `pint.json`)
@@ -62,7 +62,7 @@ C:\laragon\bin\php\php-8.3.31-Win32-vs16-x64 (1)\php.exe artisan {command}
 
 ## Architecture
 
-**ALKONEK (PT Alkonek Network Access)** adalah sistem billing ISP lengkap dengan ~80 file PHP di `app/`, 46 migrations, 28 tabel database, dan ~151 route.
+**ALKONEK (PT Alkonek Network Access)** adalah sistem billing ISP lengkap dengan ~168 file PHP di `app/`, 86 migrations, dan ~460 route terdaftar (termasuk auth/framework).
 
 ### Multi-Tenancy
 - **`BelongsToTenant` trait** (bukan `BelongsToUser`) — global scope `tenant_id` pada semua model utama
@@ -75,6 +75,7 @@ C:\laragon\bin\php\php-8.3.31-Win32-vs16-x64 (1)\php.exe artisan {command}
 - Decorator Pattern untuk Jump Host SSH tunnel & MikroTik SSH Proxy
 - Event-driven API untuk sinkronasi voucher MikroTik (`POST /api/v1/mikrotik/hotspot-login`)
 - Isolir subsystem: auto-suspend + firewall integration MikroTik
+- **Live Network Topology** (`app/Services/Monitoring/FiberTopologyService.php`) — `getTopologyData()` bangun graf `OLT→ODC→ODP→ONU` langsung dari entitas Distribution (`Odc`/`Odp` via `odc_id`, `Odc.odps()`, `OdpPort.customer_id`), bukan `OdcPort.connected_to_odp_id`. Route `/onu-health/topology/graph`.
 
 ### WA Gateway (Fonnte)
 - **`FonnteService`** — centralized service di `app/Services/FonnteService.php`
@@ -114,22 +115,22 @@ Tiga command + satu controller untuk auto-isolasi pelanggan telat bayar:
 
 ```
 app/
-├── Console/Commands/       # 8 commands (billing, olt, voucher, isolir, dll)
+├── Console/Commands/       # 18 commands (billing, olt, voucher, isolir, dll)
 ├── Http/
-│   ├── Controllers/        # 34 files (Auth, API, Backup, Customer, Dashboard, dll)
+│   ├── Controllers/        # 54 files (Auth, API, Backup, Customer, Dashboard, dll)
 │   ├── Controllers/Api/    # OdpruteController, MikrotikHotspotController
 │   └── Middleware/          # IsAdmin, IsTeknisiOrAdmin
 ├── Jobs/                   # PollOltJob, SendWhatsAppNotification
 ├── Mail/                   # InvoiceReminder, PaymentConfirmation
-├── Models/                 # 19 models + 2 traits (BelongsToTenant, BelongsToUser legacy)
-└── Services/               # FonnteService, MidtransService, MikrotikService, Olt/ (drivers, factory, SSH tunnel)
+├── Models/                 # 38 models + 2 traits (BelongsToTenant, BelongsToUser legacy)
+└── Services/               # FonnteService, MidtransService, MikrotikService, Olt/ (drivers, factory, SSH tunnel), Monitoring/ (FiberTopologyService)
 database/
-├── migrations/             # 46 files (28 tables)
+├── migrations/             # 86 files
 ├── factories/              # 5 factories
 └── seeders/                # 5 seeders (DatabaseSeeder, BillingSeeder, SettingSeeder, dll)
-resources/views/            # 58 blade files + 1 orphan backup
+resources/views/            # 159 blade files
 routes/
-├── web.php                 # ~148 routes
+├── web.php                 # ~460 routes terdaftar (incl. auth/framework)
 ├── api.php                 # POST /api/v1/mikrotik/hotspot-login
 └── console.php             # 5 scheduled commands
 ```

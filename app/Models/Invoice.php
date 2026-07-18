@@ -10,7 +10,9 @@ class Invoice extends Model
 {
     use BelongsToTenant, HasFactory;
 
-    protected $fillable = ['tenant_id', 'invoice_code', 'customer_id', 'amount', 'payment_status', 'billing_period', 'paid_at', 'payment_method', 'midtrans_order_id'];
+    protected $fillable = ['tenant_id', 'invoice_code', 'invoice_number', 'customer_id', 'amount', 'payment_status',
+        'billing_period', 'period', 'status', 'paid_at', 'payment_method', 'midtrans_order_id',
+    ];
 
     protected function casts(): array
     {
@@ -28,5 +30,33 @@ class Invoice extends Model
     public function payments()
     {
         return $this->hasMany(Payment::class);
+    }
+
+    public function getInvoiceDisplayAttribute(): string
+    {
+        return $this->invoice_number ?? $this->invoice_code;
+    }
+
+    public function getIsPaidAttribute(): bool
+    {
+        return $this->payment_status === 'paid';
+    }
+
+    public function getIsOverdueAttribute(): bool
+    {
+        if ($this->payment_status === 'paid') {
+            return false;
+        }
+
+        $dueDay = $this->customer?->due_date ? (int) $this->customer->due_date->format('d') : null;
+
+        return $dueDay !== null && now()->day > $dueDay;
+    }
+
+    public function getDaysUntilDueAttribute(): ?int
+    {
+        $dueDay = $this->customer?->due_date ? (int) $this->customer->due_date->format('d') : null;
+
+        return $dueDay !== null ? $dueDay - (int) now()->format('d') : null;
     }
 }

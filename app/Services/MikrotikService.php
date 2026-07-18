@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\MikrotikRouter;
 use App\Models\Setting;
-use App\Services\MikrotikSshService;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -22,6 +21,8 @@ class MikrotikService
     protected ?string $hotspotServer;
 
     protected ?MikrotikSshService $ssh = null;
+
+    protected ?string $lastError = null;
 
     public function __construct(MikrotikRouter|int|null $router = null)
     {
@@ -47,9 +48,7 @@ class MikrotikService
                 }
             }
         } else {
-            $router = MikrotikRouter::where('is_active', true)
-                ->whereIn('type', ['general'])
-                ->first();
+            $router = MikrotikRouter::where('is_active', true)->first();
             if ($router) {
                 $this->host = $router->host;
                 $this->user = $router->username;
@@ -68,14 +67,19 @@ class MikrotikService
 
     public function isConfigured(): bool
     {
-        return $this->host && $this->user;
+        return $this->host && $this->user && $this->pass;
+    }
+
+    public function getLastError(): ?string
+    {
+        return $this->lastError;
     }
 
     protected function client(): PendingRequest
     {
         return Http::withBasicAuth($this->user, $this->pass)
             ->withoutVerifying()
-            ->timeout(30)
+            ->timeout(10)
             ->throw();
     }
 
@@ -97,11 +101,15 @@ class MikrotikService
 
     protected function safeGet(string $path, array $query = []): array
     {
+        $this->lastError = null;
+
         if ($this->ssh) {
             try {
                 return $this->sshSafeGet($path, $query);
             } catch (\Exception $e) {
-                Log::error("SSH GET {$path} gagal: ".$e->getMessage());
+                $this->lastError = 'SSH GET '.$path.' gagal: '.$e->getMessage();
+                Log::error($this->lastError);
+
                 return [];
             }
         }
@@ -109,7 +117,8 @@ class MikrotikService
         try {
             return $this->client()->get($this->restUrl($path), $query)->json();
         } catch (\Exception $e) {
-            Log::error("MikroTik GET {$path} gagal: ".$e->getMessage());
+            $this->lastError = 'MikroTik GET '.$path.' gagal: '.$e->getMessage();
+            Log::error($this->lastError);
 
             return [];
         }
@@ -125,6 +134,7 @@ class MikrotikService
         // /system/identity: REST returns [{...}], SSH returns {...} — wrap for compatibility
         if ($path === '/system/identity') {
             $id = $this->ssh->getSystemIdentity();
+
             return [$id];
         }
 
@@ -290,6 +300,41 @@ class MikrotikService
         }
     }
 
+    public function setHotspotUserDisabled(string $username, bool $disabled = true): array
+    {
+        try {
+            $user = $this->getUserByUsername($username);
+            if (! $user) {
+                return ['success' => false, 'message' => "Hotspot user {$username} tidak ditemukan"];
+            }
+
+            $id = $user['.id'] ?? null;
+            if (! $id) {
+                return ['success' => false, 'message' => 'ID hotspot user tidak ditemukan'];
+            }
+
+            $this->client()->patch($this->restUrl("/ip/hotspot/user/{$id}"), [
+                'disabled' => $disabled ? 'yes' : 'no',
+            ]);
+
+            $label = $disabled ? 'dinonaktifkan' : 'diaktifkan';
+
+            return ['success' => true, 'message' => "Hotspot user {$username} {$label}"];
+        } catch (\Exception $e) {
+            return ['success' => false, 'message' => $e->getMessage()];
+        }
+    }
+
+    public function disableHotspotUser(string $username): array
+    {
+        return $this->setHotspotUserDisabled($username, true);
+    }
+
+    public function enableHotspotUser(string $username): array
+    {
+        return $this->setHotspotUserDisabled($username, false);
+    }
+
     public function getHotspotUsers(): array
     {
         return $this->safeGet('/ip/hotspot/user');
@@ -431,6 +476,13 @@ class MikrotikService
         return $secrets[0] ?? null;
     }
 
+    public function getPppSecretProfile(string $username): ?string
+    {
+        $secret = $this->getPppSecretByUsername($username);
+
+        return $secret['profile'] ?? null;
+    }
+
     public function setPppSecretDisabled(string $username, bool $disabled = true): array
     {
         try {
@@ -566,6 +618,14 @@ class MikrotikService
         } catch (\Exception $e) {
             return ['success' => false, 'message' => $e->getMessage()];
         }
+    }
+
+    public function resolveProfileName(string $name): ?string
+    {
+        $profiles = $this->getPppProfiles();
+        $exists = collect($profiles)->firstWhere('name', $name);
+
+        return $exists['name'] ?? null;
     }
 
     public function updateProfileById(string $profileId, array $params): array

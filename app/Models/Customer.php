@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Traits\BelongsToTenant;
+use App\Services\Billing\CustomerCodeGenerator;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -10,10 +11,24 @@ class Customer extends Model
 {
     use BelongsToTenant, HasFactory;
 
-    protected $fillable = ['tenant_id', 'name', 'location', 'phone', 'email', 'package_id',
+    protected $fillable = ['tenant_id', 'customer_code', 'type', 'name', 'location', 'phone', 'email', 'nik', 'ktp_photo', 'package_id',
         'odp_point_id', 'odp_id', 'odp_port_id',
-        'pppoe_username', 'original_ppp_profile', 'due_date', 'status', 'suspended_at',
+        'pppoe_username', 'pppoe_password', 'serial_number', 'modem_sn', 'modem_photo', 'mac_address', 'original_ppp_profile', 'due_date', 'status', 'suspended_at',
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (Customer $customer) {
+            if (empty($customer->customer_code)) {
+                $customer->customer_code = app(CustomerCodeGenerator::class)->generate();
+            }
+        });
+    }
+
+    public function getRouteKeyName(): string
+    {
+        return 'customer_code';
+    }
 
     public function package()
     {
@@ -38,5 +53,25 @@ class Customer extends Model
     public function onus()
     {
         return $this->hasMany(Onu::class);
+    }
+
+    public function getActiveInvoiceAttribute(): ?Invoice
+    {
+        return $this->invoices()->where('payment_status', 'unpaid')->latest()->first();
+    }
+
+    public function getDisplayNameAttribute(): string
+    {
+        return $this->customer_code.' - '.$this->name;
+    }
+
+    public function scopePpp($query)
+    {
+        return $query->where('type', 'ppp');
+    }
+
+    public function scopeHotspot($query)
+    {
+        return $query->where('type', 'hotspot');
     }
 }

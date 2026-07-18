@@ -41,7 +41,7 @@ class VoucherTemplate extends Model
 
     public function templatePath(): string
     {
-        return public_path('hotspot/templates/' . $this->id);
+        return public_path('hotspot/templates/'.$this->id);
     }
 
     public function hasFiles(): bool
@@ -51,8 +51,9 @@ class VoucherTemplate extends Model
 
     public function fileUrl(string $path = ''): string
     {
-        $base = url('hotspot/templates/' . $this->id);
-        return $path ? $base . '/' . ltrim($path, '/') : $base;
+        $base = url('hotspot/templates/'.$this->id);
+
+        return $path ? $base.'/'.ltrim($path, '/') : $base;
     }
 
     public function syncToActive(): void
@@ -96,8 +97,8 @@ class VoucherTemplate extends Model
                 continue;
             }
 
-            $srcFile = $src . DIRECTORY_SEPARATOR . $file;
-            $dstFile = $dst . DIRECTORY_SEPARATOR . $file;
+            $srcFile = $src.DIRECTORY_SEPARATOR.$file;
+            $dstFile = $dst.DIRECTORY_SEPARATOR.$file;
 
             if (is_dir($srcFile)) {
                 if (! is_dir($dstFile)) {
@@ -155,7 +156,7 @@ class VoucherTemplate extends Model
         }
 
         foreach ($map as $attribute => $filename) {
-            $path = $hotspotDir . DIRECTORY_SEPARATOR . $filename;
+            $path = $hotspotDir.DIRECTORY_SEPARATOR.$filename;
             $content = $this->{$attribute};
 
             if (is_null($content) || trim($content) === '') {

@@ -1,7 +1,5 @@
 @extends('layouts.app')
-
 @section('title', 'Detail ODC - '.$odc->nama_odc)
-
 @section('content')
 <div class="page-header d-flex justify-content-between align-items-center mb-4">
     <div>
@@ -14,7 +12,6 @@
         </a>
     </div>
 </div>
-
 <div class="row g-4 mb-4">
     <div class="col-md-4">
         <div class="stat-card">
@@ -50,7 +47,6 @@
         </div>
     </div>
 </div>
-
 <div class="card shadow-sm border-0 mb-4">
     <div class="card-header bg-white d-flex align-items-center gap-2">
         <div style="width:8px;height:8px;border-radius:50%;background:var(--primary);"></div>
@@ -60,16 +56,14 @@
         <div id="map-odc" style="height:350px;width:100%;border-radius:0 0 16px 16px;"></div>
     </div>
 </div>
-
 @if($odc->odps->count() > 0)
 <div class="card mb-4">
     <div class="card-header bg-white">
         <i class="fa-solid fa-tower-cell me-1 text-muted"></i> Daftar ODP
     </div>
     <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover mb-0">
-                <thead>
+        <div class="mon-table-wrap">
+<table class="table table-hover align-middle mb-0 mon-table">
                     <tr>
                         <th>Nama ODP</th>
                         <th>Tube</th>
@@ -78,7 +72,7 @@
                         <th>Kondisi Jalur</th>
                         <th></th>
                     </tr>
-                </thead>
+
                 <tbody>
                     @foreach($odc->odps as $odp)
                     <tr>
@@ -90,9 +84,11 @@
                             <span class="badge bg-danger">{{ $odp->usedPortsCount() }} terpakai</span>
                         </td>
                         <td>
-                            <span class="badge bg-{{ $odp->kondisi_jalur === 'UP' ? 'success' : 'danger' }}">
-                                {{ $odp->kondisi_jalur === 'UP' ? 'NORMAL' : 'PUTUS' }}
-                            </span>
+                            @php
+                                $jBadge = match($odp->kondisi_jalur) { 'UP' => 'success', 'GANGGUAN' => 'warning', default => 'danger' };
+                                $jLabel = match($odp->kondisi_jalur) { 'UP' => 'NORMAL', 'GANGGUAN' => 'GANGGUAN', default => 'PUTUS' };
+                            @endphp
+                            <span class="badge bg-{{ $jBadge }}">{{ $jLabel }}</span>
                         </td>
                         <td>
                             <a href="{{ route('odp.show', $odp) }}" class="btn btn-sm btn-outline-primary">
@@ -107,7 +103,6 @@
     </div>
 </div>
 @endif
-
 <div class="card">
     <div class="card-header bg-white d-flex justify-content-between align-items-center">
         <span><i class="fa-solid fa-table-cells me-1 text-muted"></i> Port ODC ({{ $odc->ports->count() }})</span>
@@ -147,16 +142,13 @@
     </div>
 </div>
 @endsection
-
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     var odcLat = {{ $odc->latitude ?? 'null' }};
     var odcLng = {{ $odc->longitude ?? 'null' }};
     var hasOdcCoord = odcLat !== null && odcLng !== null;
-
     var hasOdps = @json($odc->odps->filter(fn($o) => $o->latitude && $o->longitude)->count()) > 0;
-
     if (hasOdcCoord || hasOdps) {
         var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
@@ -168,7 +160,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         var map = L.map('map-odc', { layers: [sat] });
         L.control.layers({ 'Satelit': sat, 'Street': osm }).addTo(map);
-
         var bounds = [];
         var odcIcon = L.divIcon({
             className: 'custom-marker',
@@ -176,10 +167,15 @@ document.addEventListener('DOMContentLoaded', function() {
             iconSize: [28, 28],
             iconAnchor: [14, 14]
         });
-
         var odpIconGreen = L.divIcon({
             className: 'custom-marker',
             html: '<div style="width:14px;height:14px;background:#059669;border:2px solid #fff;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.3);"></div>',
+            iconSize: [14, 14],
+            iconAnchor: [7, 7]
+        });
+        var odpIconYellow = L.divIcon({
+            className: 'custom-marker',
+            html: '<div style="width:14px;height:14px;background:#ca8a04;border:2px solid #fff;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.3);"></div>',
             iconSize: [14, 14],
             iconAnchor: [7, 7]
         });
@@ -189,7 +185,6 @@ document.addEventListener('DOMContentLoaded', function() {
             iconSize: [14, 14],
             iconAnchor: [7, 7]
         });
-
         if (hasOdcCoord) {
             var marker = L.marker([odcLat, odcLng], { icon: odcIcon }).addTo(map);
             marker.bindPopup(`
@@ -200,14 +195,13 @@ document.addEventListener('DOMContentLoaded', function() {
             `, { className: 'custom-popup' });
             bounds.push([odcLat, odcLng]);
         }
-
         @foreach($odc->odps as $odp)
             @if($odp->latitude && $odp->longitude)
                 (function() {
                     var lat = {{ $odp->latitude }};
                     var lng = {{ $odp->longitude }};
                     var kondisi = '{{ $odp->kondisi_jalur }}';
-                    var icon = kondisi === 'UP' ? odpIconGreen : odpIconRed;
+                    var icon = kondisi === 'UP' ? odpIconGreen : (kondisi === 'GANGGUAN' ? odpIconYellow : odpIconRed);
                     var m = L.marker([lat, lng], { icon: icon }).addTo(map);
                     m.bindPopup(`
                         <div style="font-family:'Inter',sans-serif;min-width:160px;">
@@ -215,13 +209,12 @@ document.addEventListener('DOMContentLoaded', function() {
                             <small style="color:#64748b;">Tube: {{ $odp->kabel_tube_color }} | Core: {{ $odp->kabel_core_number }}</small>
                             <div style="margin-top:6px;font-size:11px;color:#475569;">
                                 Port: {{ $odp->usedPortsCount() }}/{{ $odp->kapasitas_port }} terpakai<br>
-                                Jalur: <span style="color:{{ $odp->kondisi_jalur === 'UP' ? '#059669' : '#dc2626' }};font-weight:600;">{{ $odp->kondisi_jalur === 'UP' ? 'NORMAL' : 'PUTUS' }}</span>
+                                Jalur: <span style="color:{{ match($odp->kondisi_jalur) { 'UP' => '#059669', 'GANGGUAN' => '#ca8a04', default => '#dc2626' } }};font-weight:600;">{{ match($odp->kondisi_jalur) { 'UP' => 'NORMAL', 'GANGGUAN' => 'GANGGUAN', default => 'PUTUS' } }}</span>
                             </div>
                             <div style="margin-top:6px;"><a href="/odp/{{ $odp->id }}" style="font-size:11px;">&rarr; Detail ODP</a></div>
                         </div>
                     `, { className: 'custom-popup' });
                     bounds.push([lat, lng]);
-
                     if (hasOdcCoord) {
                         L.polyline([[odcLat, odcLng], [lat, lng]], {
                             color: '#94a3b8', weight: 1.5, opacity: 0.4, dashArray: '4, 4'
@@ -230,7 +223,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 })();
             @endif
         @endforeach
-
         if (bounds.length > 0) {
             map.fitBounds(L.latLngBounds(bounds), { padding: [30, 30] });
         } else {
@@ -239,7 +231,6 @@ document.addEventListener('DOMContentLoaded', function() {
     } else {
         document.getElementById('map-odc').innerHTML = '<div class="text-center py-5 text-muted"><i class="fa-solid fa-map me-2"></i>Koordinat belum diatur. Edit ODC untuk menambahkan lokasi.</div>';
     }
-
     // ── Realtime polling ──
     function refreshPorts() {
         fetch('/api/v1/odc/{{ $odc->id }}/ports')
@@ -249,7 +240,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('stat-used').textContent = data.ports.filter(function(p) { return p.status === 'used'; }).length;
                 document.getElementById('stat-odp-count').textContent = data.odc.odp_count;
                 document.getElementById('sisa-port').textContent = data.ports.filter(function(p) { return p.status === 'available'; }).length;
-
                 data.ports.forEach(function(p) {
                     var el = document.querySelector('.port-item[data-port-id="' + p.id + '"]');
                     if (!el) return;
@@ -265,7 +255,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     }
                 });
-
                 var indicator = document.getElementById('live-indicator');
                 indicator.innerHTML = '<i class="fa-solid fa-circle text-success" style="font-size:8px;"></i> Live';
             })
@@ -274,7 +263,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 indicator.innerHTML = '<i class="fa-solid fa-circle text-muted" style="font-size:8px;"></i> Offline';
             });
     }
-
     setInterval(refreshPorts, 15000);
 });
 </script>
@@ -328,4 +316,9 @@ document.addEventListener('DOMContentLoaded', function() {
 .port-odp-name { font-size: 0.65rem; color: #1e293b; font-weight: 600; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .port-customer-count { font-size: 0.55rem; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 </style>
+@endpush
+
+@push('scripts')
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 @endpush

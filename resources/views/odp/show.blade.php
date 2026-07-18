@@ -12,6 +12,12 @@
         <a href="{{ route('distribution.index') }}" class="btn btn-outline-secondary px-3 py-2">
             <i class="fa-solid fa-arrow-left me-1"></i>Kembali
         </a>
+        <form method="POST" action="{{ route('distribution.odps.destroy', $odp) }}" class="d-inline" onsubmit="return confirm('Hapus ODP {{ $odp->nama_odp }}? Semua port di ODP ini juga akan dihapus!')">
+            @csrf @method('DELETE')
+            <button type="submit" class="btn btn-outline-danger px-3 py-2">
+                <i class="fa-solid fa-trash me-1"></i>Hapus
+            </button>
+        </form>
     </div>
 </div>
 
@@ -51,13 +57,51 @@
     </div>
     <div class="col-md-3">
         <div class="stat-card">
-            <div class="stat-icon" style="background:{{ $odp->kondisi_jalur === 'UP' ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)' }};color:{{ $odp->kondisi_jalur === 'UP' ? '#22c55e' : '#ef4444' }};">
+            @php
+                $jalurColor = match($odp->kondisi_jalur) {
+                    'UP' => '#22c55e',
+                    'GANGGUAN' => '#eab308',
+                    default => '#ef4444',
+                };
+                $jalurBg = match($odp->kondisi_jalur) {
+                    'UP' => 'rgba(34,197,94,0.15)',
+                    'GANGGUAN' => 'rgba(234,179,8,0.15)',
+                    default => 'rgba(239,68,68,0.15)',
+                };
+                $jalurLabel = match($odp->kondisi_jalur) {
+                    'UP' => 'NORMAL',
+                    'GANGGUAN' => 'GANGGUAN',
+                    default => 'PUTUS',
+                };
+            @endphp
+            <div class="stat-icon" style="background:{{ $jalurBg }};color:{{ $jalurColor }};">
                 <i class="fa-solid fa-road"></i>
             </div>
             <div class="stat-info">
-                <div class="stat-value" style="font-size:0.9rem">{{ $odp->kondisi_jalur === 'UP' ? 'NORMAL' : 'PUTUS' }}</div>
+                <div class="stat-value" style="font-size:0.9rem">{{ $jalurLabel }}</div>
                 <div class="stat-label">Kondisi Jalur</div>
             </div>
+            <div class="dropdown ms-auto">
+                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" style="font-size:0.7rem;">
+                    <i class="fa-solid fa-pen"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><button class="dropdown-item" onclick="document.getElementById('toggle-jalur-status').value='UP';document.getElementById('toggle-jalur-form').submit();">
+                        <i class="fa-solid fa-circle-check me-1" style="color:#22c55e;"></i> Normal
+                    </button></li>
+                    <li><button class="dropdown-item" onclick="document.getElementById('toggle-jalur-status').value='GANGGUAN';document.getElementById('toggle-jalur-form').submit();">
+                        <i class="fa-solid fa-triangle-exclamation me-1" style="color:#eab308;"></i> Gangguan
+                    </button></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><button class="dropdown-item text-danger" onclick="document.getElementById('toggle-jalur-status').value='DOWN_LINK_FAILURE';document.getElementById('toggle-jalur-form').submit();">
+                        <i class="fa-solid fa-circle-xmark me-1"></i> Putus
+                    </button></li>
+                </ul>
+            </div>
+            <form method="POST" action="{{ route('odp.toggle-jalur', $odp) }}" id="toggle-jalur-form">
+                @csrf
+                <input type="hidden" name="status" id="toggle-jalur-status">
+            </form>
         </div>
     </div>
 </div>
@@ -151,7 +195,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div style="margin-top:6px;font-size:11px;color:#475569;">
                     Port: {{ $odp->usedPortsCount() }}/{{ $odp->kapasitas_port }} terpakai<br>
                     Tube: {{ $odp->kabel_tube_color }} | Core: {{ $odp->kabel_core_number }}<br>
-                    Jalur: <span style="color:{{ $odp->kondisi_jalur === 'UP' ? '#059669' : '#dc2626' }};font-weight:600;">{{ $odp->kondisi_jalur === 'UP' ? 'NORMAL' : 'PUTUS' }}</span>
+                    Jalur: <span style="color:{{ match($odp->kondisi_jalur) { 'UP' => '#059669', 'GANGGUAN' => '#ca8a04', default => '#dc2626' } }};font-weight:600;">{{ $jalurLabel }}</span>
                 </div>
                 @if($odp->odc?->latitude && $odp->odc?->longitude)
                     <div style="margin-top:6px;padding-top:6px;border-top:1px solid #f1f5f9;font-size:11px;color:#64748b;">
@@ -274,4 +318,9 @@ document.addEventListener('DOMContentLoaded', function() {
 .port-customer-name { font-size: 0.65rem; color: #1e293b; font-weight: 600; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .port-customer-info { font-size: 0.55rem; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 </style>
+@endpush
+
+@push('scripts')
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 @endpush

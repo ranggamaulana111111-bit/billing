@@ -24,7 +24,7 @@
                             <i class="fa-solid fa-bolt" style="color:#60a5fa;font-size:1.3rem;"></i>
                         </div>
                         <h5 class="fw-bold mb-1">Pembayaran Online</h5>
-                        <p style="opacity:0.8;font-size:0.9rem;">Invoice: {{ $invoice->invoice_code }}</p>
+                        <p style="opacity:0.8;font-size:0.9rem;">Invoice: {{ $invoice->invoice_display }}</p>
                     </div>
                     <div class="p-4 text-center">
                         <p class="text-muted small">Total Pembayaran</p>

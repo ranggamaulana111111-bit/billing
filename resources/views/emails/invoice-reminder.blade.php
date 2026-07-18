@@ -33,7 +33,8 @@
 
             <div class="invoice-detail">
                 <table>
-                    <tr><td class="label">Invoice</td><td class="value">{{ $invoice->invoice_code }}</td></tr>
+                    <tr><td class="label">ID Pelanggan</td><td class="value">{{ $invoice->customer->customer_code }}</td></tr>
+                    <tr><td class="label">Invoice</td><td class="value">{{ $invoice->invoice_display }}</td></tr>
                     <tr><td class="label">Paket</td><td class="value">{{ $invoice->customer->package?->name ?? '-' }}</td></tr>
                     <tr><td class="label">Total</td><td class="value">Rp {{ number_format($invoice->amount, 0, ',', '.') }}</td></tr>
                     <tr><td class="label">Status</td><td class="value" style="color:#dc2626;">Belum Dibayar</td></tr>

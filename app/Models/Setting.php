@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 
 class Setting extends Model
 {
@@ -14,17 +15,18 @@ class Setting extends Model
 
     public static function get(string $key, ?string $default = null, ?int $tenantId = null): ?string
     {
-        $query = static::where('key', $key);
+        $tenantId = $tenantId ?? (Auth::hasUser() ? Auth::user()->tenant_id : null);
+        $cacheKey = "setting_{$tenantId}_{$key}";
 
-        if ($tenantId) {
-            $query->where('tenant_id', $tenantId);
-        } elseif (Auth::hasUser()) {
-            $query->where('tenant_id', Auth::user()->tenant_id);
-        }
+        return Cache::remember($cacheKey, 3600, function () use ($key, $tenantId, $default) {
+            $query = static::where('key', $key);
+            if ($tenantId) {
+                $query->where('tenant_id', $tenantId);
+            }
+            $setting = $query->first();
 
-        $setting = $query->first();
-
-        return $setting ? $setting->value : $default;
+            return $setting ? $setting->value : $default;
+        });
     }
 
     public static function set(string $key, ?string $value, ?int $tenantId = null): void
@@ -35,12 +37,17 @@ class Setting extends Model
             ['tenant_id' => $tenantId, 'key' => $key],
             ['value' => $value],
         );
+
+        Cache::forget("setting_{$tenantId}_{$key}");
     }
 
     public static function getByUser(int $userId, string $key, ?string $default = null): ?string
     {
         $user = User::find($userId);
+        if (! $user) {
+            return $default;
+        }
 
-        return $user ? static::where('tenant_id', $user->tenant_id)->where('key', $key)->value('value') ?? $default : $default;
+        return static::get($key, $default, $user->tenant_id);
     }
 }

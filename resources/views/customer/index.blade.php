@@ -1,7 +1,5 @@
 @extends('layouts.app')
-
 @section('title', 'Pelanggan')
-
 @section('content')
 <div class="page-header d-flex flex-wrap justify-content-between align-items-center">
     <div>
@@ -20,14 +18,12 @@
         </form>
     </div>
 </div>
-
 @if(session('success'))
     <div class="alert alert-custom alert-success mb-4">{{ session('success') }}</div>
 @endif
 @if(session('error'))
     <div class="alert alert-custom alert-danger mb-4">{{ session('error') }}</div>
 @endif
-
 {{-- STATS --}}
 <div class="row g-3 mb-4">
     <div class="col-md-3">
@@ -55,17 +51,16 @@
         </div>
     </div>
 </div>
-
 {{-- TABLE --}}
 <div class="card shadow-sm border-0">
     <div class="card-header bg-white d-flex justify-content-between align-items-center">
         <div class="d-flex align-items-center gap-2">
             <div style="width:8px;height:8px;border-radius:50%;background:var(--primary);"></div>
-            <span>Daftar Pelanggan</span>
+            <span>Daftar Client</span>
             <span class="badge badge-premium ms-2" style="background:#eef2ff;color:var(--primary);">{{ $customers->total() }}</span>
         </div>
         @if($totalOlts > 0)
-            <form action="{{ route('olt.sync-all-onu') }}" method="POST" class="d-inline" onsubmit="return confirm('Sync ONU & PPPoE semua pelanggan aktif ke OLT + MikroTik?')">
+            <form action="{{ route('olt.sync-all-onu') }}" method="POST" class="d-inline" onsubmit="return confirm('Polling OLT untuk sync status semua ONU?')">
                 @csrf
                 <button type="submit" class="btn btn-sm btn-outline-success">
                     <i class="fa-solid fa-rotate me-1"></i>Sync Semua ONU
@@ -74,18 +69,20 @@
         @endif
     </div>
     <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table mb-0">
-                <thead>
+        <div class="mon-table-wrap">
+<table class="table table-hover align-middle mb-0 mon-table">
+                    <thead class="mon-thead-gradient">
                     <tr>
-                        <th>Pelanggan</th>
+                        <th>Client</th>
+                        <th>KTP</th>
                         <th>Paket / ODP</th>
-                        <th>PPPoE</th>
+                        <th>Type Client</th>
                         <th>ONU / OLT</th>
                         <th>Status Akun</th>
                         <th class="text-center">Aksi</th>
                     </tr>
-                </thead>
+                    </thead>
+
                 <tbody>
                     @forelse($customers as $c)
                         <tr>
@@ -96,9 +93,20 @@
                                     </div>
                                     <div>
                                         <div class="fw-semibold" style="font-size:0.85rem;">{{ $c->name }}</div>
-                                        <small class="text-muted">{{ $c->phone ?? '-' }}</small>
+                                        <small style="font-size:0.7rem;color:var(--primary);font-weight:600;">{{ $c->customer_code }}</small>
+                                        <small class="text-muted ms-1">{{ $c->phone ?? '-' }}</small>
                                     </div>
                                 </div>
+                            </td>
+                            <td class="text-center">
+                                @if($c->ktp_photo)
+                                    <a href="{{ Storage::url($c->ktp_photo) }}" target="_blank" title="Lihat KTP">
+                                        <img src="{{ Storage::url($c->ktp_photo) }}" alt="KTP"
+                                             style="width:40px;height:40px;object-fit:cover;border-radius:4px;border:1px solid #e2e8f0;cursor:pointer;">
+                                    </a>
+                                @else
+                                    <span class="text-muted" style="font-size:0.75rem;">—</span>
+                                @endif
                             </td>
                             <td>
                                 <span class="badge badge-premium" style="background:#f1f5f9;color:#475569;">{{ $c->package->name ?? '-' }}</span>
@@ -107,10 +115,15 @@
                                 @endif
                             </td>
                             <td>
+                                <div>
+                                    @if($c->type === 'hotspot')
+                                        <span class="badge badge-premium" style="background:#fef3c7;color:#d97706;font-size:0.65rem;">Hotspot</span>
+                                    @else
+                                        <span class="badge badge-premium" style="background:#eef2ff;color:var(--primary);font-size:0.65rem;">PPPoE</span>
+                                    @endif
+                                </div>
                                 @if($c->pppoe_username)
-                                    <code style="font-size:0.75rem;">{{ $c->pppoe_username }}</code>
-                                @else
-                                    <span class="text-muted">—</span>
+                                    <code style="font-size:0.72rem;">{{ $c->pppoe_username }}</code>
                                 @endif
                             </td>
                             <td>
@@ -150,46 +163,64 @@
                                     </span>
                                 @endif
                             </td>
-                            <td>
+                            <td class="text-center">
                                 <div class="d-flex justify-content-center gap-1">
-                                    <a href="{{ route('customer.edit', $c->id) }}" class="btn btn-sm btn-outline-primary px-2" title="Edit">
+                                    <a href="{{ route('customer.edit', $c->customer_code) }}" class="btn btn-sm btn-outline-primary px-2" title="Edit">
                                         <i class="fa-solid fa-pen"></i>
                                     </a>
                                     @if($totalOlts > 0)
-                                        <form method="POST" action="{{ route('customer.sync-single-onu', $c->id) }}" class="d-inline" title="Sync ONU ke OLT">
+                                        <form method="POST" action="{{ route('customer.sync-single-onu', $c->customer_code) }}" class="d-inline" title="Sync ONU">
                                             @csrf
                                             <button type="submit" class="btn btn-sm btn-outline-success px-2">
                                                 <i class="fa-solid fa-rotate"></i>
                                             </button>
                                         </form>
                                     @endif
-                                    @if($c->status === 'active')
-                                        <form method="POST" action="{{ route('customer.suspend', $c->id) }}" class="d-inline" onsubmit="return confirm('Isolir {{ $c->name }}?')">
-                                            @csrf
-                                            <button type="submit" class="btn btn-sm btn-outline-warning px-2" title="Isolir (Profile-Isolir)">
-                                                <i class="fa-solid fa-pause"></i>
-                                            </button>
-                                        </form>
-                                    @else
-                                        <form method="POST" action="{{ route('customer.activate', $c->id) }}" class="d-inline">
-                                            @csrf
-                                            <button type="submit" class="btn btn-sm btn-outline-success px-2" title="Aktifkan Kembali">
-                                                <i class="fa-solid fa-play"></i>
-                                            </button>
-                                        </form>
-                                    @endif
-                                    <form method="POST" action="{{ route('customer.destroy', $c->id) }}" class="d-inline" onsubmit="return confirm('Hapus {{ $c->name }}? Semua data tagihan ikut terhapus!')">
-                                        @csrf @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-outline-danger px-2" title="Hapus">
-                                            <i class="fa-solid fa-trash"></i>
+                                    <div class="dropdown" style="position:static;">
+                                        <button class="btn btn-sm btn-outline-secondary px-2 dropdown-toggle" data-bs-toggle="dropdown" data-bs-boundary="viewport" title="Lainnya" style="font-size:0.7rem;">
+                                            <i class="fa-solid fa-ellipsis-vertical"></i>
                                         </button>
-                                    </form>
+                                        <ul class="dropdown-menu dropdown-menu-end" style="font-size:0.8rem;min-width:160px;">
+                                            <li><a class="dropdown-item" href="{{ route('customer.edit', $c->customer_code) }}"><i class="fa-solid fa-pen me-2 text-primary"></i>Edit Pelanggan</a></li>
+                                            @if($totalOlts > 0)
+                                                <li>
+                                                    <form method="POST" action="{{ route('customer.sync-single-onu', $c->customer_code) }}">
+                                                        @csrf
+                                                        <button type="submit" class="dropdown-item"><i class="fa-solid fa-rotate me-2 text-success"></i>Sync ONU</button>
+                                                    </form>
+                                                </li>
+                                            @endif
+                                            <li><hr class="dropdown-divider"></li>
+                                            @if($c->status === 'active')
+                                                <li>
+                                                    <form method="POST" action="{{ route('customer.suspend', $c->customer_code) }}" onsubmit="return confirm('Isolir {{ $c->name }}?')">
+                                                        @csrf
+                                                        <button type="submit" class="dropdown-item"><i class="fa-solid fa-pause me-2 text-warning"></i>Isolir</button>
+                                                    </form>
+                                                </li>
+                                            @else
+                                                <li>
+                                                    <form method="POST" action="{{ route('customer.activate', $c->customer_code) }}">
+                                                        @csrf
+                                                        <button type="submit" class="dropdown-item"><i class="fa-solid fa-play me-2 text-success"></i>Aktifkan</button>
+                                                    </form>
+                                                </li>
+                                            @endif
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li>
+                                                <form method="POST" action="{{ route('customer.destroy', $c->customer_code) }}" onsubmit="return confirm('Hapus {{ $c->name }}? Semua data tagihan ikut terhapus!')">
+                                                    @csrf @method('DELETE')
+                                                    <button type="submit" class="dropdown-item text-danger"><i class="fa-solid fa-trash me-2"></i>Hapus</button>
+                                                </form>
+                                            </li>
+                                        </ul>
+                                    </div>
                                 </div>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="text-center py-5 text-muted">
+                            <td colspan="7" class="text-center py-5 text-muted">
                                 <i class="fa-regular fa-users" style="font-size:1.5rem;display:block;margin-bottom:8px;"></i>
                                 Belum ada pelanggan
                             </td>

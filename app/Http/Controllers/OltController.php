@@ -56,7 +56,9 @@ class OltController extends Controller
             'notes' => 'nullable|string|max:1000',
         ]);
 
-        Olt::create($validated);
+        $olt = Olt::create($validated);
+
+        ActivityLog::log('Tambah OLT', 'Menambahkan OLT: '.$olt->name);
 
         return redirect()->route('olt.index')->with('success', 'OLT berhasil ditambahkan.');
     }
@@ -109,11 +111,15 @@ class OltController extends Controller
 
         $olt->update($validated);
 
+        ActivityLog::log('Ubah OLT', 'Mengubah OLT: '.$olt->name);
+
         return redirect()->route('olt.index')->with('success', 'OLT berhasil diperbarui.');
     }
 
     public function destroy(Olt $olt)
     {
+        ActivityLog::log('Hapus OLT', 'Menghapus OLT: '.$olt->name);
+
         $olt->delete();
 
         return redirect()->route('olt.index')->with('success', 'OLT berhasil dihapus.');
@@ -137,6 +143,10 @@ class OltController extends Controller
         }
 
         // Step 2: try SSH login (via proxy or direct)
+        if (empty($olt->password)) {
+            return back()->with('error', "Password OLT \"{$olt->name}\" belum diisi. Silakan edit OLT dan isi password terlebih dahulu.");
+        }
+
         try {
             $connector = OltConnectorFactory::make($olt->brand, $olt);
             $connected = $connector->connect(
@@ -176,20 +186,20 @@ class OltController extends Controller
 
         // Auto-create default ports based on brand
         $defaults = match ($olt->brand) {
-            'cdata', 'huawei', 'zte' => [
-                ['slot' => 0, 'port' => 0, 'type' => 'gpon'],
+            'cdata' => [
                 ['slot' => 0, 'port' => 1, 'type' => 'gpon'],
                 ['slot' => 0, 'port' => 2, 'type' => 'gpon'],
                 ['slot' => 0, 'port' => 3, 'type' => 'gpon'],
+                ['slot' => 0, 'port' => 4, 'type' => 'gpon'],
             ],
-            'fiberhome' => [
+            'huawei', 'zte', 'fiberhome' => [
                 ['slot' => 0, 'port' => 0, 'type' => 'gpon'],
                 ['slot' => 0, 'port' => 1, 'type' => 'gpon'],
                 ['slot' => 0, 'port' => 2, 'type' => 'gpon'],
                 ['slot' => 0, 'port' => 3, 'type' => 'gpon'],
             ],
             default => [
-                ['slot' => 0, 'port' => 0, 'type' => 'gpon'],
+                ['slot' => 0, 'port' => 1, 'type' => 'gpon'],
             ],
         };
 
@@ -400,11 +410,51 @@ class OltController extends Controller
             'customer_id' => 'required|exists:customers,id',
         ]);
 
-        $onu->update(['customer_id' => $validated['customer_id']]);
+        $customerId = $validated['customer_id'];
 
-        ActivityLog::log('Taut ONU', "ONU: {$onu->onu_id} → Customer ID: {$validated['customer_id']}");
+        $existingOlt = Onu::where('customer_id', $customerId)
+            ->whereNotNull('serial_number')
+            ->where('id', '!=', $onu->id)
+            ->first();
+
+        if ($existingOlt) {
+            return back()->with('error', 'Pelanggan sudah tertaut ke ONU lain (SN: '.$existingOlt->serial_number.', ONT: '.$existingOlt->onu_id.'). Lepaskan dulu jika ingin mengganti.');
+        }
+
+        if ($onu->customer_id && $onu->customer_id != $customerId) {
+            $oldCustomer = Customer::find($onu->customer_id);
+            if ($oldCustomer && $oldCustomer->serial_number === $onu->serial_number) {
+                $oldCustomer->update(['serial_number' => null]);
+            }
+        }
+
+        $onu->update(['customer_id' => $customerId]);
+
+        if ($onu->serial_number) {
+            $customer = Customer::find($customerId);
+            if ($customer && $customer->serial_number !== $onu->serial_number) {
+                $customer->update(['serial_number' => $onu->serial_number]);
+            }
+        }
+
+        ActivityLog::log('Taut ONU', "ONU: {$onu->onu_id} (SN: {$onu->serial_number}) → Customer ID: {$customerId}");
 
         return back()->with('success', 'ONU berhasil ditautkan ke pelanggan.');
+    }
+
+    public function unlinkCustomer(Onu $onu)
+    {
+        $customer = $onu->customer;
+
+        if ($customer && $customer->serial_number === $onu->serial_number) {
+            $customer->update(['serial_number' => null]);
+        }
+
+        $onu->update(['customer_id' => null]);
+
+        ActivityLog::log('Lepas ONU', "ONU: {$onu->onu_id} (SN: {$onu->serial_number}) dilepas dari ".($customer->name ?? 'N/A'));
+
+        return back()->with('success', 'ONU berhasil dilepas dari pelanggan.');
     }
 
     public function syncPorts(Olt $olt)
@@ -448,7 +498,7 @@ class OltController extends Controller
             ->whereNotNull('rx_power')
             ->latest('last_seen_at')
             ->get()
-            ->groupBy(fn ($onu) => $onu->customer_id ?? 'onu_' . $onu->id);
+            ->groupBy(fn ($onu) => $onu->customer_id ?? 'onu_'.$onu->id);
 
         $customerSignals = $customers->map(function ($customer) use ($onusWithSignal) {
             $onu = $customer->onus->first();
@@ -457,6 +507,17 @@ class OltController extends Controller
                 $oltOnu = $onusWithSignal->get($customer->id)->first();
                 if ($oltOnu) {
                     $onu = $oltOnu;
+                }
+            }
+
+            if ($onu?->rx_power === null && $customer->serial_number) {
+                foreach ($onusWithSignal as $groupId => $group) {
+                    foreach ($group as $maybe) {
+                        if ($maybe->serial_number === $customer->serial_number) {
+                            $onu = $maybe;
+                            break 2;
+                        }
+                    }
                 }
             }
 
@@ -488,9 +549,11 @@ class OltController extends Controller
             fn ($a) => $a['rx_power'] ?? PHP_FLOAT_MAX,
         ])->values();
 
+        $linkedSerials = $customers->pluck('serial_number')->filter()->values();
         $unlinkedOnus = Onu::with('oltPort.olt')
             ->whereNotNull('rx_power')
             ->whereNull('customer_id')
+            ->when($linkedSerials->isNotEmpty(), fn ($q) => $q->whereNotIn('serial_number', $linkedSerials))
             ->latest('last_seen_at')
             ->get();
 
@@ -498,7 +561,7 @@ class OltController extends Controller
             $customerSignals->push([
                 'customer' => (object) [
                     'id' => null,
-                    'name' => 'Unlinked: ' . ($onu->serial_number ?: $onu->onu_id),
+                    'name' => 'Unlinked: '.($onu->serial_number ?: $onu->onu_id),
                     'phone' => null,
                 ],
                 'onu' => $onu,
@@ -524,8 +587,10 @@ class OltController extends Controller
             fn ($cs) => $cs['rx_power'] !== null && $cs['rx_power'] < -27
         )->count();
 
+        $allCustomers = Customer::orderBy('name')->get(['id', 'name', 'phone']);
+
         return view('olt.monitoring', compact(
-            'olts', 'customerSignals',
+            'olts', 'customerSignals', 'allCustomers',
             'totalCustomers', 'totalOnline', 'totalOffline', 'totalWeak'
         ));
     }
@@ -700,5 +765,39 @@ class OltController extends Controller
         $olts = Olt::pluck('name', 'id');
 
         return view('olt.search', compact('onus', 'olts'));
+    }
+
+    public function availableOnus(Request $request)
+    {
+        $query = Onu::whereNull('customer_id')
+            ->where('status', 'online')
+            ->with('oltPort.olt')
+            ->orderBy('serial_number');
+
+        if ($search = $request->input('search')) {
+            $query->where(function ($q) use ($search) {
+                $q->whereRaw('LOWER(serial_number) LIKE ?', ['%'.strtolower($search).'%'])
+                    ->orWhereRaw('LOWER(caller_id) LIKE ?', ['%'.strtolower($search).'%'])
+                    ->orWhereRaw('LOWER(mac_address) LIKE ?', ['%'.strtolower($search).'%'])
+                    ->orWhereRaw('LOWER(onu_id) LIKE ?', ['%'.strtolower($search).'%']);
+            });
+        }
+
+        $onus = $query->limit(50)->get()->map(function ($onu) {
+            return [
+                'id' => $onu->id,
+                'serial_number' => $onu->serial_number,
+                'caller_id' => $onu->caller_id,
+                'mac_address' => $onu->mac_address,
+                'onu_id' => $onu->onu_id,
+                'vendor' => $onu->vendor,
+                'model' => $onu->model,
+                'olt_name' => $onu->oltPort?->olt?->name ?? '-',
+                'olt_port' => $onu->oltPort ? $onu->oltPort->slot_number.'/'.$onu->oltPort->port_number : '-',
+                'display' => ($onu->serial_number ?? $onu->caller_id ?? $onu->onu_id).' — '.$onu->oltPort?->olt?->name,
+            ];
+        });
+
+        return response()->json($onus);
     }
 }

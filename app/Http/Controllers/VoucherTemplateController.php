@@ -6,7 +6,6 @@ use App\Models\ActivityLog;
 use App\Models\Setting;
 use App\Models\VoucherTemplate;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use ZipArchive;
 
 class VoucherTemplateController extends Controller
@@ -23,19 +22,18 @@ class VoucherTemplateController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'template_file' => 'required|file|mimes:zip|max:10240',
-            'is_active' => 'boolean',
         ]);
 
         $template = VoucherTemplate::create([
             'name' => $validated['name'],
-            'is_active' => $request->boolean('is_active', true),
+            'is_active' => $request->boolean('is_active', false),
         ]);
 
         $this->extractZip($request->file('template_file'), $template);
 
-        ActivityLog::log('Tambah Template', 'Menambahkan template landing page: ' . $template->name);
+        ActivityLog::log('Tambah Template', 'Menambahkan template landing page: '.$template->name);
 
-        return back()->with('success', 'Template "' . $template->name . '" berhasil ditambahkan.');
+        return back()->with('success', 'Template "'.$template->name.'" berhasil ditambahkan.');
     }
 
     public function update(Request $request, VoucherTemplate $template)
@@ -43,12 +41,11 @@ class VoucherTemplateController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'template_file' => 'nullable|file|mimes:zip|max:10240',
-            'is_active' => 'boolean',
         ]);
 
         $template->update([
             'name' => $validated['name'],
-            'is_active' => $request->boolean('is_active', true),
+            'is_active' => $request->boolean('is_active', false),
         ]);
 
         if ($request->hasFile('template_file')) {
@@ -60,9 +57,9 @@ class VoucherTemplateController extends Controller
             $template->syncToActive();
         }
 
-        ActivityLog::log('Ubah Template', 'Mengubah template landing page: ' . $template->name);
+        ActivityLog::log('Ubah Template', 'Mengubah template landing page: '.$template->name);
 
-        return back()->with('success', 'Template "' . $template->name . '" berhasil diperbarui.');
+        return back()->with('success', 'Template "'.$template->name.'" berhasil diperbarui.');
     }
 
     public function destroy(VoucherTemplate $template)
@@ -71,9 +68,9 @@ class VoucherTemplateController extends Controller
         $template->removeTemplateDirectory();
         $template->delete();
 
-        ActivityLog::log('Hapus Template', 'Menghapus template landing page: ' . $name);
+        ActivityLog::log('Hapus Template', 'Menghapus template landing page: '.$name);
 
-        return back()->with('success', 'Template "' . $name . '" berhasil dihapus.');
+        return back()->with('success', 'Template "'.$name.'" berhasil dihapus.');
     }
 
     public function preview(VoucherTemplate $template, ?string $page = null)
@@ -88,7 +85,7 @@ class VoucherTemplateController extends Controller
 
     public function serveFile(VoucherTemplate $template, string $path)
     {
-        $filePath = $template->templatePath() . DIRECTORY_SEPARATOR . ltrim($path, '/\\');
+        $filePath = $template->templatePath().DIRECTORY_SEPARATOR.ltrim($path, '/\\');
 
         if (str_contains($path, '..') || ! file_exists($filePath) || is_dir($filePath)) {
             abort(404);
@@ -132,14 +129,14 @@ class VoucherTemplateController extends Controller
 
         if (count($items) === 1) {
             $only = reset($items);
-            $sub = $path . DIRECTORY_SEPARATOR . $only;
+            $sub = $path.DIRECTORY_SEPARATOR.$only;
 
             if (is_dir($sub)) {
                 $subItems = array_diff(scandir($sub), ['.', '..']);
 
                 foreach ($subItems as $item) {
-                    $src = $sub . DIRECTORY_SEPARATOR . $item;
-                    $dst = $path . DIRECTORY_SEPARATOR . $item;
+                    $src = $sub.DIRECTORY_SEPARATOR.$item;
+                    $dst = $path.DIRECTORY_SEPARATOR.$item;
 
                     rename($src, $dst);
                 }

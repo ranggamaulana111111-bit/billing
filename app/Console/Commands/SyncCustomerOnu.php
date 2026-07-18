@@ -38,6 +38,7 @@ class SyncCustomerOnu extends Command
         }
 
         $total = 0;
+        $linked = 0;
 
         foreach ($olts as $olt) {
             $port = $olt->ports()->first();
@@ -45,7 +46,7 @@ class SyncCustomerOnu extends Command
                 $port = OltPort::create([
                     'olt_id' => $olt->id,
                     'slot_number' => 0,
-                    'port_number' => 0,
+                    'port_number' => 1,
                     'port_type' => 'gpon',
                     'status' => 'active',
                 ]);
@@ -76,12 +77,24 @@ class SyncCustomerOnu extends Command
                 );
 
                 $total++;
+
+                if ($customer->serial_number && ! $customer->onus()->whereNotNull('serial_number')->exists()) {
+                    $oltOnu = Onu::where('serial_number', $customer->serial_number)
+                        ->whereNull('customer_id')
+                        ->where('olt_port_id', $port->id)
+                        ->first();
+
+                    if ($oltOnu) {
+                        $oltOnu->update(['customer_id' => $customer->id]);
+                        $linked++;
+                    }
+                }
             }
 
             $olt->update(['last_polled_at' => now()]);
         }
 
-        $this->info("Selesai. {$total} ONU tersinkron.");
-        Log::info("customers:onu-sync selesai — {$total} ONU");
+        $this->info("Selesai. {$total} ONU tersinkron, {$linked} ONU otomatis tertaut via serial.");
+        Log::info("customers:onu-sync selesai — {$total} ONU, {$linked} auto-linked");
     }
 }

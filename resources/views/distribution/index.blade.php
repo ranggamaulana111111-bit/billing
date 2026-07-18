@@ -1,7 +1,5 @@
 @extends('layouts.app')
-
 @section('title', 'Distribusi ODP')
-
 @section('content')
 <div class="page-header d-flex flex-wrap justify-content-between align-items-center">
     <div>
@@ -20,7 +18,6 @@
         </button>
     </div>
 </div>
-
 @if(session('success'))
     <div class="alert alert-custom alert-success mb-4">{{ session('success') }}</div>
 @endif
@@ -30,58 +27,45 @@
 @if($errors->any())
     <div class="alert alert-custom alert-danger mb-4">{{ $errors->first() }}</div>
 @endif
-
 {{-- STATS --}}
-<div class="row g-4 mb-4">
-    <div class="col-md-3 fade-in" style="animation-delay:0.05s">
-        <div class="card stat-card stat-card-gradient-blue text-white">
-            <div class="stat-bg"><i class="fa-solid fa-tower-cell"></i></div>
-            <div class="card-body position-relative">
-                <div class="stat-number">{{ $totalOdps }}</div>
-                <div class="stat-label">Total ODP</div>
-            </div>
+<div class="d-flex gap-3 mb-4 flex-wrap">
+    <div class="card stat-card stat-card-gradient-blue text-white flex-fill" style="min-width:0;min-height:100px;border-radius:12px;">
+        <div class="card-body py-2 px-3 position-relative">
+            <div class="stat-number" style="font-size:1.5rem;">{{ $totalOdps }}</div>
+            <div class="stat-label" style="font-size:0.7rem;">Total ODP</div>
         </div>
     </div>
-    <div class="col-md-3 fade-in" style="animation-delay:0.1s">
-        <div class="card stat-card stat-card-gradient-green text-white">
-            <div class="stat-bg"><i class="fa-solid fa-plug"></i></div>
-            <div class="card-body position-relative">
-                <div class="stat-number">{{ $usedPorts }}</div>
-                <div class="stat-label">Port Terpakai</div>
-            </div>
+    <div class="card stat-card stat-card-gradient-green text-white flex-fill" style="min-width:0;min-height:100px;border-radius:12px;">
+        <div class="card-body py-2 px-3 position-relative">
+            <div class="stat-number" style="font-size:1.5rem;">{{ $usedPorts }}</div>
+            <div class="stat-label" style="font-size:0.7rem;">Port Terpakai</div>
         </div>
     </div>
-    <div class="col-md-3 fade-in" style="animation-delay:0.15s">
-        <div class="card" style="background:linear-gradient(135deg,#f59e0b,#d97706);min-height:130px;border-radius:16px;overflow:hidden;">
-            <div class="stat-bg" style="position:absolute;top:-30px;right:-30px;font-size:7rem;opacity:0.08;color:#fff;"><i class="fa-solid fa-circle"></i></div>
-            <div class="card-body position-relative" style="color:#fff;">
-                <div class="stat-number">{{ $availablePorts }}</div>
-                <div class="stat-label">Port Tersedia</div>
-            </div>
+    <div class="card flex-fill" style="min-width:0;min-height:100px;border-radius:12px;background:linear-gradient(135deg,#f59e0b,#d97706);">
+        <div class="card-body py-2 px-3 position-relative" style="color:#fff;">
+            <div class="stat-number" style="font-size:1.5rem;">{{ $availablePorts }}</div>
+            <div class="stat-label" style="font-size:0.7rem;">Port Tersedia</div>
         </div>
     </div>
-    <div class="col-md-3 fade-in" style="animation-delay:0.2s">
-        <div class="card stat-card stat-card-gradient-red text-white">
-            <div class="stat-bg"><i class="fa-solid fa-triangle-exclamation"></i></div>
-            <div class="card-body position-relative">
-                <div class="stat-number">{{ $fullOdps }}</div>
-                <div class="stat-label">ODP Penuh</div>
-            </div>
+    <div class="card stat-card stat-card-gradient-red text-white flex-fill" style="min-width:0;min-height:100px;border-radius:12px;">
+        <div class="card-body py-2 px-3 position-relative">
+            <div class="stat-number" style="font-size:1.5rem;">{{ $fullOdps }}</div>
+            <div class="stat-label" style="font-size:0.7rem;">ODP Penuh</div>
         </div>
     </div>
-    @isset($downOdps)
-    <div class="col-md-3 fade-in" style="animation-delay:0.25s">
-        <div class="card" style="background:linear-gradient(135deg,#1e293b,#0f172a);min-height:130px;border-radius:16px;overflow:hidden;">
-            <div class="stat-bg" style="position:absolute;top:-30px;right:-30px;font-size:7rem;opacity:0.08;color:#fff;"><i class="fa-solid fa-road"></i></div>
-            <div class="card-body position-relative" style="color:#fff;">
-                <div class="stat-number">{{ $downOdps }}</div>
-                <div class="stat-label">Jalur Putus</div>
-            </div>
+    <div class="card flex-fill" style="min-width:0;min-height:100px;border-radius:12px;background:linear-gradient(135deg,#eab308,#ca8a04);">
+        <div class="card-body py-2 px-3 position-relative" style="color:#fff;">
+            <div class="stat-number" style="font-size:1.5rem;">{{ $gangguanOdps }}</div>
+            <div class="stat-label" style="font-size:0.7rem;">Jalur Gangguan</div>
         </div>
     </div>
-    @endisset
+    <div class="card flex-fill" style="min-width:0;min-height:100px;border-radius:12px;background:linear-gradient(135deg,#1e293b,#0f172a);">
+        <div class="card-body py-2 px-3 position-relative" style="color:#fff;">
+            <div class="stat-number" style="font-size:1.5rem;">{{ $downOdps }}</div>
+            <div class="stat-label" style="font-size:0.7rem;">Jalur Putus</div>
+        </div>
+    </div>
 </div>
-
 {{-- CHARTS ROW --}}
 <div class="row g-4 mb-4">
     <div class="col-lg-8 fade-in" style="animation-delay:0.25s">
@@ -107,7 +91,6 @@
         </div>
     </div>
 </div>
-
 {{-- MAP --}}
 <div class="card shadow-sm border-0 mb-4">
     <div class="card-header bg-white d-flex flex-wrap justify-content-between align-items-center">
@@ -126,7 +109,6 @@
         <div id="map" style="height:460px;width:100%;border-radius:0 0 16px 16px;"></div>
     </div>
 </div>
-
 {{-- ODC TABLE --}}
 <div class="card shadow-sm border-0 mb-4">
     <div class="card-header bg-white">
@@ -137,9 +119,8 @@
         </div>
     </div>
     <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table mb-0 align-middle">
-                <thead>
+        <div class="mon-table-wrap">
+<table class="table table-hover align-middle mb-0 mon-table">
                     <tr>
                         <th>ODC</th>
                         <th>Koordinat</th>
@@ -147,7 +128,7 @@
                         <th class="text-center">ODP</th>
                         <th class="text-center">Aksi</th>
                     </tr>
-                </thead>
+
                 <tbody>
                     @forelse($odcs as $odc)
                         <tr>
@@ -158,18 +139,27 @@
                             <td class="text-center">{{ $odc->kapasitas_port }}</td>
                             <td class="text-center">{{ $odc->odps_count ?? $odc->odps->count() }}</td>
                             <td class="text-center">
-                                <a href="{{ route('odc.show', $odc) }}" class="btn btn-sm btn-outline-info px-2" title="Detail ODC">
-                                    <i class="fa-solid fa-eye"></i>
-                                </a>
-                                <button type="button" class="btn btn-sm btn-outline-primary px-2" data-bs-toggle="modal" data-bs-target="#editOdcModal{{ $odc->id }}" title="Edit ODC">
-                                    <i class="fa-solid fa-pen"></i>
-                                </button>
-                                <form method="POST" action="{{ route('distribution.odcs.destroy', $odc) }}" class="d-inline" onsubmit="return confirm('Hapus ODC {{ $odc->nama_odc }}?')">
-                                    @csrf @method('DELETE')
-                                    <button type="submit" class="btn btn-sm btn-outline-danger px-2" title="Hapus ODC">
-                                        <i class="fa-solid fa-trash"></i>
-                                    </button>
-                                </form>
+                                <div class="d-flex justify-content-center gap-1">
+                                    <a href="{{ route('odc.show', $odc) }}" class="btn btn-sm btn-outline-info px-2" title="Detail ODC">
+                                        <i class="fa-solid fa-eye"></i>
+                                    </a>
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-outline-secondary px-2 dropdown-toggle" data-bs-toggle="dropdown" title="Lainnya" style="font-size:0.7rem;">
+                                            <i class="fa-solid fa-ellipsis-vertical"></i>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end" style="font-size:0.8rem;min-width:160px;">
+                                            <li><a class="dropdown-item" href="{{ route('odc.show', $odc) }}"><i class="fa-solid fa-eye me-2 text-info"></i>Detail ODC</a></li>
+                                            <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editOdcModal{{ $odc->id }}"><i class="fa-solid fa-pen me-2 text-primary"></i>Edit ODC</a></li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li>
+                                                <form method="POST" action="{{ route('distribution.odcs.destroy', $odc) }}" onsubmit="return confirm('Hapus ODC {{ $odc->nama_odc }}?')">
+                                                    @csrf @method('DELETE')
+                                                    <button type="submit" class="dropdown-item text-danger"><i class="fa-solid fa-trash me-2"></i>Hapus ODC</button>
+                                                </form>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
                             </td>
                         </tr>
                     @empty
@@ -180,7 +170,6 @@
         </div>
     </div>
 </div>
-
 {{-- ROUTES TABLE --}}
 <div class="card shadow-sm border-0 mb-4">
     <div class="card-header bg-white">
@@ -191,9 +180,8 @@
         </div>
     </div>
     <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table mb-0 align-middle">
-                <thead>
+        <div class="mon-table-wrap">
+<table class="table table-hover align-middle mb-0 mon-table">
                     <tr>
                         <th>Route</th>
                         <th>ODC</th>
@@ -202,7 +190,7 @@
                         <th class="text-center">Titik</th>
                         <th class="text-center">Aksi</th>
                     </tr>
-                </thead>
+
                 <tbody>
                     @forelse($routes as $route)
                         <tr>
@@ -233,19 +221,25 @@
         </div>
     </div>
 </div>
-
 {{-- TABLE --}}
 <div class="card shadow-sm border-0">
     <div class="card-header bg-white">
-        <div class="d-flex align-items-center gap-2">
+        <div class="d-flex align-items-center gap-2 flex-wrap">
             <div style="width:8px;height:8px;border-radius:50%;background:#64748b;"></div>
             <span>Detail Titik ODP</span>
+            <div class="ms-auto d-flex gap-2 align-items-center">
+                <select id="filterJalur" class="form-select form-select-sm" style="width:auto;font-size:0.78rem;" onchange="filterOdpTable()">
+                    <option value="">Semua Status</option>
+                    <option value="UP">Normal</option>
+                    <option value="GANGGUAN">Gangguan</option>
+                    <option value="DOWN_LINK_FAILURE">Putus</option>
+                </select>
+            </div>
         </div>
     </div>
     <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table mb-0">
-                <thead>
+        <div class="mon-table-wrap">
+<table class="table table-hover align-middle mb-0 mon-table">
                     <tr>
                         <th>ODP</th>
                         <th>ODC</th>
@@ -255,7 +249,7 @@
                         <th class="text-center">Jalur</th>
                         <th class="text-center">Aksi</th>
                     </tr>
-                </thead>
+
                 <tbody>
                     @forelse($newOdps as $o)
                         @php
@@ -265,7 +259,7 @@
                             $pct = $cap > 0 ? round(($used / $cap) * 100) : 0;
                             $barColor = $pct >= 80 ? '#dc2626' : ($pct >= 50 ? '#d97706' : '#059669');
                         @endphp
-                        <tr>
+                        <tr data-kondisi="{{ $o->kondisi_jalur }}" style="{{ $o->kondisi_jalur !== 'UP' ? 'background:'.($o->kondisi_jalur === 'GANGGUAN' ? '#fefce8' : '#fef2f2').';' : '' }}">
                             <td class="fw-semibold">{{ $o->nama_odp }}</td>
                             <td>{{ $o->odc->nama_odc ?? '-' }}</td>
                             <td>
@@ -290,14 +284,37 @@
                                 </div>
                             </td>
                             <td class="text-center">
-                                <span class="badge badge-premium" style="background:{{ $o->kondisi_jalur === 'UP' ? '#f0fdf4' : '#fef2f2' }};color:{{ $o->kondisi_jalur === 'UP' ? '#059669' : '#dc2626' }};">
-                                    {{ $o->kondisi_jalur === 'UP' ? 'NORMAL' : 'PUTUS' }}
+                                @php
+                                    $jColor = match($o->kondisi_jalur) { 'UP' => ['#f0fdf4','#059669'], 'GANGGUAN' => ['#fefce8','#ca8a04'], default => ['#fef2f2','#dc2626'] };
+                                    $jLabel = match($o->kondisi_jalur) { 'UP' => 'NORMAL', 'GANGGUAN' => 'GANGGUAN', default => 'PUTUS' };
+                                @endphp
+                                <span class="badge badge-premium" style="background:{{ $jColor[0] }};color:{{ $jColor[1] }};">
+                                    {{ $jLabel }}
                                 </span>
                             </td>
                             <td class="text-center">
-                                <a href="{{ route('odp.show', $o) }}" class="btn btn-sm btn-outline-info px-2" title="Detail ODP">
-                                    <i class="fa-solid fa-eye"></i>
-                                </a>
+                                <div class="d-flex gap-1 justify-content-center">
+                                    <a href="{{ route('odp.show', $o) }}" class="btn btn-sm btn-outline-info px-2" title="Detail ODP">
+                                        <i class="fa-solid fa-eye"></i>
+                                    </a>
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-outline-secondary px-2 dropdown-toggle" data-bs-toggle="dropdown" title="Ubah Status Jalur" style="font-size:0.7rem;">
+                                            <i class="fa-solid fa-pen"></i>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end" style="font-size:0.8rem;">
+                                            <li><button class="dropdown-item" onclick="toggleJalur({{ $o->id }},'UP')">
+                                                <i class="fa-solid fa-circle-check me-1" style="color:#22c55e;"></i> Normal
+                                            </button></li>
+                                            <li><button class="dropdown-item" onclick="toggleJalur({{ $o->id }},'GANGGUAN')">
+                                                <i class="fa-solid fa-triangle-exclamation me-1" style="color:#eab308;"></i> Gangguan
+                                            </button></li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li><button class="dropdown-item text-danger" onclick="toggleJalur({{ $o->id }},'DOWN_LINK_FAILURE')">
+                                                <i class="fa-solid fa-circle-xmark me-1"></i> Putus
+                                            </button></li>
+                                        </ul>
+                                    </div>
+                                </div>
                             </td>
                         </tr>
                     @empty
@@ -308,7 +325,26 @@
         </div>
     </div>
 </div>
-
+<form id="toggleJalurForm" method="POST" style="display:none;">
+    @csrf
+    <input type="hidden" name="status" id="toggleJalurStatus">
+</form>
+<script>
+function filterOdpTable() {
+    var val = document.getElementById('filterJalur').value;
+    var rows = document.querySelectorAll('#odpTable tbody tr[data-kondisi]');
+    rows.forEach(function(r) {
+        r.style.display = (!val || r.getAttribute('data-kondisi') === val) ? '' : 'none';
+    });
+}
+function toggleJalur(odpId, status) {
+    if (!confirm('Ubah kondisi jalur ODP ini?')) return;
+    var form = document.getElementById('toggleJalurForm');
+    document.getElementById('toggleJalurStatus').value = status;
+    form.action = '/odp/' + odpId + '/toggle-jalur';
+    form.submit();
+}
+</script>
 {{-- CREATE ODC MODAL --}}
 <div class="modal fade" id="createOdcModal" tabindex="-1">
     <div class="modal-dialog">
@@ -347,7 +383,6 @@
         </div>
     </div>
 </div>
-
 {{-- CREATE ROUTE MODAL --}}
 <div class="modal fade" id="createRouteModal" tabindex="-1">
     <div class="modal-dialog">
@@ -394,7 +429,6 @@
         </div>
     </div>
 </div>
-
 {{-- CREATE ODP MODAL (new fiber model) --}}
 <div class="modal fade" id="createOdpModal" tabindex="-1">
     <div class="modal-dialog">
@@ -463,7 +497,6 @@
         </div>
     </div>
 </div>
-
 @foreach($odcs as $odc)
 <div class="modal fade" id="editOdcModal{{ $odc->id }}" tabindex="-1">
     <div class="modal-dialog">
@@ -502,7 +535,6 @@
     </div>
 </div>
 @endforeach
-
 @foreach($routes as $route)
 <div class="modal fade" id="editRouteModal{{ $route->id }}" tabindex="-1">
     <div class="modal-dialog">
@@ -549,7 +581,6 @@
     </div>
 </div>
 @endforeach
-
 @foreach($odps as $o)
 <div class="modal fade" id="editPointModal{{ $o->id }}" tabindex="-1">
     <div class="modal-dialog">
@@ -612,20 +643,17 @@
 </div>
 @endforeach
 @endsection
-
 @push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         var labels = @json($chartLabels);
         var used = @json($chartUsed);
         var capacity = @json($chartCapacity);
-
         var primary = '#2563eb';
         var accent = '#6366f1';
         var danger = '#dc2626';
         var warning = '#d97706';
         var green = '#10b981';
-
         new Chart(document.getElementById('odpChart'), {
             type: 'bar',
             data: {
@@ -682,10 +710,8 @@
                 }
             }
         });
-
         var usedPorts = {{ $usedPorts }};
         var available = {{ $availablePorts }};
-
         new Chart(document.getElementById('portChart'), {
             type: 'doughnut',
             data: {
@@ -724,7 +750,6 @@
                 }
             }
         });
-
         // Map
         var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
@@ -736,13 +761,11 @@
         });
         var map = L.map('map', { layers: [sat] }).setView([-6.476, 106.014], 14);
         L.control.layers({ 'Satelit': sat, 'Street': osm }).addTo(map);
-
         var odpsData = @json($odps);
         var odcsData = @json($odcs);
         var newOdpsData = @json($newOdpsJson);
         var routesData = @json($routes);
         var markerBounds = [];
-
         var icons = {
             green: L.divIcon({
                 className: 'custom-marker',
@@ -763,14 +786,12 @@
                 iconAnchor: [9, 9]
             })
         };
-
         var odcIcon = L.divIcon({
             className: 'custom-marker',
             html: '<div style="width:24px;height:24px;background:#0f172a;border:3px solid #fff;border-radius:6px;box-shadow:0 2px 10px rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;"><i class="fa-solid fa-server"></i></div>',
             iconSize: [24, 24],
             iconAnchor: [12, 12]
         });
-
         {{-- ROUTE POLYLINES --}}
         routesData.forEach(function(route) {
             if (route.coordinates && route.coordinates.length > 0) {
@@ -780,7 +801,6 @@
                     opacity: 0.7,
                     dashArray: '8, 6'
                 }).addTo(map);
-
                 polyline.bindPopup(`
                     <div style="font-family:'Inter',sans-serif;min-width:160px;">
                         <h6 style="margin:0;font-weight:700;font-size:13px;color:#0f172a;">
@@ -793,7 +813,6 @@
                         </div>
                     </div>
                 `, { className: 'custom-popup' });
-
                 {{-- Add to markerBounds if coordinates have points --}}
                 route.coordinates.forEach(function(coord) {
                     if (coord && coord.length === 2) {
@@ -802,14 +821,12 @@
                 });
             }
         });
-
         {{-- ODC TO ODP CONNECTION LINES --}}
         {{-- Draw lines from ODC to its ODPs --}}
         var odcMap = {};
         odcsData.forEach(function(odc) {
             odcMap[odc.id] = odc;
         });
-
         newOdpsData.forEach(function(odp) {
             if (odp.latitude && odp.longitude && odp.odc_id && odcMap[odp.odc_id] && odcMap[odp.odc_id].latitude) {
                 L.polyline([
@@ -823,7 +840,6 @@
                 }).addTo(map);
             }
         });
-
         odcsData.forEach(function(odc) {
             if (odc.latitude && odc.longitude) {
                 var marker = L.marker([odc.latitude, odc.longitude], { icon: odcIcon }).addTo(map);
@@ -840,24 +856,19 @@
                 markerBounds.push([odc.latitude, odc.longitude]);
             }
         });
-
         odpsData.forEach(function(odp) {
             if (odp.latitude && odp.longitude) {
                 var terpakai = odp.customers ? odp.customers.length : 0;
                 var totalCapacity = odp.port_capacity ?? 16;
                 var sisaPort = totalCapacity - terpakai;
                 var pct = totalCapacity > 0 ? Math.round((terpakai / totalCapacity) * 100) : 0;
-
                 var iconColor = pct >= 80 ? 'red' : (pct >= 50 ? 'orange' : 'green');
-
                 var marker = L.marker([odp.latitude, odp.longitude], {
                     icon: icons[iconColor]
                 }).addTo(map);
-
                 var customerList = odp.customers && odp.customers.length > 0
                     ? '<div style="margin-top:6px;padding-top:6px;border-top:1px solid #f1f5f9;font-size:11px;"><strong style="color:#0f172a;">Pelanggan:</strong><br>' + odp.customers.map(function(c) { return '<span style="color:#475569;">&bull; ' + c + '</span>'; }).join('<br>') + '</div>'
                     : '';
-
                 var popupContent = `
                     <div style="font-family:'Inter',sans-serif;min-width:200px;">
                         <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
@@ -885,7 +896,6 @@
                 markerBounds.push([odp.latitude, odp.longitude]);
             }
         });
-
         {{-- NEW ODP (odps table) markers with customer list & port detail --}}
         newOdpsData.forEach(function(odp) {
             if (odp.latitude && odp.longitude) {
@@ -893,20 +903,17 @@
                 var totalCapacity = odp.port_capacity ?? 16;
                 var sisaPort = totalCapacity - terpakai;
                 var pct = totalCapacity > 0 ? Math.round((terpakai / totalCapacity) * 100) : 0;
-
                 var iconColor = pct >= 80 ? 'red' : (pct >= 50 ? 'orange' : 'green');
-                var kondisi = odp.kondisi_jalur === 'DOWN_LINK_FAILURE';
-                var kondisiLabel = kondisi ? 'PUTUS' : (odp.kondisi_jalur ?? 'NORMAL');
-                var kondisiColor = kondisi ? '#dc2626' : '#059669';
-
+                var kondisi = odp.kondisi_jalur ?? 'UP';
+                var kondisiLabel = kondisi === 'DOWN_LINK_FAILURE' ? 'PUTUS' : (kondisi === 'GANGGUAN' ? 'GANGGUAN' : 'NORMAL');
+                var kondisiColor = kondisi === 'DOWN_LINK_FAILURE' ? '#dc2626' : (kondisi === 'GANGGUAN' ? '#ca8a04' : '#059669');
+                var kondisiIcon = kondisi === 'DOWN_LINK_FAILURE' ? 'red' : (kondisi === 'GANGGUAN' ? 'orange' : iconColor);
                 var marker = L.marker([odp.latitude, odp.longitude], {
-                    icon: icons[kondisi ? 'red' : iconColor]
+                    icon: icons[kondisiIcon]
                 }).addTo(map);
-
                 var customerList = odp.customers && odp.customers.length > 0
                     ? '<div style="margin-top:6px;padding-top:6px;border-top:1px solid #f1f5f9;font-size:11px;"><strong style="color:#0f172a;">Pelanggan ('+odp.customers.length+'):</strong><br>' + odp.customers.map(function(c) { return '<span style="color:#475569;">&bull; ' + c + '</span>'; }).join('<br>') + '</div>'
                     : '<div style="margin-top:6px;padding-top:6px;border-top:1px solid #f1f5f9;font-size:11px;color:#94a3b8;">Belum ada pelanggan</div>';
-
                 var onuInfo = '';
                 if (odp.onu_total !== undefined) {
                     onuInfo = '<div style="display:flex;justify-content:space-between;font-size:11px;margin-top:2px;">' +
@@ -914,7 +921,6 @@
                         '<span style="font-weight:600;"><span style="color:#059669;">' + (odp.onu_online || 0) + ' online</span> / <span style="color:#94a3b8;">' + odp.onu_total + ' total</span></span>' +
                         '</div>';
                 }
-
                 var popupContent = `
                     <div style="font-family:'Inter',sans-serif;min-width:200px;">
                         <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
@@ -950,11 +956,19 @@
                 markerBounds.push([odp.latitude, odp.longitude]);
             }
         });
-
         if (markerBounds.length > 0) {
             var bounds = L.latLngBounds(markerBounds);
             map.fitBounds(bounds, { padding: [40, 40] });
         }
     });
 </script>
+@endpush
+
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
+@endpush
+
+@push('scripts')
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 @endpush

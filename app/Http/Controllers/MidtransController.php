@@ -4,48 +4,27 @@ namespace App\Http\Controllers;
 
 use App\Models\ActivityLog;
 use App\Models\Invoice;
-use App\Services\MidtransService;
+use App\Models\Setting;
+use App\Services\Billing\BillingService;
+use App\Services\FonnteService;
+use App\Services\Payment\PaymentService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class MidtransController extends Controller
 {
+    public function __construct(
+        protected PaymentService $paymentService,
+        protected BillingService $billing,
+    ) {}
+
     public function pay(Invoice $invoice)
     {
         if ($invoice->payment_status === 'paid') {
             return back()->with('error', 'Invoice ini sudah lunas.');
         }
 
-        $midtrans = new MidtransService;
-
-        if (! $midtrans->isConfigured()) {
-            return back()->with('error', 'Midtrans belum dikonfigurasi. Isi Server Key di Pengaturan.');
-        }
-
-        $customer = $invoice->customer;
-        $orderId = $invoice->invoice_code.'-'.time();
-
-        $params = [
-            'transaction_details' => [
-                'order_id' => $orderId,
-                'gross_amount' => (int) $invoice->amount,
-            ],
-            'customer_details' => [
-                'first_name' => $customer->name,
-                'phone' => $customer->phone,
-                'email' => $customer->email,
-            ],
-            'item_details' => [
-                [
-                    'id' => $invoice->invoice_code,
-                    'price' => (int) $invoice->amount,
-                    'quantity' => 1,
-                    'name' => 'Invoice '.$invoice->invoice_code.' - '.($customer->package->name ?? 'Internet'),
-                ],
-            ],
-        ];
-
-        $result = $midtrans->getSnapToken($params);
+        $result = $this->paymentService->createTransaction('midtrans', $invoice);
 
         if (! $result['success']) {
             return back()->with('error', 'Midtrans: '.$result['message']);
@@ -53,9 +32,7 @@ class MidtransController extends Controller
 
         $snapToken = $result['token'];
 
-        $invoice->update(['midtrans_order_id' => $orderId]);
-
-        ActivityLog::log('Midtrans', 'Redirect pembayaran Midtrans: '.$invoice->invoice_code);
+        ActivityLog::log('Midtrans', 'Redirect pembayaran Midtrans: '.$invoice->invoice_display);
 
         return view('midtrans.pay', compact('snapToken', 'invoice'));
     }
@@ -64,53 +41,28 @@ class MidtransController extends Controller
     {
         $rawBody = $request->getContent();
         $data = json_decode($rawBody, true);
-        $orderId = $data['order_id'] ?? null;
 
-        if (! $orderId) {
+        $result = $this->paymentService->processWebhook('midtrans', $data);
+
+        if (! $result['success']) {
+            Log::warning('Midtrans webhook failed', ['data' => $data, 'result' => $result]);
+
             return response('OK', 200);
         }
 
-        $invoice = Invoice::allTenants()->where('midtrans_order_id', $orderId)->first();
+        if (isset($result['invoice'])) {
+            $invoice = $result['invoice'];
+            $notification = $result['notification'];
 
-        if (! $invoice) {
-            return response('OK', 200);
-        }
-
-        // Idempotensi: jika sudah paid, potong langsung
-        if ($invoice->payment_status === 'paid') {
-            return response('OK', 200);
-        }
-
-        $midtrans = new MidtransService($invoice->tenant_id);
-
-        if (! $midtrans->isConfigured()) {
-            return response('Midtrans not configured', 500);
-        }
-
-        // Verifikasi signature_key SHA512 (Midtrans keamanan)
-        $serverKey = config('services.midtrans.server_key') ?: $midtrans->getServerKey();
-        $signature = $data['signature_key'] ?? '';
-        $expectedSignature = hash('sha512', $orderId.$data['status_code'].$data['gross_amount'].$serverKey);
-
-        if (! hash_equals($expectedSignature, $signature)) {
-            return response('Invalid signature', 403);
-        }
-
-        $notif = $midtrans->handleNotification();
-
-        if (! $notif['success']) {
-            return response('OK', 200);
-        }
-
-        DB::transaction(function () use ($invoice) {
-            $invoice->update([
-                'payment_status' => 'paid',
-                'paid_at' => now(),
-                'payment_method' => 'midtrans',
+            $this->billing->processPayment($invoice, 'midtrans', [
+                'transaction_id' => $notification['transaction_id'] ?? null,
+                'order_id' => $notification['order_id'] ?? null,
+                'gross_amount' => $notification['gross_amount'] ?? $invoice->amount,
+                'payment_type' => $notification['payment_type'] ?? 'midtrans',
             ]);
 
-            ActivityLog::log('Pembayaran Online', 'Pembayaran via Midtrans: '.$invoice->invoice_code.' - Rp '.number_format($invoice->amount, 0, ',', '.'));
-        });
+            $this->sendPaymentNotification($invoice);
+        }
 
         return response('OK', 200);
     }
@@ -118,13 +70,78 @@ class MidtransController extends Controller
     public function finish(Request $request)
     {
         $orderId = $request->get('order_id');
-
-        $invoice = Invoice::allTenants()->where('midtrans_order_id', $orderId)->first();
+        $invoice = Invoice::allTenants()
+            ->where('invoice_number', $orderId)
+            ->orWhere('midtrans_order_id', $orderId)
+            ->first();
 
         if ($invoice && $invoice->payment_status === 'paid') {
             return redirect()->route('invoices.index')->with('success', 'Pembayaran via Midtrans berhasil!');
         }
 
         return redirect()->route('invoices.index')->with('info', 'Pembayaran sedang diproses. Silakan cek kembali nanti.');
+    }
+
+    public function settings()
+    {
+        $config = [
+            'midtrans_server_key' => Setting::get('midtrans_server_key', config('services.midtrans.server_key', '')),
+            'midtrans_client_key' => Setting::get('midtrans_client_key', config('services.midtrans.client_key', '')),
+            'midtrans_merchant_id' => Setting::get('midtrans_merchant_id', config('services.midtrans.merchant_id', '')),
+            'midtrans_production' => Setting::get('midtrans_production', 'false'),
+            'midtrans_enabled' => Setting::get('midtrans_enabled', 'false'),
+        ];
+
+        return view('payments.gateway', $config);
+    }
+
+    public function updateSettings(Request $request)
+    {
+        $validated = $request->validate([
+            'midtrans_server_key' => 'nullable|string|max:255',
+            'midtrans_client_key' => 'nullable|string|max:255',
+            'midtrans_merchant_id' => 'nullable|string|max:255',
+            'midtrans_production' => 'required|in:true,false',
+            'midtrans_enabled' => 'required|in:true,false',
+        ]);
+
+        foreach ($validated as $key => $value) {
+            Setting::set($key, $value);
+        }
+
+        ActivityLog::log('Payment Gateway', 'Update konfigurasi Midtrans Payment Gateway');
+
+        return back()->with('success', 'Pengaturan Payment Gateway berhasil disimpan.');
+    }
+
+    protected function sendPaymentNotification(Invoice $invoice): void
+    {
+        $customer = $invoice->customer;
+        $phone = $customer->phone;
+
+        if (! $phone) {
+            return;
+        }
+
+        try {
+            $message = "━━━ *ALKONEK BILLING* ━━━\n\n"
+                ."✅ *PEMBAYARAN DITERIMA*\n\n"
+                ."Halo YTH *{$customer->name}*, terima kasih!\n\n"
+                ."📋 *Detail Pembayaran*\n"
+                ."━━━━━━━━━━━━━━━━\n"
+                ."Invoice : {$invoice->invoice_display}\n"
+                .'Paket   : '.($customer->package->name ?? '-')."\n"
+                .'Total   : Rp '.number_format($invoice->amount, 0, ',', '.')."\n"
+                ."Status  : ✅ LUNAS\n"
+                .'Tanggal : '.now()->format('d/m/Y H:i')."\n"
+                ."━━━━━━━━━━━━━━━━\n\n"
+                ."Terima kasih telah melakukan pembayaran tepat waktu.\n"
+                ."Nikmati layanan internet Anda!\n\n"
+                .'━━━ *PT Alkonek Network Access* ━━━';
+
+            (new FonnteService)->send($phone, $message);
+        } catch (\Exception $e) {
+            Log::error('WA notification gagal setelah Midtrans payment: '.$e->getMessage());
+        }
     }
 }

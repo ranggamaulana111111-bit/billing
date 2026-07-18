@@ -1,21 +1,23 @@
 <!-- ============================================================ -->
-<!-- DESCRIPTION.md — Full Project Documentation                  -->
+<!-- README.md — Project Overview (Ringkas)                       -->
 <!-- ============================================================ -->
 
-# RabegNet — ISP Billing System v1.1
+# ALKONEK — ISP Billing System v1.2
 
 Sistem billing ISP terintegrasi untuk manajemen pelanggan, tagihan, pembayaran, inventaris, dan monitoring infrastruktur jaringan (OLT, ODP, MikroTik) — dibangun dengan **Laravel 12** + **Bootstrap 5.3** + **Leaflet.js** + **Chart.js**.
+
+> **Status:** v1.2 — *Deployed to production* (aktif digunakan). Seluruh fitur inti sudah diimplementasikan dan berjalan, namun belum melalui verifikasi formal (benchmark, stress test, security audit). Lihat `docs/00_PROJECT/DESCRIPTION.md` §16 untuk catatan kejujuran status.
 
 ---
 
 ## 1. Gambaran Umum Aplikasi
 
-RabegNet adalah sistem billing berbasis web untuk penyedia layanan internet (ISP) skala kecil hingga menengah. Aplikasi ini mencakup manajemen pelanggan, penagihan otomatis, pembayaran online, manajemen perangkat jaringan (OLT multi-brand, MikroTik, ODP/ODC), serta sistem voucher WiFi hotspot.
+ALKONEK (PT Alkonek Network Access) adalah sistem billing berbasis web untuk penyedia layanan internet (ISP) skala kecil hingga menengah. Aplikasi ini mencakup manajemen pelanggan, penagihan otomatis, pembayaran online, manajemen perangkat jaringan (OLT multi-brand, MikroTik, ODP/ODC), sistem voucher WiFi hotspot, **Live Network Topology** (OLT→ODC→ODP→ONU yang sinkron dengan modul distribusi), serta **Monitoring Real-Time** trafik WAN-ISP.
 
-- **Nama Proyek:** RabegNet ISP Billing System
-- **Versi:** 1.1
-- **Status:** Production Active
-- **Domain:** rabegnet.vercel.app
+- **Nama Proyek:** ALKONEK ISP Billing System (PT Alkonek Network Access)
+- **Versi:** 1.2
+- **Status:** Deployed to production (belum di-benchmark/security-audit)
+- **Brand:** ALKONEK BILLING / PT Alkonek Network Access
 
 ---
 
@@ -26,6 +28,7 @@ RabegNet adalah sistem billing berbasis web untuk penyedia layanan internet (ISP
 - Mengelola distribusi fiber optik (ODC/ODP) dengan peta interaktif
 - Menyediakan portal customer self-service untuk cek tagihan dan pembayaran
 - Mengelola voucher WiFi hotspot dengan sinkronisasi ke MikroTik
+- Menyediakan **Live Network Topology** yang menyambungkan OLT → ODC → ODP → ONU secara visual dan sinkron dengan data distribusi
 - Mendukung multi-tenant (setiap admin memiliki data sendiri)
 
 ---
@@ -71,13 +74,15 @@ RabegNet adalah sistem billing berbasis web untuk penyedia layanan internet (ISP
 ### Frontend
 | Teknologi | Versi | Fungsi |
 |-----------|-------|--------|
-| Bootstrap | 5.3.8 | CSS framework |
+| Bootstrap | 5.3.8 | CSS framework (di-load via CDN jsDelivr, offloaded dari build) |
 | Bootstrap Icons | 1.13.1 | Icons |
-| Leaflet | 1.9.4 | Peta interaktif ODP/OLT |
-| Chart.js | 4.5.1 (via NPM + Vite) | Grafik dashboard |
+| Leaflet | 1.9.4 | Peta interaktif ODP/OLT (CDN defer, hanya di halaman perlu) |
+| Chart.js | 4.5.1 | Grafik dashboard (CDN defer, hanya di halaman perlu) |
 | Alpine.js | — | Interaktivitas ringan |
-| Tailwind CSS | v4 | CSS utility (via `@import 'tailwindcss'`) |
-| Vite | 7.x | Asset bundler |
+| Tailwind CSS | v4 | CSS utility (via `@import 'tailwindcss'`, tidak aktif dipakai) |
+| Vite | 7.x | Asset bundler (hanya `app.css` + `app.js`) |
+
+> **Optimasi (v1.2):** Bootstrap CSS, Chart.js, Leaflet di-load dari CDN sehingga build Vite hanya ~103KB CSS + ~122KB JS (gzip ≈ 19KB + 41KB). Font Awesome & Google Fonts non-render-blocking. DashboardController di-cache (`Cache::remember` 90–300s).
 
 ### Integrasi Pihak Ketiga
 | Layanan | API | Fungsi |
@@ -134,8 +139,9 @@ Tenant → User (admin/teknisi)
  │    ├── /olts (CRUD, scan, monitoring, map, search ONU)
  │    ├── /vouchers (create, print, sync, report)
  │    ├── /mikrotik (dashboard, profiles, active, ppp, queues, monitoring)
- │    ├── /distribution (ODC/ODP/Route map)
- │    ├── /logs (activity log)
+   │    ├── /distribution (ODC/ODP/Route map)
+   │    ├── /onu-health/topology/graph (Live Network Topology — OLT→ODC→ODP→ONU)
+   │    ├── /logs (activity log)
   │    ├── /reports (admin only)
   │    ├── /settings (admin only)
   │    ├── /backups (admin only)
@@ -972,7 +978,9 @@ GET    /export/payments                       → Export CSV payments
 
 ## 14. Daftar Fitur Lengkap
 
-### Fitur Selesai (100%)
+### Fitur Diimplementasikan
+
+> Status "diimplementasikan" berarti fitur ada, berjalan, dan sudah dipakai — bukan hasil pengukuran formal. Beberapa aspek (security, NFR, error architecture) masih partial; lihat `DESCRIPTION.md` §16.
 
 | # | Fitur | Kategori | Controller | Status |
 |---|-------|----------|------------|--------|
@@ -1065,6 +1073,9 @@ GET    /export/payments                       → Export CSV payments
 | 87 | Cron trigger eksternal (Vercel workaround) | Utility | CronController | ✅ |
 | 88 | Manajemen ODP baru (model Odp) | Distribution | DistributionController | ✅ |
 | 89 | Manajemen ODC Port / ODP Port | Distribution | OdcController, OdpController | ✅ |
+| 90 | Live Network Topology (OLT→ODC→ODP→ONU) | Topology | OnuHealthController (FiberTopologyService) | ✅ |
+| 91 | Topology sinkron dengan modul Distribution | Topology | FiberTopologyService | ✅ |
+| 92 | Monitoring Real-Time trafik WAN-ISP (rate delta 1s) | Monitoring | MonitoringController | ✅ |
 
 ### Fitur Sebagian Selesai
 
@@ -1200,7 +1211,7 @@ Lihat `.env.example` dan `vercel.json` untuk daftar lengkap environment variable
 
 ## 19. Catatan Pengembangan
 
-1. **CSS sepenuhnya custom** — `resources/css/app.css` (1570 baris) menggunakan custom design system dengan CSS custom properties, gradient, glassmorphism. Tailwind hanya di-import tapi tidak digunakan secara aktif.
+1. **CSS sepenuhnya custom** — `resources/css/app.css` (~5120 baris) menggunakan custom design system dengan CSS custom properties, gradient, glassmorphism. Tailwind hanya di-import tapi tidak digunakan secara aktif. Seluruh tabel pakai `.mon-table` + `.mon-thead`.
 2. **OLT polling** menggunakan Job per-OLT (`PollOltJob`) dengan timeout 60s, tries=3. Jika scan OLT gagal, fallback sync dari MikroTik. Juga menjalankan RCA (Root Cause Analysis) untuk cable cut detection.
 3. **MikroTik multi-router** — MikrotikRouter model dengan CRUD terpisah. Service mendukung konstruktor dengan parameter router.
 4. **Voucher** memiliki kolom traffic tracking (downloaded, uploaded, total_traffic) namun belum ada mekanisme sinkronasi otomatis dari MikroTik.
@@ -1212,22 +1223,29 @@ Lihat `.env.example` dan `vercel.json` untuk daftar lengkap environment variable
 10. **BelongsToUser** trait sudah tidak dipakai — semua model menggunakan **`BelongsToTenant`** dengan global scope `tenant_id`. `BelongsToUser` adalah dead code.
 11. **Isolir Subsystem** — 3 commands (`AutoIsolir`, `SyncIsolirIps`, `MikrotikSetupIsolir`) + 1 controller (`IsolirController`) untuk auto-suspend pelanggan telat bayar: set PPP Profile isolir, tambah IP ke firewall address-list, DST-NAT redirect ke halaman pembayaran.
 12. **Event-driven voucher sync** — `POST /api/v1/mikrotik/hotspot-login` menggantikan scheduler `voucher:sync-mikrotik`. Dipicu dari On-Login script MikroTik User Profile.
-13. **Chart.js** dipasang via NPM (`chart.js@4.5.1`) dan diimport di `resources/js/app.js` — bukan via CDN.
+13. **Chart.js & Leaflet** di-load via CDN (`defer`) hanya di halaman yang membutuhkan (`@push('scripts')`), tidak lagi diimport di `resources/js/app.js`. Bootstrap CSS juga via CDN jsDelivr — build Vite hanya menghasilkan `app.css` + `app.js` (~103KB + ~122KB).
 14. **Security concerns:** `OdcPort` dan `OdpPort` model tidak punya BelongsToTenant scope (potensi data leak). SSL verification disabled untuk koneksi MikroTik REST API (`withoutVerifying()`). Cron token lewat query parameter `?token=` yang terbaca di server access logs.
 
 ---
 
 ## 20. Roadmap Pengembangan Selanjutnya
 
-### Immediate
+### Immediate (Prioritas P1)
+- Encrypt password MikroTik di database (saat ini plaintext)
+- Tambah `BelongsToTenant` ke `OdcPort` & `OdpPort` (tutup celah data leak)
+- Hapus sensitive file (`.env`, `vercel.json`, `checker.md`) dari git history
 - Export CSV voucher
 - Halaman index Voucher Template (view blade)
 
-### Short-term
+### Short-term (Prioritas P2)
+- Enable SSL verification MikroTik (configurable)
+- Proteksi `reset_data.php`
+- API auth + rate limiting (`/api/v1/mikrotik/hotspot-login`)
 - Sinkronasi traffic voucher dari MikroTik
 - Template WA reminder yang bisa dikustom dari settings
 - Notifikasi email untuk payment reminder bulk
 - Filter export CSV yang lebih kaya
+- Define RPO/RTO + backup encryption
 
 ### Long-term
 - API RESTful untuk integrasi pihak ketiga

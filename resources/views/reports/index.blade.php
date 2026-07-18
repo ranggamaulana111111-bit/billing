@@ -1,7 +1,5 @@
 @extends('layouts.app')
-
 @section('title', 'Laporan')
-
 @section('content')
 <div class="page-header d-flex flex-wrap justify-content-between align-items-center">
     <div>
@@ -17,7 +15,6 @@
         </a>
     </div>
 </div>
-
 {{-- FILTER BULAN --}}
 <div class="card shadow-sm border-0 mb-4 report-filter-card">
     <div class="card-header d-flex align-items-center gap-2">
@@ -50,7 +47,6 @@
         </form>
     </div>
 </div>
-
 {{-- STATS CARDS --}}
 <div class="row g-3 mb-4">
     <div class="col-md-3 fade-in fade-in-delay-1">
@@ -107,7 +103,6 @@
         </div>
     </div>
 </div>
-
 <div class="row g-4">
     {{-- REVENUE CHART --}}
     <div class="col-lg-8 fade-in fade-in-delay-2">
@@ -121,7 +116,6 @@
             </div>
         </div>
     </div>
-
     {{-- PAYMENT METHOD BREAKDOWN --}}
     <div class="col-lg-4 fade-in fade-in-delay-3">
         <div class="card shadow-sm border-0 report-payment-card">
@@ -131,69 +125,120 @@
             </div>
             <div class="card-body p-0">
                 @if($methodBreakdown->count())
-                    <table class="table mb-0">
-                        <thead>
-                            <tr><th>Metode</th><th class="text-end">Jumlah</th><th class="text-end">Transaksi</th></tr>
-                        </thead>
-                        <tbody>
-                            @foreach($methodBreakdown as $m)
-                                <tr>
-                                    <td>
-                                        <span class="badge badge-soft-green">
-                                            {{ ucfirst($m->payment_method) }}
-                                        </span>
-                                    </td>
-                                    <td class="fw-bold text-end" style="color:#059669;">Rp{{ number_format($m->total, 0, ',', '.') }}</td>
-                                    <td class="text-end text-muted">{{ $m->count }}x</td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
+                    <div class="mon-table-wrap">
+                        <table class="table table-hover align-middle mb-0 mon-table">
+                            <thead>
+                                <tr><th>Metode</th><th class="text-end">Jumlah</th><th class="text-end">Transaksi</th></tr>
+                            </thead>
+                            <tbody>
+                                @foreach($methodBreakdown as $m)
+                                    <tr>
+                                        <td>
+                                            <span class="badge badge-soft-green">
+                                                {{ ucfirst($m->payment_method) }}
+                                            </span>
+                                        </td>
+                                        <td class="fw-bold text-end" style="color:#059669;">Rp{{ number_format($m->total, 0, ',', '.') }}</td>
+                                        <td class="text-end text-muted">{{ $m->count }}x</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
                 @else
                     <p class="text-center text-muted py-4">Belum ada data pembayaran</p>
                 @endif
             </div>
         </div>
     </div>
-
     {{-- TOP UNPAID --}}
     <div class="col-12 fade-in fade-in-delay-4">
         <div class="card shadow-sm border-0 report-unpaid-card">
             <div class="card-header d-flex align-items-center gap-2">
                 <span class="dot" style="background:#dc2626;"></span>
                 <span>Piutang Tertinggi</span>
-                <span class="badge ms-2 badge-soft-red">{{ $topUnpaid->count() }}</span>
+                <span class="badge ms-2 badge-soft-red">{{ $topUnpaid->count() }} tagihan belum dibayar</span>
             </div>
             <div class="card-body p-0">
-                <table class="table mb-0">
-                    <thead>
-                        <tr><th>Pelanggan</th><th>Invoice</th><th>Paket</th><th class="text-end">Tagihan</th></tr>
-                    </thead>
-                    <tbody>
-                        @forelse($topUnpaid as $inv)
+                <div class="mon-table-wrap">
+                    <table class="table table-hover align-middle mb-0 mon-table">
+                        <thead>
+                            <tr><th>Pelanggan</th><th>No. Invoice</th><th>Paket</th><th class="text-end">Jumlah Tagihan</th></tr>
+                        </thead>
+                        <tbody>
+                            @forelse($topUnpaid as $inv)
+                                <tr>
+                                    <td class="fw-medium">{{ $inv->customer->name ?? '-' }}</td>
+                                    <td><span class="badge badge-soft-primary">{{ $inv->invoice_display }}</span></td>
+                                    <td>{{ $inv->customer->package->name ?? '-' }}</td>
+                                    <td class="fw-bold text-end">Rp{{ number_format($inv->amount, 0, ',', '.') }}</td>
+                                </tr>
+                            @empty
+                                <tr><td colspan="4" class="text-center py-4 text-muted"><i class="fa-regular fa-circle-check me-2 text-green-check"></i>Semua tagihan lunas!</td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    {{-- PAID INVOICES (SUDAH BAYAR) --}}
+    <div class="col-12 fade-in fade-in-delay-4">
+        <div class="card shadow-sm border-0 report-paid-card">
+            <div class="card-header d-flex align-items-center gap-2">
+                <span class="dot" style="background:#059669;"></span>
+                <span>Tagihan Lunas — {{ now()->month((int)$month)->format('M') }} {{ $year }}</span>
+                <span class="badge ms-2 badge-soft-green">{{ $paidInvoices->count() }}</span>
+                <span class="ms-auto fw-semibold" style="font-size:0.8rem;color:#059669;">Rp{{ number_format($paidTotal, 0, ',', '.') }}</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="mon-table-wrap" style="max-height:420px;overflow-y:auto;">
+                    <table class="table table-hover align-middle mb-0 mon-table">
+                        <thead>
                             <tr>
-                                <td class="fw-medium">{{ $inv->customer->name ?? '-' }}</td>
-                                <td><span class="badge badge-soft-primary">{{ $inv->invoice_code }}</span></td>
-                                <td>{{ $inv->customer->package->name ?? '-' }}</td>
-                                <td class="fw-bold text-end">Rp{{ number_format($inv->amount, 0, ',', '.') }}</td>
+                                <th>Pelanggan</th>
+                                <th>Invoice</th>
+                                <th>Paket</th>
+                                <th class="text-end">Tagihan</th>
+                                <th>Tanggal Bayar</th>
+                                <th>Metode</th>
                             </tr>
-                        @empty
-                            <tr><td colspan="4" class="text-center py-4 text-muted"><i class="fa-regular fa-circle-check me-2 text-green-check"></i>Semua tagihan lunas!</td></tr>
-                        @endforelse
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            @forelse($paidInvoices as $inv)
+                                <tr>
+                                    <td class="fw-medium">{{ $inv->customer->name ?? '-' }}</td>
+                                    <td><span class="badge badge-soft-primary">{{ $inv->invoice_display ?? $inv->invoice_code ?? '-' }}</span></td>
+                                    <td>{{ $inv->customer->package->name ?? '-' }}</td>
+                                    <td class="fw-bold text-end" style="color:#059669;">Rp{{ number_format($inv->amount, 0, ',', '.') }}</td>
+                                    <td class="text-muted" style="font-size:0.8rem;">{{ $inv->paid_at ? $inv->paid_at->format('d/m/Y H:i') : '-' }}</td>
+                                    <td>
+                                        @php
+                                            $method = $inv->payment_method ?? ($inv->payments->first()->payment_method ?? null);
+                                        @endphp
+                                        @if($method)
+                                            <span class="badge badge-soft-green">{{ ucfirst($method) }}</span>
+                                        @else
+                                            <span class="text-muted">—</span>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr><td colspan="6" class="text-center py-4 text-muted"><i class="fa-regular fa-circle-xmark me-2"></i>Belum ada tagihan lunas periode ini</td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
 </div>
 @endsection
-
 @push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         var months = @json($months);
         var revenue = @json($revenueData);
-
         new Chart(document.getElementById('revenueChart'), {
             type: 'line',
             data: {
@@ -254,4 +299,8 @@
         });
     });
 </script>
+@endpush
+
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
 @endpush

@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLog;
 use App\Models\Customer;
+use App\Models\Incident;
 use App\Models\Invoice;
 use App\Models\Setting;
 use App\Models\User;
-use App\Services\MidtransService;
+use App\Services\Payment\PaymentService;
 use Illuminate\Http\Request;
 
 class PortalController extends Controller
@@ -30,9 +32,16 @@ class PortalController extends Controller
             'phone' => 'required|string|max:20',
         ]);
 
-        $phone = $request->input('phone');
+        $input = trim($request->input('phone'));
 
-        $customer = Customer::allTenants()->where('phone', $phone)->first();
+        // Cari by ID Pelanggan (172...) atau nomor telepon
+        if (preg_match('/^172\d{11}$/', $input)) {
+            $customer = Customer::allTenants()->where('customer_code', $input)->first();
+        } elseif (ctype_digit($input) && strlen($input) < 14) {
+            $customer = Customer::allTenants()->find((int) $input);
+        } else {
+            $customer = Customer::allTenants()->where('phone', $input)->first();
+        }
 
         if (! $customer) {
             return back()->with('error', 'Nomor telepon tidak ditemukan.')->withInput();
@@ -48,12 +57,21 @@ class PortalController extends Controller
             'phone' => Setting::get('company_phone', '', $customer->tenant_id),
         ];
 
-        $midtransConfigured = (new MidtransService)->isConfigured();
+        $midtransConfigured = app(PaymentService::class)->getGateway('midtrans')?->isConfigured() ?? false;
 
-        return view('portal.invoices', compact('customer', 'invoices', 'company', 'midtransConfigured'));
+        $incidents = collect();
+        if ($customer->odp_id) {
+            $incidents = Incident::withoutGlobalScope('tenant_id')
+                ->where('odp_id', $customer->odp_id)
+                ->whereIn('status', ['open', 'investigating'])
+                ->orderBy('created_at', 'desc')
+                ->get();
+        }
+
+        return view('portal.invoices', compact('customer', 'invoices', 'company', 'midtransConfigured', 'incidents'));
     }
 
-    public function bayar(Invoice $invoice)
+    public function bayar(Invoice $invoice, PaymentService $paymentService)
     {
         $invoice = Invoice::allTenants()->findOrFail($invoice->id);
 
@@ -61,34 +79,15 @@ class PortalController extends Controller
             return redirect()->route('portal.index')->with('error', 'Invoice ini sudah lunas.');
         }
 
-        $midtrans = new MidtransService($customer->tenant_id);
-
-        if (! $midtrans->isConfigured()) {
-            return back()->with('error', 'Pembayaran online belum tersedia.');
-        }
-
         $customer = $invoice->customer;
-        $orderId = $invoice->invoice_code.'-'.time();
 
-        $params = [
-            'transaction_details' => [
-                'order_id' => $orderId,
-                'gross_amount' => (int) $invoice->amount,
-            ],
-            'customer_details' => [
-                'first_name' => $customer->name,
-                'phone' => $customer->phone,
-                'email' => $customer->email,
-            ],
-        ];
-
-        $result = $midtrans->getSnapToken($params);
+        $result = $paymentService->createTransaction('midtrans', $invoice);
 
         if (! $result['success']) {
-            return back()->with('error', 'Midtrans: '.$result['message']);
+            return back()->with('error', $result['message']);
         }
 
-        $invoice->update(['midtrans_order_id' => $orderId]);
+        ActivityLog::log('Portal Bayar', 'Pembayaran portal untuk '.$customer->name.' - '.$invoice->invoice_display);
 
         $snapToken = $result['token'];
 

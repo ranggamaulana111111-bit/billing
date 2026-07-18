@@ -1,7 +1,5 @@
 @extends('layouts.app')
-
 @section('title', 'Voucher WiFi')
-
 @section('content')
 <div class="page-header d-flex flex-wrap justify-content-between align-items-center">
     <div>
@@ -22,7 +20,6 @@
         </a>
     </div>
 </div>
-
 @if(session('success'))
     <div class="alert alert-custom alert-success mb-4">
         {{ session('success') }}
@@ -40,7 +37,6 @@
 @if(session('error'))
     <div class="alert alert-custom alert-danger mb-4">{{ session('error') }}</div>
 @endif
-
 {{-- TABS --}}
 <ul class="nav nav-tabs mb-4" id="voucherTabs" role="tablist">
     <li class="nav-item" role="presentation">
@@ -58,14 +54,12 @@
             <i class="fa-solid fa-tags me-1"></i>Profile
         </a>
     </li>
-
     <li class="nav-item" role="presentation">
         <a class="nav-link {{ $tab === 'templates' ? 'active' : '' }}" href="{{ route('vouchers.index', ['tab' => 'templates']) }}" role="tab">
             <i class="fa-solid fa-palette me-1"></i>Template
         </a>
     </li>
 </ul>
-
 {{-- TAB 1: VOUCHERS --}}
 @if($tab === 'vouchers')
 <div class="row g-4 mb-4">
@@ -106,7 +100,6 @@
         </div>
     </div>
 </div>
-
 <div class="card shadow-sm border-0">
     <div class="card-header bg-white d-flex flex-wrap justify-content-between align-items-center gap-2">
         <div class="d-flex align-items-center gap-2">
@@ -144,9 +137,8 @@
     </div>
     <div class="card-body p-0">
         <form id="batch-form" method="GET" action="{{ route('vouchers.print-batch') }}" target="_blank">
-            <div class="table-responsive">
-                <table class="table mb-0">
-                    <thead>
+            <div class="mon-table-wrap">
+<table class="table table-hover align-middle mb-0 mon-table">
                         <tr>
                             <th style="width:36px;"><input type="checkbox" id="select-all"></th>
                             <th>Username</th>
@@ -156,7 +148,7 @@
                             <th>Dibuat</th>
                             <th class="text-end">Aksi</th>
                         </tr>
-                    </thead>
+
                     <tbody>
                         @forelse($vouchers as $v)
                             <tr class="{{ $v->status === 'expired' ? 'table-warning' : ($v->status === 'used' ? 'table-danger' : '') }}">
@@ -187,25 +179,32 @@
                                     </span>
                                 </td>
                                 <td style="font-size:0.8rem;">{{ $v->created_at->format('d M Y H:i') }}</td>
-                                <td class="text-end">
-                                    <div class="d-flex justify-content-end gap-1">
+                                <td class="text-center">
+                                    <div class="d-flex justify-content-center gap-1">
                                         <a href="{{ route('vouchers.print', $v->id) }}" class="btn btn-sm btn-outline-secondary px-2" title="Cetak" target="_blank">
                                             <i class="fa-solid fa-print"></i>
                                         </a>
-                                        @if($v->status === 'active')
-                                            <form action="{{ route('vouchers.used', $v->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Tandai voucher {{ $v->username }} sebagai terpakai?')">
-                                                @csrf
-                                                <button type="submit" class="btn btn-sm btn-outline-success px-2" title="Tandai Terpakai">
-                                                    <i class="fa-solid fa-check"></i>
-                                                </button>
-                                            </form>
-                                        @endif
-                                        <form action="{{ route('vouchers.destroy', $v->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Hapus voucher {{ $v->username }}?')">
-                                            @csrf @method('DELETE')
-                                            <button type="submit" class="btn btn-sm btn-outline-danger px-2" title="Hapus">
-                                                <i class="fa-solid fa-trash"></i>
-                                            </button>
-                                        </form>
+                                        <div class="dropdown">
+                                            <button class="btn btn-sm btn-outline-secondary px-2 dropdown-toggle" data-bs-toggle="dropdown" style="font-size:0.7rem;"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+                                            <ul class="dropdown-menu dropdown-menu-end" style="font-size:0.8rem;min-width:160px;">
+                                                <li><a class="dropdown-item" href="{{ route('vouchers.print', $v->id) }}" target="_blank"><i class="fa-solid fa-print me-2 text-secondary"></i>Cetak</a></li>
+                                                @if($v->status === 'active')
+                                                    <li>
+                                                        <form action="{{ route('vouchers.used', $v->id) }}" method="POST" onsubmit="return confirm('Tandai voucher {{ $v->username }} sebagai terpakai?')">
+                                                            @csrf
+                                                            <button type="submit" class="dropdown-item"><i class="fa-solid fa-check me-2 text-success"></i>Tandai Terpakai</button>
+                                                        </form>
+                                                    </li>
+                                                @endif
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li>
+                                                    <form action="{{ route('vouchers.destroy', $v->id) }}" method="POST" onsubmit="return confirm('Hapus voucher {{ $v->username }}?')">
+                                                        @csrf @method('DELETE')
+                                                        <button type="submit" class="dropdown-item text-danger"><i class="fa-solid fa-trash me-2"></i>Hapus</button>
+                                                    </form>
+                                                </li>
+                                            </ul>
+                                        </div>
                                     </div>
                                 </td>
                             </tr>
@@ -234,7 +233,6 @@
     @endif
 </div>
 @endif
-
 {{-- TAB 2: REPORT --}}
 @if($tab === 'report')
 <div class="row g-4 mb-4">
@@ -271,7 +269,6 @@
         </div>
     </div>
 </div>
-
 <div class="card shadow-sm border-0">
     <div class="card-body">
         <form method="GET" class="row g-3 mb-4">
@@ -306,10 +303,8 @@
                 <button type="submit" class="btn btn-primary w-100"><i class="fa-solid fa-filter me-1"></i>Filter</button>
             </div>
         </form>
-
-        <div class="table-responsive">
-            <table class="table mb-0 align-middle">
-                <thead>
+        <div class="mon-table-wrap">
+<table class="table table-hover align-middle mb-0 mon-table">
                     <tr>
                         <th>Username</th>
                         <th>Profile</th>
@@ -319,7 +314,7 @@
                         <th>Expires</th>
                         <th>Cetak</th>
                     </tr>
-                </thead>
+
                 <tbody>
                     @forelse($reportVouchers as $v)
                         <tr>
@@ -357,7 +352,6 @@
     </div>
 </div>
 @endif
-
 {{-- TAB 3: PROFILES (MikroTik) --}}
 @if($tab === 'profiles')
 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -368,12 +362,10 @@
         <i class="fa-solid fa-plus me-1"></i>Buat Profile
     </button>
 </div>
-
 <div class="card shadow-sm border-0">
     <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table mb-0 align-middle">
-                <thead>
+        <div class="mon-table-wrap">
+<table class="table table-hover align-middle mb-0 mon-table">
                     <tr>
                         <th>Name</th>
                         <th>Address Pool</th>
@@ -386,7 +378,7 @@
                         <th>Router</th>
                         <th class="text-center">Aksi</th>
                     </tr>
-                </thead>
+
                 <tbody>
                     @forelse($mikrotikProfiles as $profile)
                         <tr>
@@ -406,22 +398,42 @@
                             <td>{{ $profile['parent_queue'] ?? '-' }}</td>
                             <td><span class="badge" style="background:#eef2ff;color:#4f46e5;">{{ $profile['router'] }}</span></td>
                             <td class="text-center">
-                                <button type="button" class="btn btn-sm btn-outline-primary px-2 edit-mikrotik-profile-btn"
-                                    data-id="{{ $profile['id'] }}"
-                                    data-name="{{ $profile['name'] }}"
-                                    data-speed="{{ $profile['speed'] ?? '' }}"
-                                    data-shared="{{ $profile['shared_users'] }}"
-                                    data-address-pool="{{ $profile['address_pool'] ?? '' }}"
-                                    data-lock-user="{{ $profile['lock_user'] ? '1' : '0' }}"
-                                    data-price="{{ $profile['price'] ?? 0 }}"
-                                    data-selling-price="{{ $profile['selling_price'] ?? '' }}"
-                                    data-parent-queue="{{ $profile['parent_queue'] ?? '' }}">
-                                    <i class="fa-solid fa-pen"></i>
-                                </button>
-                                <form method="POST" action="{{ route('voucher-profiles.destroy-mikrotik', $profile['id']) }}" class="d-inline" onsubmit="return confirm('Hapus profile &quot;{{ $profile['name'] }}&quot; dari MikroTik?')">
-                                    @csrf
-                                    <button type="submit" class="btn btn-sm btn-outline-danger px-2"><i class="fa-solid fa-trash"></i></button>
-                                </form>
+                                <div class="d-flex justify-content-center gap-1">
+                                    <button type="button" class="btn btn-sm btn-outline-primary px-2 edit-mikrotik-profile-btn"
+                                        data-id="{{ $profile['id'] }}"
+                                        data-name="{{ $profile['name'] }}"
+                                        data-speed="{{ $profile['speed'] ?? '' }}"
+                                        data-shared="{{ $profile['shared_users'] }}"
+                                        data-address-pool="{{ $profile['address_pool'] ?? '' }}"
+                                        data-lock-user="{{ $profile['lock_user'] ? '1' : '0' }}"
+                                        data-price="{{ $profile['price'] ?? 0 }}"
+                                        data-selling-price="{{ $profile['selling_price'] ?? '' }}"
+                                        data-parent-queue="{{ $profile['parent_queue'] ?? '' }}">
+                                        <i class="fa-solid fa-pen"></i>
+                                    </button>
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-outline-secondary px-2 dropdown-toggle" data-bs-toggle="dropdown" style="font-size:0.7rem;"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+                                        <ul class="dropdown-menu dropdown-menu-end" style="font-size:0.8rem;min-width:160px;">
+                                            <li><a class="dropdown-item edit-mikrotik-profile-btn" href="#"
+                                                data-id="{{ $profile['id'] }}"
+                                                data-name="{{ $profile['name'] }}"
+                                                data-speed="{{ $profile['speed'] ?? '' }}"
+                                                data-shared="{{ $profile['shared_users'] }}"
+                                                data-address-pool="{{ $profile['address_pool'] ?? '' }}"
+                                                data-lock-user="{{ $profile['lock_user'] ? '1' : '0' }}"
+                                                data-price="{{ $profile['price'] ?? 0 }}"
+                                                data-selling-price="{{ $profile['selling_price'] ?? '' }}"
+                                                data-parent-queue="{{ $profile['parent_queue'] ?? '' }}"><i class="fa-solid fa-pen me-2 text-primary"></i>Edit</a></li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li>
+                                                <form method="POST" action="{{ route('voucher-profiles.destroy-mikrotik', $profile['id']) }}" onsubmit="return confirm('Hapus profile &quot;{{ $profile['name'] }}&quot; dari MikroTik?')">
+                                                    @csrf
+                                                    <button type="submit" class="dropdown-item text-danger"><i class="fa-solid fa-trash me-2"></i>Hapus</button>
+                                                </form>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
                             </td>
                         </tr>
                     @empty
@@ -432,7 +444,6 @@
         </div>
     </div>
 </div>
-
 {{-- Create MikroTik Profile Modal --}}
 <div class="modal fade" id="createMikrotikProfileModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
@@ -564,12 +575,10 @@
         <i class="fa-solid fa-plus me-1"></i>Tambah Template
     </button>
 </div>
-
 <div class="card shadow-sm border-0">
     <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table mb-0 align-middle">
-                <thead>
+        <div class="mon-table-wrap">
+<table class="table table-hover align-middle mb-0 mon-table">
                     <tr>
                         <th>Nama</th>
                         <th>Tipe</th>
@@ -577,7 +586,7 @@
                         <th>Voucher</th>
                         <th class="text-center">Aksi</th>
                     </tr>
-                </thead>
+
                 <tbody>
                     @forelse($templates as $tpl)
                         <tr>
@@ -600,22 +609,35 @@
                             </td>
                             <td>{{ $tpl->vouchers()->count() }}</td>
                             <td class="text-center">
-                                @if($tpl->hasFiles())
-                                    <a href="{{ url('hotspot/templates/' . $tpl->id . '/login.html') }}" class="btn btn-sm btn-outline-info px-2" target="_blank" title="Preview">
-                                        <i class="fa-solid fa-eye"></i>
-                                    </a>
-                                @else
-                                    <a href="{{ route('voucher-templates.preview', $tpl) }}" class="btn btn-sm btn-outline-info px-2" target="_blank" title="Preview">
-                                        <i class="fa-solid fa-eye"></i>
-                                    </a>
-                                @endif
-                                <button type="button" class="btn btn-sm btn-outline-primary px-2" data-bs-toggle="modal" data-bs-target="#editTemplateModal{{ $tpl->id }}">
-                                    <i class="fa-solid fa-pen"></i>
-                                </button>
-                                <form method="POST" action="{{ route('voucher-templates.destroy', $tpl) }}" class="d-inline" onsubmit="return confirm('Hapus template {{ $tpl->name }}?')">
-                                    @csrf @method('DELETE')
-                                    <button type="submit" class="btn btn-sm btn-outline-danger px-2"><i class="fa-solid fa-trash"></i></button>
-                                </form>
+                                <div class="d-flex justify-content-center gap-1">
+                                    @if($tpl->hasFiles())
+                                        <a href="{{ url('hotspot/templates/' . $tpl->id . '/login.html') }}" class="btn btn-sm btn-outline-info px-2" target="_blank" title="Preview">
+                                            <i class="fa-solid fa-eye"></i>
+                                        </a>
+                                    @else
+                                        <a href="{{ route('voucher-templates.preview', $tpl) }}" class="btn btn-sm btn-outline-info px-2" target="_blank" title="Preview">
+                                            <i class="fa-solid fa-eye"></i>
+                                        </a>
+                                    @endif
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-outline-secondary px-2 dropdown-toggle" data-bs-toggle="dropdown" style="font-size:0.7rem;"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+                                        <ul class="dropdown-menu dropdown-menu-end" style="font-size:0.8rem;min-width:160px;">
+                                            @if($tpl->hasFiles())
+                                                <li><a class="dropdown-item" href="{{ url('hotspot/templates/' . $tpl->id . '/login.html') }}" target="_blank"><i class="fa-solid fa-eye me-2 text-info"></i>Preview</a></li>
+                                            @else
+                                                <li><a class="dropdown-item" href="{{ route('voucher-templates.preview', $tpl) }}" target="_blank"><i class="fa-solid fa-eye me-2 text-info"></i>Preview</a></li>
+                                            @endif
+                                            <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editTemplateModal{{ $tpl->id }}"><i class="fa-solid fa-pen me-2 text-primary"></i>Edit</a></li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li>
+                                                <form method="POST" action="{{ route('voucher-templates.destroy', $tpl) }}" onsubmit="return confirm('Hapus template {{ $tpl->name }}?')">
+                                                    @csrf @method('DELETE')
+                                                    <button type="submit" class="dropdown-item text-danger"><i class="fa-solid fa-trash me-2"></i>Hapus</button>
+                                                </form>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
                             </td>
                         </tr>
                     @empty
@@ -626,7 +648,6 @@
         </div>
     </div>
 </div>
-
 {{-- Create Template Modal --}}
 <div class="modal fade" id="createTemplateModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
@@ -642,7 +663,6 @@
                         <label class="form-label fw-semibold">Nama Template</label>
                         <input type="text" name="name" class="form-control" placeholder="Contoh: Premium Blue" required>
                     </div>
-
                     <div class="mb-3">
                         <label class="form-label fw-semibold">File Template (ZIP)</label>
                         <div class="border rounded p-3" style="background:#f8fafc;">
@@ -653,11 +673,9 @@
                             </div>
                         </div>
                     </div>
-
                     <div class="alert alert-info py-2 mb-0">
                         <small><i class="fa-solid fa-lightbulb me-1"></i>Template akan otomatis disalin ke folder hotspot aktif jika status <strong>Aktif</strong> dicentang.</small>
                     </div>
-
                     <div class="form-check mt-3">
                         <input type="checkbox" name="is_active" class="form-check-input" id="createTemplateActive" checked>
                         <label class="form-check-label" for="createTemplateActive">Aktif</label>
@@ -671,7 +689,6 @@
         </div>
     </div>
 </div>
-
 {{-- Edit Template Modals --}}
 @foreach($templates as $tpl)
 <div class="modal fade" id="editTemplateModal{{ $tpl->id }}" tabindex="-1">
@@ -688,7 +705,6 @@
                         <label class="form-label fw-semibold">Nama Template</label>
                         <input type="text" name="name" class="form-control" value="{{ $tpl->name }}" required>
                     </div>
-
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Ganti File Template (ZIP)</label>
                         <div class="border rounded p-3" style="background:#f8fafc;">
@@ -699,7 +715,6 @@
                             </div>
                         </div>
                     </div>
-
                     @if($tpl->hasFiles())
                         <div class="mb-3">
                             <label class="form-label fw-semibold">File Saat Ini</label>
@@ -720,7 +735,6 @@
                             <small><i class="fa-solid fa-triangle-exclamation me-1"></i>Template ini menggunakan konten dari database. Upload file ZIP untuk beralih ke folder-based template.</small>
                         </div>
                     @endif
-
                     <div class="form-check mt-3">
                         <input type="checkbox" name="is_active" class="form-check-input" id="editTemplateActive{{ $tpl->id }}" {{ $tpl->is_active ? 'checked' : '' }}>
                         <label class="form-check-label" for="editTemplateActive{{ $tpl->id }}">Aktif</label>
@@ -740,14 +754,12 @@
 @endforeach
 @endif
 @endsection
-
 @push('scripts')
 <script>
     // ── Select all / Print ──
     const selectAll = document.getElementById('select-all');
     const checks = document.querySelectorAll('.voucher-check');
     const printBtn = document.getElementById('print-selected');
-
     function updatePrintBtn() {
         if (!printBtn) return;
         const checked = document.querySelectorAll('.voucher-check:checked').length;
@@ -758,18 +770,14 @@
             printBtn.innerHTML = '<i class="fa-solid fa-print me-1"></i>Cetak Terpilih';
         }
     }
-
     selectAll?.addEventListener('change', function() {
         checks.forEach(cb => cb.checked = this.checked);
         updatePrintBtn();
     });
-
     checks.forEach(cb => {
         cb.addEventListener('change', updatePrintBtn);
     });
-
     updatePrintBtn();
-
     // ── Edit MikroTik Profile ──
     document.querySelectorAll('.edit-mikrotik-profile-btn').forEach(function (btn) {
         btn.addEventListener('click', function () {
@@ -782,7 +790,6 @@
             const price = this.dataset.price;
             const sellingPrice = this.dataset.sellingPrice;
             const parentQueue = this.dataset.parentQueue;
-
             const modal = document.getElementById('editMikrotikProfileModal');
             const form = modal.querySelector('form');
             form.action = '{{ route("voucher-profiles.update-mikrotik", "_id_") }}'.replace('_id_', id);
@@ -794,7 +801,6 @@
             form.querySelector('[name="selling_price"]').value = sellingPrice;
             form.querySelector('[name="parent_queue"]').value = parentQueue;
             form.querySelector('[name="lock_user"]').checked = lockUser === '1';
-
             const bsModal = new bootstrap.Modal(modal);
             bsModal.show();
         });

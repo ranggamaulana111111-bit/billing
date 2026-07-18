@@ -1,4 +1,4 @@
-# DESCRIPTION.md — RabegNet ISP Billing System
+# DESCRIPTION.md — ALKONEK ISP Billing System
 
 > **Target pembaca:** Developer baru, AI Agent, stakeholder.
 > **Tujuan:** Menjadi sumber utama informasi proyek — gabungan dokumen bisnis, teknis, dan arsitektur dalam satu tempat.
@@ -7,7 +7,7 @@
 
 ## 1. Executive Summary
 
-**RabegNet** adalah sistem billing ISP berbasis web untuk penyedia layanan internet (ISP) skala kecil hingga menengah. Sistem ini mencakup manajemen pelanggan, penagihan otomatis, pembayaran online (Midtrans), manajemen perangkat jaringan (OLT multi-brand, MikroTik, ODP/ODC), sistem voucher WiFi hotspot, serta monitoring infrastruktur.
+**ALKONEK (PT Alkonek Network Access)** adalah sistem billing ISP berbasis web untuk penyedia layanan internet (ISP) skala kecil hingga menengah. Sistem ini mencakup manajemen pelanggan, penagihan otomatis, pembayaran online (Midtrans), manajemen perangkat jaringan (OLT multi-brand, MikroTik, ODP/ODC), sistem voucher WiFi hotspot, monitoring infrastruktur real-time, serta topologi jaringan fiber yang terintegrasi dengan modul distribusi.
 
 **Masalah yang diselesaikan:**
 - Penagihan manual → auto-generate invoice bulanan
@@ -17,10 +17,11 @@
 - Voucher manual → generate, print, push ke MikroTik otomatis
 - Pengingat tagihan → WA reminder via Fonnte
 - Multi-tenant → setiap ISP memiliki data terpisah
+- Topologi tidak terlihat → visualisasi OLT→ODC→ODP→ONU yang sinkron dengan data distribusi
 
-**Fitur utama:** Customer management, billing & payment, OLT multi-brand monitoring, MikroTik management, fiber distribution mapping, voucher hotspot system, auto-isolir, reporting.
+**Fitur utama:** Customer management, billing & payment, OLT multi-brand monitoring, MikroTik management, fiber distribution mapping, voucher hotspot system, auto-isolir, reporting, **Live Network Topology**, **Monitoring Real-Time trafic WAN-ISP**.
 
-**Status proyek:** Production active — v1.1. Seluruh fitur inti selesai. Dalam tahap stabilisasi, security hardening, dan optimasi.
+**Status proyek:** v1.2 — Deployed to production (aktif digunakan di lingkungan produksi). Seluruh fitur inti sudah diimplementasikan dan berjalan, namun belum melalui verifikasi formal (benchmark, stress test, security audit). Lihat bagian 16 untuk catatan kejujuran status.
 
 ---
 
@@ -28,13 +29,13 @@
 
 | Atribut | Nilai |
 |---------|-------|
-| Nama Proyek | RabegNet ISP Billing System |
-| Versi | 1.1 |
+| Nama Proyek | ALKONEK ISP Billing System (PT Alkonek Network Access) |
+| Versi | 1.2 |
 | Framework | Laravel 12 |
 | Bahasa | PHP ^8.2, JavaScript |
 | Database | MySQL (production), SQLite (testing) |
 | Arsitektur | Monolithic + Multi-tenant (Global Scope) |
-| Domain | rabegnet.vercel.app |
+| Brand | ALKONEK BILLING / PT Alkonek Network Access |
 | Deployment | Vercel (primary), Railway.app (backup) |
 
 ---
@@ -59,7 +60,7 @@
 
 ## 4. Business Domain
 
-RabegNet beroperasi di domain **ISP FTTH (Fiber to The Home)** dengan cakupan:
+ALKONEK beroperasi di domain **ISP FTTH (Fiber to The Home)** dengan cakupan:
 
 | Area | Deskripsi |
 |------|-----------|
@@ -71,6 +72,27 @@ RabegNet beroperasi di domain **ISP FTTH (Fiber to The Home)** dengan cakupan:
 | Distribution | ODC → ODP mapping dengan peta interaktif, port management |
 | Voucher | Generate, print (QR code), push ke MikroTik hotspot |
 | Reporting | Revenue, outstanding, payment method, export CSV |
+
+### 4.1 Business Requirements — Gap (Belum Didukung)
+
+Dokumen ini kuat di sisi domain & implementasi, namun **requirement bisnis billing belum terdefinisi formal**. Proses billing saat ini hanya menangani **full-pay per invoice bulanan**. Berikut item yang **belum ada** di sistem maupun dokumentasi:
+
+| Requirement | Status | Catatan |
+|-------------|--------|---------|
+| SLA pelanggan | 🔜 | Belum didefinisikan |
+| Prorata billing | 🔜 | Belum ada (invoice flat per paket) |
+| Billing cycle khusus | 🔜 | Semua monthly, belum fleksibel |
+| Grace period terkonfigurasi | ⚠️ | Hardcode di `customer:auto-isolir`; belum per-tenant |
+| Diskon | 🔜 | Belum ada |
+| Pajak (PPN) | 🔜 | Belum ada |
+| Refund | 🔜 | Belum ada |
+| Deposit | 🔜 | Belum ada |
+| Multiple invoice per customer | ⚠️ | Mendukung banyak invoice, tapi tidak ada konsep tagihan gabungan |
+| Partial payment | 🔜 | Belum ada (full-pay only) |
+| Write-off | 🔜 | Belum ada |
+| Penalti/late fee | ⚠️ | Ada setting `late_fee` tapi penerapan belum terdokumentasi |
+
+> Lihat juga [16.6](#) untuk implikasi race-condition pada alur payment.
 
 ---
 
@@ -184,12 +206,14 @@ Tenant → User (admin/teknisi)
 
 | Teknologi | Versi | Fungsi |
 |-----------|-------|--------|
-| Bootstrap | 5.3.8 | CSS framework utama |
-| Leaflet | 1.9.4 | Peta interaktif ODP/OLT |
-| Chart.js | 4.5.1 | Grafik dashboard |
+| Bootstrap | 5.3.8 | CSS framework utama (di-load via CDN jsDelivr, offloaded dari build) |
+| Leaflet | 1.9.4 | Peta interaktif ODP/OLT (CDN defer, hanya di halaman perlu) |
+| Chart.js | 4.5.1 | Grafik dashboard (CDN defer, hanya di halaman perlu) |
 | Alpine.js | — | Interaktivitas ringan |
-| Vite | 7.x | Asset bundler |
+| Vite | 7.x | Asset bundler (hanya app.css + app.js) |
 | simple-qrcode | 4.2 | QR code inline SVG |
+
+> **Optimasi Performa (v1.2):** Bootstrap CSS, Chart.js, dan Leaflet di-load dari CDN (`defer`/`media=swap`) sehingga build Vite hanya menghasilkan ~103KB CSS + ~122KB JS (gzip ≈ 19KB + 41KB). Font Awesome & Google Fonts di-load non-render-blocking. DashboardController di-cache (`Cache::remember` 90–300s) + fix N+1 query.
 
 ### Integrasi Pihak Ketiga
 
@@ -215,45 +239,52 @@ Tenant → User (admin/teknisi)
 - **Fitur:** 7 stat cards, revenue chart (bar 6 bulan), payment donut chart, package distribution, recent activity timeline, tabel unpaid invoices, Leaflet map ODP
 
 ### 8.3 Manajemen Pelanggan (Customer)
-- **Controller:** `CustomerController` (376 baris)
+- **Controller:** `CustomerController`
 - **Model:** `Customer` — BelongsToTenant, HasFactory
 - **Fitur:** CRUD, Suspend/Activate (otomatis disable/enable PPPoE MikroTik + buat ONU), Sync PPPoE, Sync ONU, auto-create invoice saat register
 - **Routes:** `/customers`, `/customer/create`, `/customer/{id}/edit`, `/customer/{id}/suspend`, dll
 
 ### 8.4 Tagihan (Invoice)
-- **Controller:** `InvoiceController` (269 baris)
+- **Controller:** `InvoiceController`
 - **Model:** `Invoice` — BelongsToTenant, HasFactory
 - **Fitur:** CRUD, filter/search, mark paid, print, PDF (DomPDF), WA reminder (Fonnte), email reminder & confirmation
 - **Routes:** `/invoices`, `/invoice/print/{id}`, `/invoice/pdf/{id}`, `/invoice/reminder/{id}`
 
 ### 8.5 Pembayaran (Payment)
-- **Controller:** `PaymentController` (71 baris)
+- **Controller:** `PaymentController`
 - **Model:** `Payment` — BelongsToTenant
 - **Fitur:** Catat pembayaran (cash/transfer/QRIS), history, hapus (auto-update invoice), integrasi Midtrans
 - **Routes:** `/payment/create/{invoice}`, `/payment/history/{invoice}`
 
 ### 8.6 Paket Internet (Package)
-- **Controller:** `PackageController` (135 baris)
+- **Controller:** `PackageController`
 - **Model:** `Package` — BelongsToTenant, HasFactory
 - **Fitur:** CRUD, proteksi delete (jika ada customer), mass billing, filter
 - **Routes:** `/packages`, `/packages/mass-bill`
 
 ### 8.7 OLT Management
-- **Controller:** `OltController` (650 baris)
+- **Controller:** `OltController`
 - **Models:** `Olt`, `OltPort`, `Onu` — semua BelongsToTenant
 - **Driver Pattern:** Multi-brand (Huawei, ZTE, FiberHome, C-Data) via SSH + decorator JumpHost/MikroTikProxy
 - **Fitur:** CRUD OLT, test SSH, scan ONU, reboot/remove ONU, link ke customer, monitoring ONU (sort by Rx power), map OLT, live JSON API, export CSV
 - **Routes:** `/olts`, `/olts/{olt}/scan`, `/olts-monitoring`, `/olts/map`, `/onus/search`
 
 ### 8.8 Distribusi ODP/ODC
-- **Controller:** `DistributionController` (259 baris), `OdcController`, `OdpController`
+- **Controller:** `DistributionController`, `OdcController`, `OdpController`
 - **Models:** `Odc`, `OdcPort`, `Odp`, `OdpPort`, `OdpRoute`, `OdpPoint`
 - **Struktur:** ODC → ODC Port → ODP → ODP Port → Customer
 - **Fitur:** Map interaktif Leaflet, port grid (available/used/broken), relasi ODC-ODP via `connected_to_odp_id`, auto-generate port saat create, auto-refresh port status (15s polling), API port data realtime
 - **Routes:** `/distribution`, `/odc/{odc}`, `/odp/{odp}`, `/api/v1/odc/{odc}/ports`, `/api/v1/odp/{odp}/ports`
 
+### 8.8b Live Network Topology (Topologi Jaringan)
+
+- **Route:** `/onu-health/topology/graph` (`OnuHealthController@topology`)
+- **Service:** `FiberTopologyService::getTopologyData()`
+- **Fitur:** Visualisasi infrastruktur fiber dari OLT sampai pelanggan (Internet → Core Router → OLT → ODC → ODP → PON → ONU → Pelanggan). **Sync dengan modul Distribution**: node ODC/ODP diambil langsung dari entitas `Odc`/`Odp` (via `odc_id`), edge `OLT→ODC→ODP→ONU` dibentuk dari `Odc.odps()` dan `OdpPort.customer_id`. Layout compact (`mon-table`-style) agar skalabel saat jumlah node bertambah.
+- **Catatan:** Sebelumnya topologi mengandalkan `OdcPort.connected_to_odp_id` yang tidak diisi oleh UI Distribution, sehingga ODC/ODP tidak muncul. Sekarang terhubung penuh ke data distribusi.
+
 ### 8.9 Voucher WiFi (Hotspot)
-- **Controller:** `VoucherController` (355 baris)
+- **Controller:** `VoucherController`
 - **Model:** `Voucher` — BelongsToTenant, HasFactory
 - **QR Code:** `simplesoftwareio/simple-qrcode` (inline SVG)
 - **Fitur:** Generate (random user/pass), push ke MikroTik, print (single/batch), sync status, report, auto-expire, event-driven callback via `POST /api/v1/mikrotik/hotspot-login`
@@ -261,11 +292,11 @@ Tenant → User (admin/teknisi)
 
 ### 8.10 MikroTik Management
 - **Controller:** `MikrotikController`
-- **Service:** `MikrotikService` (784 baris) — REST API wrapper
+- **Service:** `MikrotikService` — REST API wrapper
 - **Fitur:** Dashboard (system resource, health), hotspot profiles/users, PPP secrets, simple queues, active sessions (disconnect), backup, bandwidth monitoring, live JSON API
 
 ### 8.11 Portal Publik
-- **Controller:** `PortalController` (110 baris)
+- **Controller:** `PortalController`
 - **Fitur:** Cek tagihan by phone, bayar via Midtrans, self-service
 - **Routes:** `/portal`, `/portal/bayar/{invoice}`
 
@@ -275,12 +306,12 @@ Tenant → User (admin/teknisi)
 - **Commands:** `customer:auto-isolir`, `customer:sync-isolir-ips`, `mikrotik:setup-isolir`
 
 ### 8.13 Laporan (Report)
-- **Controller:** `ReportController` (70 baris)
+- **Controller:** `ReportController`
 - **Fitur:** Revenue bulanan, outstanding, chart 12 bulan, metode pembayaran, top unpaid
 - **Routes:** `/reports` (admin only)
 
 ### 8.14 Pengaturan (Setting)
-- **Controller:** `SettingController` (76 baris)
+- **Controller:** `SettingController`
 - **Model:** `Setting` — key-value store per tenant
 - **Keys:** company info, bank, Midtrans keys, MikroTik config, Fonnte token, voucher length, late fee, due date
 - **Routes:** `/settings` (admin only)
@@ -288,6 +319,24 @@ Tenant → User (admin/teknisi)
 ### 8.15 Backup & Export
 - **Controllers:** `BackupController`, `ExportController`
 - **Fitur:** Download backup database, export CSV invoices/payments, export CSV OLT/ONU
+
+### 8.16 Module Boundaries & Dependencies
+
+Sistem masih berupa **monolith tunggal**; pemisahan *bounded context* belum dienkapsulasi secara formal. Dependency antar modul (saat ini implisit via Model/Service, bukan event bus):
+
+| Domain (Bounded Context) | Modul Utama | Dependensi Keluar | Source of Truth |
+|--------------------------|-------------|-------------------|-----------------|
+| **Customer** | CustomerController, Customer | → Billing (auto-invoice), → Network (PPPoE/ONU) | `customers` |
+| **Billing** | Invoice, Payment, Package | → Customer, → MikroTik (aktivasi), → Midtrans | `invoices`, `payments` |
+| **Network (OLT/ONU)** | OltController, OnuHealth | → Customer (link ONU), → Distribution | `olts`, `onus` |
+| **Distribution (ODC/ODP)** | DistributionController | → Topology (sinkron node) | `odcs`, `odps`, `odp_ports` |
+| **MikroTik** | MikrotikController, MikrotikService | ← Billing (aktivasi/suspend), ← Isolir | `mikrotik_routers` |
+| **Voucher** | VoucherController | → MikroTik (push), → Customer (optional) | `vouchers` |
+| **Monitoring/Topology** | OnuHealth, FiberTopologyService | → OLT, → Distribution (read-only consume) | derived |
+| **Isolir** | IsolirController + commands | → Billing (overdue), → MikroTik (PPP profile) | derived dari `invoices` |
+| **Automation** | Jobs/Scheduler | → OLT poll, → Fonnte WA | — |
+
+> **Catatan:** Tidak ada modul yang berhak memanggil modul lain secara langsung di luar tabel di atas. Coupling saat ini terjadi lewat ORM relation + Service call sinkron; belum ada event-driven / message bus antar domain (kecuali callback MikroTik hotspot → voucher status).
 
 ---
 
@@ -446,12 +495,12 @@ e-billing/
 ├── app/
 │   ├── Console/Commands/      # 8 Artisan commands
 │   ├── Http/
-│   │   ├── Controllers/       # 32 controllers (+ 2 Api/)
+│   │   ├── Controllers/       # 54 controllers (+ Api/)
 │   │   └── Middleware/        # IsAdmin, IsTeknisiOrAdmin
 │   ├── Jobs/                  # PollOltJob, SendWhatsAppNotification
 │   ├── Mail/                  # InvoiceReminder, PaymentConfirmation
-│   ├── Models/                # 19 models + 2 traits
-│   └── Services/              # MidtransService, MikrotikService, Olt/ (drivers)
+│   ├── Models/                # 38 models + 2 traits
+│   └── Services/              # MidtransService, MikrotikService, Olt/ (drivers), Monitoring/
 │
 ├── bootstrap/                 # Laravel bootstrap + app.php
 ├── config/                    # Konfigurasi Laravel
@@ -461,17 +510,17 @@ e-billing/
 │   └── seeders/               # 5 seeders
 │
 ├── public/
-│   ├── build/                 # Asset compiled (Vite)
+│   ├── build/                 # Asset compiled (Vite: ~103KB CSS + ~122KB JS)
 │   └── hotspot/               # HTML hotspot pages
 │
 ├── resources/
-│   ├── css/app.css            # ~1570 baris custom CSS
-│   ├── js/                    # app.js, bootstrap.js
-│   └── views/                 # ~58 blade files
+│   ├── css/app.css            # ~5120 baris custom CSS (design system)
+│   ├── js/                    # app.js (bootstrap JS only), bootstrap.js
+│   └── views/                 # ~159 blade files
 │
 ├── routes/
-│   ├── web.php                # ~148 routes
-│   ├── api.php                # 3 API routes
+│   ├── web.php                # ~150+ routes
+│   ├── api.php                # API routes (hotspot-login callback, dll)
 │   └── console.php            # 5 scheduled commands
 │
 ├── storage/                   # Logs, cache, backups
@@ -543,7 +592,10 @@ C:\laragon\bin\php\php-8.2.31-Win32-vs16-x64\php.exe artisan {command}
 ### View Convention
 - **Layout:** `layouts.app` sebagai base template
 - **Section:** `@section('title')`, `@section('content')`, `@push('scripts')`
-- **CSS:** Bootstrap 5.3 classes + custom CSS di `app.css`
+- **CSS:** Bootstrap 5.3 classes (CDN) + custom CSS di `app.css` (~5140 baris design system)
+- **Design System Table:** Seluruh tabel menggunakan class `.mon-table` + wrapper `.mon-table-wrap` + header solid `.mon-thead` (atau `.mon-table > tbody > tr:first-child > th`). Style seragam mengikuti tampilan Monitoring Real-Time.
+- **Header Card:** Gradient indigo→ungu→pink (`.mon-card-head`, `.topo-header`, `.alarm-head`).
+- **Script berat (Chart.js/Leaflet):** di-load via CDN `defer` di `@push('scripts')` hanya pada halaman yang membutuhkan — **JANGAN** import di `resources/js/app.js`.
 
 ### Database Convention
 - **Timestamps:** `created_at`, `updated_at` otomatis (Laravel default)
@@ -594,74 +646,145 @@ vercel --prod
 
 ## 16. Project Status
 
+> **Catatan Kejujuran Status.** Istilah *"Production"* / *"Deployed to production"* di dokumen ini berarti **aplikasi sudah di-deploy dan digunakan secara nyata**, BUKAN berarti telah lolos verifikasi formal. Sampai saat ini **belum ada benchmark, stress test, load test, atau security audit** yang dilakukan, sehingga klaim kapasitas (concurrent user, throughput, jumlah tenant/pelanggan/ONU maksimal) **belum terukur**. Status modul di bawah menggunakan skala:
+> - ✅ **Implemented** — fitur ada, berjalan, dan sudah dipakai.
+> - ⚠️ **Partial** — ada tapi memiliki celah/limitasi yang diketahui.
+> - 🔜 **Planned** — belum dikerjakan.
+
 ### Functional Completeness
 
 | Modul | Status | Catatan |
 |-------|--------|---------|
-| Auth (Login/Register/Google OAuth) | ✅ 100% | Role admin & teknisi |
-| Dashboard | ✅ 100% | Stats, charts, map, timeline |
-| Customer CRUD | ✅ 100% | + Suspend/Activate/Sync |
-| Invoice CRUD | ✅ 100% | + Print/PDF/WA/Email |
-| Payment | ✅ 100% | + Midtrans integration |
-| Package CRUD | ✅ 100% | + Mass billing |
-| OLT Management | ✅ 100% | Multi-brand, scan, monitoring |
-| MikroTik Management | ✅ 100% | Hotspot, PPP, queue, monitoring |
-| Distribution (ODC/ODP) | ✅ 100% | Map, port grid, realtime API |
-| Voucher System | ✅ 100% | Generate, print, push, sync |
-| Portal Publik | ✅ 100% | Cek tagihan, bayar |
-| Isolir Subsystem | ✅ 100% | Auto-suspend, firewall sync |
-| Settings | ✅ 100% | Key-value store |
-| Activity Log | ✅ 100% | Filterable log |
-| Backup & Export | ✅ 100% | DB backup, CSV export |
-| Report | ✅ 100% | Revenue, outstanding, charts |
+| Auth (Login/Register/Google OAuth) | ✅ Implemented | Role admin & teknisi |
+| Dashboard | ✅ Implemented | Stats, charts, map, timeline |
+| Customer CRUD | ✅ Implemented | + Suspend/Activate/Sync |
+| Invoice CRUD | ✅ Implemented | + Print/PDF/WA/Email |
+| Payment | ✅ Implemented | + Midtrans integration |
+| Package CRUD | ✅ Implemented | + Mass billing |
+| OLT Management | ✅ Implemented | Multi-brand, scan, monitoring |
+| MikroTik Management | ✅ Implemented | Hotspot, PPP, queue, monitoring |
+| Distribution (ODC/ODP) | ✅ Implemented | Map, port grid, realtime API |
+| Live Network Topology | ✅ Implemented | OLT→ODC→ODP→ONU sync distribusi |
+| Monitoring Real-Time | ✅ Implemented | Rate trafic WAN-ISP (delta 1s server-side) |
+| Voucher System | ✅ Implemented | Generate, print, push, sync |
+| Portal Publik | ✅ Implemented | Cek tagihan, bayar |
+| Isolir Subsystem | ✅ Implemented | Auto-suspend, firewall sync |
+| Settings | ✅ Implemented | Key-value store |
+| Activity Log | ✅ Implemented | Filterable log |
+| Backup & Export | ✅ Implemented | DB backup, CSV export |
+| Report | ✅ Implemented | Revenue, outstanding, charts |
 
 ### Non-Functional Completeness
 
 | Aspek | Status | Catatan |
 |-------|--------|---------|
-| Testing (55 tests) | ✅ 100% | 7 feature + 1 unit test class |
-| Security | ⚠️ Partial | Password MikroTik plaintext, SSL verify disabled |
-| Multi-tenant | ✅ 100% | BelongsToTenant global scope |
-| Error Handling | ✅ 100% | Try-catch di service layer |
-| Logging | ✅ 100% | Activity log + Laravel log |
-| Queue | ✅ 100% | Database queue untuk OLT polling + WA |
-| Validation | ✅ 100% | Form request validation |
+| Testing (55 tests) | ⚠️ Partial | 7 feature + 1 unit; belum ada coverage %, integration/load/UI test |
+| Security | ⚠️ Partial | Password MikroTik plaintext, SSL verify disabled (lihat 16.3) |
+| Multi-tenant | ⚠️ Partial | `BelongsToTenant` global scope aktif, tapi `OdcPort`/`OdpPort` belum ter-cover |
+| Error Handling | ⚠️ Partial | Try-catch di service layer; belum ada error architecture terpusat (16.5) |
+| Logging | ✅ Implemented | Activity log + Laravel log |
+| Queue | ✅ Implemented | Database queue untuk OLT polling + WA |
+| Validation | ✅ Implemented | Form request validation |
+| Performa Frontend | ✅ Implemented | Bootstrap/Chart/Leaflet via CDN, JS turun 504KB→122KB, caching query |
+| Konsistensi UI | ✅ Implemented | Seluruh tabel pakai `.mon-table` + `.mon-thead` |
 
-### Security Issues (Known)
+### 16.3 Security Coverage
 
+**Sudah ditangani (framework default Laravel):**
+- CSRF protection via `VerifyCsrfToken` middleware + token di form
+- Mass assignment dilindungi `$fillable`/`$guarded` per model
+- SQL injection terhindar via Eloquent parameterized query
+- Authorization dasar via middleware `IsAdmin`, `IsTeknisiOrAdmin`
+- Hashing password user via `Hash::make` (bcrypt)
+- Session via database (`SESSION_DRIVER=database`)
+
+**Known Gaps (belum ditangani):**
 1. **Password MikroTik di DB tidak di-encrypt** — plaintext di `mikrotik_routers.password`
 2. **SSL verification disabled** — `withoutVerifying()` di koneksi REST API MikroTik
 3. **`OdcPort` & `OdpPort`** — tidak punya `BelongsToTenant` (potensi data leak antar tenant)
 4. **`reset_data.php`** — script destruktif tanpa proteksi
 5. **Token/kredensial di file commit** — `.env`, `vercel.json`, `checker.md` mengandung sensitive credentials
+6. **API authentication** — endpoint `POST /api/v1/mikrotik/hotspot-login` belum punya auth/throttling terdocumentasi
+7. **Rate limiting** — belum dikonfigurasi eksplisit (Laravel default throttle hanya pada API ringan)
+8. **Audit log integrity** — `activity_logs` dapat dihapus, belum append-only/worm
+9. **Backup encryption** — backup DB belum dienkripsi saat transit/rest
+10. **Secrets management** — masih di `.env` plaintext, belum pakai vault
+
+### 16.4 Non-Functional Requirements (NFR) — Target, Belum Teruji
+
+| NFR | Target / Catatan | Status Pengukuran |
+|-----|------------------|-------------------|
+| Availability | Menargetkan 99.5% (belum di-SLA-kan) | 🔜 Belum diukur |
+| Scalability | Horizontal via Vercel serverless; DB Aiven managed | 🔜 Belum di-load-test |
+| Reliability | Queue + retry untuk OLT poll & WA | ⚠️ Best-effort, belum chaos-tested |
+| Recoverability / RPO-RTO | Backup DB manual terjadwal; RPO/RTO belum didefinisikan | 🔜 Belum didefinisikan |
+| Disaster Recovery | Railway.app sebagai failover deployment | ⚠️ Belum diuji failover |
+| Monitoring & Alerting | Laravel log + Activity log; belum ada external APM/alerting | 🔜 Perlu ditambah |
+| Logging Strategy | File log + activity log per tenant | ⚠️ Belum terpusat/terstruktur |
+
+### 16.5 Error & Resilience Architecture (Gap)
+
+Belum ada strategi error terpusat. Yang ada saat ini:
+- Try-catch lokal di Service layer (`MikrotikService`, `Olt` drivers) → return null / log.
+- Queue job (`PollOltJob`, `SendWhatsAppNotification`) pakai database queue dengan retry default Laravel.
+
+**Belum ada:** error code standar, circuit breaker, fallback handler, timeout eksplisit antar-service, compensation transaction, dan dokumentasi retry/race-condition pada alur billing (lihat 16.6).
+
+### 16.6 Data Flow Kritis: Billing & Payment (Validasi & Race Condition)
+
+Alur `Customer → Invoice → Payment → Activate` berjalan, tapi aspek berikut **belum didokumentasikan/dites secara eksplisit**:
+- **Idempotency** webhook Midtrans — bila notifikasi dikirim 2x, duplikasi `Payment` belum dicegah secara eksplisit (mengandalkan `order_id` unik).
+- **Race condition** — pembayaran manual vs otomatis hampir bersamaan.
+- **Rollback** — bila `Invoice.update` gagal setelah `Payment.create`, tidak ada compensation otomatis.
+- **Partial payment / multiple invoice / write-off / refund / deposit / prorata / diskon / pajak / penalti** — **belum didukung** di level bisnis (hanya full-pay per invoice). Ini adalah gap requirement billing (lihat 4.1).
+
+### 16.7 Multi-Tenant Lifecycle (Gap)
+
+`BelongsToTenant` global scope menangani isolasi data saat query. Namun aspek lifecycle tenant **belum didokumentasikan/dibangun**:
+- Tenant onboarding (self-registration vs admin-created)
+- Tenant configuration & branding per tenant
+- Tenant backup / restore / migration
+- Tenant subscription & limitasi (jumlah pelanggan/OLT)
+- Tenant isolation guarantee saat `OdcPort`/`OdpPort` belum scoped
 
 ---
 
 ## 17. Roadmap Summary
 
-### v1.0 (Current — Production Active)
-- ✅ Semua fitur inti selesai
-- ✅ Multi-tenant dengan BelongsToTenant
-- ✅ Deployment Vercel + Railway
+### v1.2 (Current — Deployed to Production)
 
-### v1.2 (Next — Stabilisasi & Security)
-- 🔜 Encrypt password MikroTik di database
-- 🔜 Enable SSL verification (opsional/configurable)
-- 🔜 Tambah BelongsToTenant ke OdcPort & OdpPort
-- 🔜 Proteksi reset_data.php
-- 🔜 Hapus sensitive file dari git history
+**Selesai (done):**
+- ✅ Rebranding ke ALKONEK (PT Alkonek Network Access)
+- ✅ Live Network Topology sinkron dengan Distribution (ODC→ODP→ONU)
+- ✅ Monitoring Real-Time trafic WAN-ISP (rate delta 1s, akurat vs MikroTik)
+- ✅ Optimasi performa: Bootstrap/Chart.js/Leaflet via CDN, JS 504KB→122KB, caching DashboardController
+- ✅ Penyatuan desain tabel (`.mon-table` + `.mon-thead`) di seluruh aplikasi + pembersihan bug script PowerShell di Blade
 
-### v2.0 (Medium-term)
-- Dashboard khusus Owner/Management
+**Planned — diurutkan berdasarkan Prioritas (P1 tertinggi):**
+
+| Priority | Item | Business Value | Risk | Acceptance Criteria |
+|----------|------|----------------|------|---------------------|
+| **P1** | Encrypt password MikroTik di DB | Hindari kebocoran kredensial router | Rendah | Password terenkripsi (`encrypted` cast), dekripsi otomatis saat koneksi |
+| **P1** | Tambah `BelongsToTenant` ke `OdcPort`/`OdpPort` | Tutup celah data leak antar tenant | Rendah | Query ODC/ODP otomatis difilter tenant |
+| **P1** | Hapus sensitive file dari git history (`.env`, `vercel.json`, `checker.md`) | Cegah kebocoran secret | Menengah | File tidak ada di history; ganti credential |
+| **P2** | Enable SSL verification (configurable) | Keamanan koneksi MikroTik | Rendah | Toggle di settings; default on di prod |
+| **P2** | Proteksi `reset_data.php` | Cegah destructif tidak sengaja | Rendah | Gate behind auth/env flag |
+| **P2** | API auth + rate limiting (`/api/v1/mikrotik/hotspot-login`) | Cegah abuse endpoint publik | Rendah | Token/hmac + throttle |
+| **P3** | Define RPO/RTO + backup encryption | Recoverability terukur | Menengah | Dokumen RPO/RTO; backup terenkripsi |
+
+### v2.0 (Medium-term — belum diprioritaskan)
+- Dashboard khusus Owner/Management (role terpisah)
 - Notifikasi realtime (WebSocket/Pusher)
-- API publik untuk integrasi pihak ketiga
+- API publik untuk integrasi pihak ketiga (dengan auth)
 - Dark mode
+- **Billing requirement gaps** (lihat 4.1): prorata, partial payment, diskon, pajak, refund, deposit, write-off, multiple invoice, grace period terkonfigurasi
 
-### v3.0 (Long-term)
+### v3.0 (Long-term — vision)
 - NMS (Network Management System) features
 - Advanced reporting & analytics
 - Multi-language support
 - Mobile app (optional)
+- Chaos/resilience testing, formal load test, security audit
 
 ---
 

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Setting;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -39,10 +40,24 @@ class FonnteService
 
         $cleanPhone = static::cleanPhone($phone);
 
+        if (static::isCooldown($cleanPhone)) {
+            Log::info("Fonnte blocked: cooldown active for {$cleanPhone}");
+
+            return ['success' => false, 'error' => 'Cooldown aktif, pesan ditunda'];
+        }
+
+        $dailyKey = 'fonnte_daily_'.date('Y-m-d');
+        $dailyCount = Cache::get($dailyKey, 0);
+        if ($dailyCount >= 200) {
+            Log::warning('Fonnte blocked: daily limit reached (200 messages)');
+
+            return ['success' => false, 'error' => 'Batas harian tercapai (200 pesan)'];
+        }
+
         try {
             $response = Http::withHeaders([
                 'Authorization' => $this->token,
-            ])->post('https://api.fonnte.com/send', [
+            ])->timeout(15)->post('https://api.fonnte.com/send', [
                 'target' => $cleanPhone,
                 'message' => $message,
                 'countryCode' => $countryCode,
@@ -51,6 +66,9 @@ class FonnteService
             $body = $response->json();
 
             if ($response->successful() && ($body['status'] ?? false)) {
+                Cache::put($dailyKey, $dailyCount + 1, now()->endOfDay());
+                static::setCooldown($cleanPhone, 60);
+
                 return ['success' => true, 'response' => $body];
             }
 
@@ -70,5 +88,15 @@ class FonnteService
 
             return ['success' => false, 'error' => $e->getMessage()];
         }
+    }
+
+    public static function isCooldown(string $cleanPhone): bool
+    {
+        return Cache::has('fonnte_cooldown_'.$cleanPhone);
+    }
+
+    public static function setCooldown(string $cleanPhone, int $seconds = 60): void
+    {
+        Cache::put('fonnte_cooldown_'.$cleanPhone, true, now()->addSeconds($seconds));
     }
 }

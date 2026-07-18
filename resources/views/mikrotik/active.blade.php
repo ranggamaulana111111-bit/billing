@@ -1,7 +1,5 @@
 @extends('layouts.app')
-
 @section('title', 'Sesi Aktif')
-
 @section('content')
 <div class="page-header d-flex flex-wrap justify-content-between align-items-center">
     <div>
@@ -14,16 +12,13 @@
         </a>
     </div>
 </div>
-
 @include('mikrotik._router_switcher')
-
 @if(session('success'))
     <div class="alert alert-custom alert-success mb-4">{{ session('success') }}</div>
 @endif
 @if(session('error'))
     <div class="alert alert-custom alert-danger mb-4">{{ session('error') }}</div>
 @endif
-
 <div class="row g-4">
     {{-- HOTSPOT ACTIVE --}}
     <div class="col-lg-6">
@@ -36,10 +31,8 @@
                 </div>
             </div>
             <div class="card-body p-0">
-                <table class="table mb-0">
-                    <thead>
                         <tr><th>User</th><th>Address</th><th>Uptime</th><th class="text-center">Aksi</th></tr>
-                    </thead>
+
                     <tbody>
                         @forelse($hotspot as $s)
                             <tr>
@@ -59,11 +52,11 @@
                             <tr><td colspan="4" class="text-center py-4 text-muted">Tidak ada sesi hotspot aktif</td></tr>
                         @endforelse
                     </tbody>
+<table class="table table-hover align-middle mb-0 mon-table">
                 </table>
             </div>
         </div>
     </div>
-
     {{-- PPP ACTIVE --}}
     <div class="col-lg-6">
         <div class="card shadow-sm border-0">
@@ -75,10 +68,8 @@
                 </div>
             </div>
             <div class="card-body p-0">
-                <table class="table mb-0">
-                    <thead>
                         <tr><th>User</th><th>Service</th><th>Address</th><th>Uptime</th><th class="text-center">Aksi</th></tr>
-                    </thead>
+
                     <tbody>
                         @forelse($ppp as $s)
                             <tr>
@@ -103,6 +94,7 @@
                             <tr><td colspan="5" class="text-center py-4 text-muted">Tidak ada sesi PPP aktif</td></tr>
                         @endforelse
                     </tbody>
+<table class="table table-hover align-middle mb-0 mon-table">
                 </table>
             </div>
         </div>

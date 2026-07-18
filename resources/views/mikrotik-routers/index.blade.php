@@ -1,7 +1,5 @@
 @extends('layouts.app')
-
 @section('title', 'Router MikroTik')
-
 @section('content')
 <div class="page-header d-flex flex-wrap justify-content-between align-items-center">
     <div>
@@ -13,7 +11,6 @@
         </button>
     </div>
 </div>
-
 @if(session('success'))
     <div class="alert alert-custom alert-success mb-4 d-flex align-items-center">
         <i class="fa-solid fa-circle-check me-2 fs-5"></i> {{ session('success') }}
@@ -24,12 +21,10 @@
         <i class="fa-solid fa-circle-exclamation me-2 fs-5"></i> {{ session('error') }}
     </div>
 @endif
-
 <div class="card shadow-sm border-0">
     <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table mb-0 align-middle">
-                <thead>
+        <div class="mon-table-wrap">
+<table class="table table-hover align-middle mb-0 mon-table">
                     <tr>
                         <th>Nama</th>
                         <th>Host</th>
@@ -40,7 +35,7 @@
                         <th>Voucher</th>
                         <th class="text-center">Aksi</th>
                     </tr>
-                </thead>
+
                 <tbody>
                     @forelse($routers as $router)
                         <tr>
@@ -60,19 +55,35 @@
                             </td>
                             <td>{{ $router->vouchers()->count() }}</td>
                             <td class="text-center">
-                                <form method="POST" action="{{ route('mikrotik-routers.test', $router) }}" class="d-inline">
-                                    @csrf
-                                    <button type="submit" class="btn btn-sm btn-outline-success px-2" title="Test Koneksi">
-                                        <i class="fa-solid fa-plug"></i>
-                                    </button>
-                                </form>
-                                <button type="button" class="btn btn-sm btn-outline-primary px-2" data-bs-toggle="modal" data-bs-target="#editModal{{ $router->id }}">
-                                    <i class="fa-solid fa-pen"></i>
-                                </button>
-                                <form method="POST" action="{{ route('mikrotik-routers.destroy', $router) }}" class="d-inline" onsubmit="return confirm('Hapus router {{ $router->name }}?')">
-                                    @csrf @method('DELETE')
-                                    <button type="submit" class="btn btn-sm btn-outline-danger px-2"><i class="fa-solid fa-trash"></i></button>
-                                </form>
+                                <div class="d-flex justify-content-center gap-1">
+                                    <form method="POST" action="{{ route('mikrotik-routers.test', $router) }}" class="d-inline">
+                                        @csrf
+                                        <button type="submit" class="btn btn-sm btn-outline-success px-2" title="Test Koneksi">
+                                            <i class="fa-solid fa-plug"></i>
+                                        </button>
+                                    </form>
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-outline-secondary px-2 dropdown-toggle" data-bs-toggle="dropdown" title="Lainnya" style="font-size:0.7rem;">
+                                            <i class="fa-solid fa-ellipsis-vertical"></i>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end" style="font-size:0.8rem;min-width:160px;">
+                                            <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editModal{{ $router->id }}"><i class="fa-solid fa-pen me-2 text-primary"></i>Edit</a></li>
+                                            <li>
+                                                <form method="POST" action="{{ route('mikrotik-routers.test', $router) }}">
+                                                    @csrf
+                                                    <button type="submit" class="dropdown-item"><i class="fa-solid fa-plug me-2 text-success"></i>Test Koneksi</button>
+                                                </form>
+                                            </li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li>
+                                                <form method="POST" action="{{ route('mikrotik-routers.destroy', $router) }}" onsubmit="return confirm('Hapus router {{ $router->name }}?')">
+                                                    @csrf @method('DELETE')
+                                                    <button type="submit" class="dropdown-item text-danger"><i class="fa-solid fa-trash me-2"></i>Hapus</button>
+                                                </form>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
                             </td>
                         </tr>
                     @empty
@@ -83,7 +94,6 @@
         </div>
     </div>
 </div>
-
 {{-- CREATE MODAL --}}
 <div class="modal fade" id="createModal" tabindex="-1">
     <div class="modal-dialog">
@@ -148,7 +158,6 @@
         </div>
     </div>
 </div>
-
 {{-- EDIT MODALS --}}
 @foreach($routers as $router)
 <div class="modal fade" id="editModal{{ $router->id }}" tabindex="-1">

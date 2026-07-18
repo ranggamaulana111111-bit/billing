@@ -1,14 +1,11 @@
 @extends('layouts.app')
-
 @section('title', 'Laporan Penjualan Voucher')
-
 @section('content')
 <div class="page-header d-flex flex-wrap justify-content-between align-items-center">
     <div>
         <h2 class="mb-0"><i class="fa-solid fa-chart-line me-2" style="color:var(--primary);"></i>Laporan Penjualan Voucher</h2>
     </div>
 </div>
-
 <div class="row g-4 mb-4">
     <div class="col-md-3">
         <div class="card stat-card stat-card-gradient-blue text-white">
@@ -43,7 +40,6 @@
         </div>
     </div>
 </div>
-
 <div class="card shadow-sm border-0">
     <div class="card-body">
         <form method="GET" class="row g-3 mb-4">
@@ -77,10 +73,8 @@
                 <button type="submit" class="btn btn-primary w-100"><i class="fa-solid fa-filter me-1"></i>Filter</button>
             </div>
         </form>
-
-        <div class="table-responsive">
-            <table class="table mb-0 align-middle">
-                <thead>
+        <div class="mon-table-wrap">
+<table class="table table-hover align-middle mb-0 mon-table">
                     <tr>
                         <th>Username</th>
                         <th>Profile</th>
@@ -90,7 +84,7 @@
                         <th>Expires</th>
                         <th>Cetak</th>
                     </tr>
-                </thead>
+
                 <tbody>
                     @forelse($vouchers as $v)
                         <tr>

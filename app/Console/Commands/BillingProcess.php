@@ -7,6 +7,7 @@ use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\Setting;
 use App\Models\User;
+use App\Services\Billing\InvoiceGenerator;
 use App\Services\FonnteService;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
@@ -32,13 +33,13 @@ class BillingProcess extends Command
             return 0;
         }
 
+        $generator = app(InvoiceGenerator::class);
+
         $globalGenerated = 0;
         $globalReminders = 0;
 
         foreach ($users as $user) {
             $this->info("--- Tenant: {$user->name} ({$user->email}) ---");
-
-            $month = $today->format('m');
 
             $customers = Customer::where('user_id', $user->id)->with('package')->get();
 
@@ -59,37 +60,31 @@ class BillingProcess extends Command
                 }
 
                 $dueDay = $customer->due_date ? (int) Carbon::parse($customer->due_date)->format('d') : null;
-
                 $billingPeriod = $today->format('Y-m');
 
-                $existing = Invoice::where('user_id', $user->id)
-                    ->where('customer_id', $customer->id)
+                $existing = Invoice::where('customer_id', $customer->id)
                     ->where('billing_period', $billingPeriod)
                     ->exists();
 
                 if (! $existing) {
-                    $invoiceCode = 'INV-'.str_pad($customer->id, 4, '0', STR_PAD_LEFT).'-ALK-'.$month.'-PRDT';
-                    $counter = 1;
-                    while (Invoice::where('invoice_code', $invoiceCode)->exists()) {
-                        $invoiceCode = 'INV-'.str_pad($customer->id, 4, '0', STR_PAD_LEFT).'-ALK-'.$month.'-PRDT-'.$counter;
-                        $counter++;
-                    }
+                    $invoiceNumber = $generator->generate($billingPeriod);
 
                     Invoice::create([
-                        'user_id' => $user->id,
-                        'invoice_code' => $invoiceCode,
+                        'invoice_number' => $invoiceNumber,
+                        'invoice_code' => $invoiceNumber,
                         'customer_id' => $customer->id,
                         'amount' => $customer->package->price,
                         'payment_status' => 'unpaid',
                         'billing_period' => $billingPeriod,
+                        'period' => $billingPeriod,
+                        'status' => 'unpaid',
                     ]);
 
                     $generated++;
-                    $this->info("  Invoice {$invoiceCode} untuk {$customer->name}");
+                    $this->info("  Invoice {$invoiceNumber} untuk {$customer->name}");
                 }
 
-                $unpaidInvoice = Invoice::where('user_id', $user->id)
-                    ->where('customer_id', $customer->id)
+                $unpaidInvoice = Invoice::where('customer_id', $customer->id)
                     ->where('payment_status', 'unpaid')
                     ->latest()
                     ->first();
@@ -150,6 +145,7 @@ class BillingProcess extends Command
     {
         $packageName = $customer->package->name ?? '-';
         $amount = 'Rp '.number_format($invoice->amount, 0, ',', '.');
+        $graceDay = $dueDay ? $dueDay + 15 : null;
 
         $typeLabel = match ($type) {
             'H-3' => '📅 *3 Hari Lagi Jatuh Tempo*',
@@ -158,22 +154,26 @@ class BillingProcess extends Command
             default => "🔔 *{$type}*",
         };
 
+        $graceLine = $graceDay ? "Masa Tenggang : Pada Tanggal {$graceDay} Setiap Bulan\n" : '';
+
         $message = "━━━ *ALKONEK BILLING* ━━━\n\n"
             ."{$typeLabel}\n\n"
-            ."Halo YTH *{$customer->name}*, Mengetahui kenyamanan anda adalah prioritas kami. Kami ingin menginfokan bahwa :\n\n"
+            ."Halo YTH Bapak/Ibu, Mengetahui kenyamanan anda adalah prioritas kami. Kami ingin menginfokan bahwa :\n\n"
             ."📋 *Tagihan Anda Bulan ini*\n"
             ."━━━━━━━━━━━━━━━━\n"
-            ."Invoice : {$invoice->invoice_code}\n"
+            ."ID Pelanggan : {$customer->customer_code}\n"
+            ."Invoice : {$invoice->invoice_display}\n"
             ."Paket   : {$packageName}\n"
+            ."Jatuh Tempo : Pada Tanggal {$dueDay} Setiap Bulan\n"
+            .$graceLine
             ."Total   : {$amount}\n"
-            ."Jatuh Tiap Tgl : {$dueDay}\n"
             ."Status  : ⏳ BELUM DIBAYAR\n"
             ."━━━━━━━━━━━━━━━━\n\n"
-            ."Akan jatuh tempo, Dapat melakukan Pembayaran melalui DANA : 089531559066. atau pembayaran dapat dilakukan ditempat basecamp alkonek.\n"
+            ."Kami Beritahukan Bahwa Layanan Anda Akan Masuk Ke Masa Tenggang, Pada Tanggal {$graceDay}. Dapat melakukan Pembayaran melalui DANA : 089531559066. atau pembayaran dapat dilakukan ditempat basecamp alkonek.\n"
+            .'Cek status tagihan anda di Portal : '.route('portal.index')."\n"
             ."Hubungi kami jika ada kendala.\n\n"
             ."Terima kasih 🙏\n\n"
-            ."━━━ *PT Alkonek Network Access* ━━━\n\n"
-            .'> _Sent via fonnte.com_';
+            .'━━━ *PT Alkonek Network Access* ━━━';
 
         try {
             $token = Setting::get('fonnte_token', null, $userId);

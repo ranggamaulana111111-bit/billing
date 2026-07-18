@@ -111,6 +111,7 @@ class MikrotikSshProxyConnector implements OltConnector
         }
 
         $url = "{$this->scheme}://{$this->mikrotikHost}:{$this->mikrotikPort}/rest/system/ssh-exec";
+        $startTime = microtime(true);
 
         try {
             $response = Http::withBasicAuth($this->mikrotikUser, $this->mikrotikPass)
@@ -128,8 +129,22 @@ class MikrotikSshProxyConnector implements OltConnector
                 throw new Exception("MikroTik API error: {$response->status()} {$response->body()}");
             }
 
-            return $this->parseApiResponse($response->json(), $response->body());
+            $output = $this->parseApiResponse($response->json(), $response->body());
+            $elapsed = round((microtime(true) - $startTime) * 1000, 1);
+
+            $this->logCli('PROXY_EXEC_COMMAND', $output, [
+                'command' => $command,
+                'elapsed_ms' => $elapsed,
+            ]);
+
+            return $output;
         } catch (Exception $e) {
+            $elapsed = round((microtime(true) - $startTime) * 1000, 1);
+            $this->logCli('PROXY_EXEC_COMMAND_ERROR', $e->getMessage(), [
+                'command' => $command,
+                'elapsed_ms' => $elapsed,
+            ]);
+
             if (str_contains($e->getMessage(), 'cURL error 28')) {
                 throw new Exception("Timeout saat SSH ke OLT {$this->oltHost} via MikroTik");
             }
@@ -226,7 +241,7 @@ class MikrotikSshProxyConnector implements OltConnector
                 'huawei' => $this->execOltCommand("display ont info {$slot} {$port}"),
                 'zte' => $this->execOltCommand("show onu unquiet interface gpon-olt_{$slot}/{$port}"),
                 'fiberhome' => $this->execOltCommand("show ont list slot {$slot} port {$port}"),
-                'cdata' => $this->execOltCommand("show ont info slot {$slot} port {$port}"),
+                'cdata' => $this->execOltCommand('show ont info all'),
                 default => throw new Exception('Unsupported brand'),
             };
 
@@ -234,7 +249,24 @@ class MikrotikSshProxyConnector implements OltConnector
 
             foreach (explode("\n", $output) as $line) {
                 $line = trim($line);
-                if ($line === '' || preg_match('/^[-=]+$/', $line) || stripos($line, 'onu id') !== false || stripos($line, 'sn') !== false) {
+                if ($line === '' || preg_match('/^[-=]+$/', $line) || stripos($line, 'onu id') !== false) {
+                    continue;
+                }
+
+                // C-DATA format: F/S P ONT SN Control-flag Run-state
+                if ($this->brand === 'cdata') {
+                    if (preg_match('/(\d+)\/(\d+)\s+(\d+)\s+(\d+)\s+(\S+)\s+(\S+)\s+(\S+)/', $line, $m)) {
+                        $lineSlot = (int) $m[2];
+                        $linePort = (int) $m[3];
+                        if ($lineSlot == $slot && $linePort == $port) {
+                            $onus[] = [
+                                'onu_id' => "{$slot}/{$port}/{$m[4]}",
+                                'sn' => $m[5],
+                                'status' => $m[7],
+                            ];
+                        }
+                    }
+
                     continue;
                 }
 
@@ -271,7 +303,7 @@ class MikrotikSshProxyConnector implements OltConnector
                 'huawei' => $this->execOltCommand("display ont info {$slot} {$port} {$idx}"),
                 'zte' => $this->execOltCommand("show onu detail gpon-olt_{$slot}/{$port} onu {$idx}"),
                 'fiberhome' => $this->execOltCommand("show ont info slot {$slot} port {$port} ont {$idx}"),
-                'cdata' => $this->execOltCommand("show ont info slot {$slot} port {$port} ont {$idx}"),
+                'cdata' => $this->execOltCommand("show ont info {$slot}/{$port} {$idx}"),
                 default => throw new Exception('Unsupported brand'),
             };
 
@@ -303,7 +335,7 @@ class MikrotikSshProxyConnector implements OltConnector
                     "ont add slot {$slot} port {$port} sn {$sn}"
                 ),
                 'cdata' => $this->execPrivileged(
-                    "interface gpon {$slot}/{$port}\nont add {$onuId} sn-auth {$sn} ont-lineprofile-id 1 ont-srvprofile-id 1\nont port native-vlan {$slot}/{$port} {$onuId} eth 1 vlan {$vlan}"
+                    "interface gpon {$slot}/0\nont add {$onuId} sn-auth {$sn} ont-lineprofile-id 1 ont-srvprofile-id 1\nont port native-vlan {$slot}/{$port} {$onuId} eth 1 vlan {$vlan}"
                 ),
                 default => throw new Exception('Unsupported brand'),
             };
@@ -333,7 +365,7 @@ class MikrotikSshProxyConnector implements OltConnector
                     "ont delete slot {$slot} port {$port} ont {$idx}"
                 ),
                 'cdata' => $this->execPrivileged(
-                    "interface gpon {$slot}/{$port}\nno ont add {$idx}"
+                    "interface gpon {$slot}/0\nno ont add {$idx}"
                 ),
                 default => throw new Exception('Unsupported brand'),
             };
@@ -363,7 +395,7 @@ class MikrotikSshProxyConnector implements OltConnector
                     "ont reset slot {$slot} port {$port} ont {$idx}"
                 ),
                 'cdata' => $this->execPrivileged(
-                    "interface gpon {$slot}/{$port}\nont reset {$idx}"
+                    "interface gpon {$slot}/0\nont reset {$idx}"
                 ),
                 default => throw new Exception('Unsupported brand'),
             };
@@ -395,41 +427,313 @@ class MikrotikSshProxyConnector implements OltConnector
 
     public function getOpticalPower(string $onuId): array
     {
+        $startTime = microtime(true);
+
         try {
             $parts = explode('/', $onuId);
             $slot = $parts[0] ?? 0;
             $port = $parts[1] ?? 0;
             $idx = $parts[2] ?? 0;
 
-            $output = match ($this->brand) {
-                'huawei' => $this->execOltCommand("display ont optical-info {$slot} {$port} {$idx}"),
-                'zte' => $this->execOltCommand("show onu optical-info {$slot} {$port} {$idx}"),
-                'fiberhome' => $this->execOltCommand("show ont optic slot {$slot} port {$port} ont {$idx}"),
-                'cdata' => $this->execOltCommand("show ont optical-info slot {$slot} port {$port} ont {$idx}"),
-                default => throw new Exception('Unsupported brand'),
-            };
+            if ($this->brand === 'cdata') {
+                // C-DATA: interface gpon uses F/S pair (slot/0), port is a command parameter
+                $output = $this->execPrivileged(
+                    "interface gpon {$slot}/0\nshow ont optical-info {$port} all\nexit"
+                );
+            } else {
+                $command = match ($this->brand) {
+                    'huawei' => "display ont optical-info {$slot} {$port} {$idx}",
+                    'zte' => "show onu optical-info {$slot} {$port} {$idx}",
+                    'fiberhome' => "show ont optic slot {$slot} port {$port} ont {$idx}",
+                    default => throw new Exception('Unsupported brand'),
+                };
 
-            $rx = null;
-            $tx = null;
-
-            foreach (explode("\n", $output) as $line) {
-                if (preg_match('/[Rr]x\s*.*?([-\d.]+)/', $line, $m)) {
-                    $rx = (float) $m[1];
-                }
-                if (preg_match('/[Tt]x\s*.*?([-\d.]+)/', $line, $m)) {
-                    $tx = (float) $m[1];
-                }
+                $output = $this->execOltCommand($command);
             }
+
+            $elapsed = round((microtime(true) - $startTime) * 1000, 1);
+
+            $parsed = $this->parseOpticalOutput($output, $onuId, $idx);
+
+            $this->logCli('PROXY_GET_OPTICAL_POWER', $output, [
+                'onu_id' => $onuId,
+                'slot' => $slot,
+                'port' => $port,
+                'ont_index' => $idx,
+                'rx_power' => $parsed['rx_power'],
+                'tx_power' => $parsed['tx_power'],
+                'elapsed_ms' => $elapsed,
+            ]);
 
             return [
                 'onu_id' => $onuId,
-                'rx_power' => $rx,
-                'tx_power' => $tx,
+                'rx_power' => $parsed['rx_power'],
+                'tx_power' => $parsed['tx_power'],
             ];
         } catch (Exception $e) {
-            Log::error("MikroTik proxy getOpticalPower({$onuId}): {$e->getMessage()}");
+            $elapsed = round((microtime(true) - $startTime) * 1000, 1);
+            Log::error("MikroTik proxy getOpticalPower({$onuId}) after {$elapsed}ms: {$e->getMessage()}");
+            $this->logCli('PROXY_GET_OPTICAL_POWER_ERROR', $e->getMessage(), [
+                'onu_id' => $onuId,
+                'elapsed_ms' => $elapsed,
+            ]);
 
             return ['onu_id' => $onuId, 'rx_power' => null, 'tx_power' => null];
+        }
+    }
+
+    private function parseOpticalOutput(string $output, string $onuId, int $idx): array
+    {
+        $rx = null;
+        $tx = null;
+
+        // If C-DATA bulk output, parse table and find specific ONT
+        if ($this->brand === 'cdata') {
+            $lines = explode("\n", $output);
+
+            foreach ($lines as $line) {
+                $line = trim($line);
+                if ($line === '' || preg_match('/^[-=]+$/', $line)) {
+                    continue;
+                }
+
+                // Match table row: ONT_ID SN Rx Tx ...
+                if (preg_match('/^\s*'.$idx.'\s+(\S+)\s+(-?\d+\.?\d+)\s+(-?\d+\.?\d+)/', $line, $m)) {
+                    $val1 = (float) $m[2];
+                    $val2 = (float) $m[3];
+                    if ($val1 < 0 && $val2 > 0) {
+                        $rx = $val1;
+                        $tx = $val2;
+                    } elseif ($val1 > 0 && $val2 < 0) {
+                        $rx = $val2;
+                        $tx = $val1;
+                    }
+
+                    return ['rx_power' => $rx, 'tx_power' => $tx];
+                }
+
+                // Fallback: match any line with Rx/Tx dBm
+                if (preg_match('/Rx\s*(?:Optical\s*)?[Pp]ower\s*[:=\-]?\s*(-?\d+\.?\d*)\s*dBm/i', $line, $rxM)) {
+                    $rx = (float) $rxM[1];
+                }
+                if (preg_match('/Tx\s*(?:Optical\s*)?[Pp]ower\s*[:=\-]?\s*(-?\d+\.?\d*)\s*dBm/i', $line, $txM)) {
+                    $tx = (float) $txM[1];
+                }
+
+                if ($rx !== null && $tx !== null) {
+                    return ['rx_power' => $rx, 'tx_power' => $tx];
+                }
+            }
+
+            return ['rx_power' => $rx, 'tx_power' => $tx];
+        }
+
+        // Non-C-DATA: generic parser
+        $lines = explode("\n", $output);
+
+        foreach ($lines as $line) {
+            $original = $line;
+            $line = trim($line);
+
+            if ($line === '') {
+                continue;
+            }
+
+            // "Rx Power : -xx.x dBm"
+            if ($rx === null && preg_match('/Rx\s+(?:Optical\s+)?[Pp]ower\s*[:=\-]\s*(-?\d+\.?\d*)\s*dBm/i', $line, $m)) {
+                $rx = (float) $m[1];
+
+                continue;
+            }
+
+            // "Tx Power : xx.x dBm"
+            if ($tx === null && preg_match('/Tx\s+(?:Optical\s+)?[Pp]ower\s*[:=\-]\s*(-?\d+\.?\d*)\s*dBm/i', $line, $m)) {
+                $tx = (float) $m[1];
+
+                continue;
+            }
+
+            // "rx power -xx.x"
+            if ($rx === null && preg_match('/\brx\s+power\b\s+(-?\d+\.?\d*)/i', $line, $m)) {
+                $rx = (float) $m[1];
+
+                continue;
+            }
+
+            // "tx power xx.x"
+            if ($tx === null && preg_match('/\btx\s+power\b\s+(-?\d+\.?\d*)/i', $line, $m)) {
+                $tx = (float) $m[1];
+
+                continue;
+            }
+
+            // "rx := -xx.x" or "rx: -xx.x"
+            if ($rx === null && preg_match('/\brx\b\s*[:=]\s*(-?\d+\.?\d*)\s*dBm/i', $line, $m)) {
+                $rx = (float) $m[1];
+
+                continue;
+            }
+
+            // "tx := xx.x" or "tx: xx.x"
+            if ($tx === null && preg_match('/\btx\b\s*[:=]\s*(-?\d+\.?\d*)\s*dBm/i', $line, $m)) {
+                $tx = (float) $m[1];
+
+                continue;
+            }
+
+            // generic rx anywhere
+            if ($rx === null && preg_match('/\brx\b\s*(?:optical\s*power)?\s*[:=\-]?\s*(-?\d+\.?\d*)/i', $original, $m)) {
+                $val = (float) $m[1];
+                if ($val < 0) {
+                    $rx = $val;
+
+                    continue;
+                }
+            }
+
+            // generic tx anywhere
+            if ($tx === null && preg_match('/\btx\b\s*(?:optical\s*power)?\s*[:=\-]?\s*(-?\d+\.?\d*)/i', $original, $m)) {
+                $val = (float) $m[1];
+                if ($val >= 0) {
+                    $tx = $val;
+
+                    continue;
+                }
+            }
+        }
+
+        return ['rx_power' => $rx, 'tx_power' => $tx];
+    }
+
+    /**
+     * Get ONT distances for C-DATA brand via "show ont basic-info".
+     *
+     * @return array<string, int|null> ontId => distance in meters
+     */
+    public function getOnuDistances(int $slot, int $port): array
+    {
+        if ($this->brand !== 'cdata') {
+            return [];
+        }
+
+        try {
+            $output = $this->execPrivileged("show ont basic-info {$slot}/{$port} all");
+            $cleanOutput = preg_replace('/\x1b\[[0-9;]*[a-zA-Z]/', '', $output);
+            $cleanOutput = str_replace(["\r\n", "\r"], "\n", $cleanOutput);
+
+            $this->logCli('GET_ONU_DISTANCES', $cleanOutput, [
+                'command' => "show ont basic-info {$slot}/{$port} all",
+                'slot' => $slot,
+                'port' => $port,
+            ]);
+
+            return $this->parseBasicInfoDistanceOutput($cleanOutput);
+        } catch (Exception $e) {
+            Log::error("MikroTik proxy getOnuDistances cdata({$slot}/{$port}): {$e->getMessage()}");
+
+            return [];
+        }
+    }
+
+    private function parseBasicInfoDistanceOutput(string $output): array
+    {
+        $distances = [];
+        $lines = explode("\n", $output);
+
+        $headerCols = [];
+        $isHeaderParsed = false;
+
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if ($line === '' || preg_match('/^[-=]+$/', $line)) {
+                continue;
+            }
+
+            if (! $isHeaderParsed && preg_match('/distance/i', $line)) {
+                $headers = preg_split('/\s{2,}/', trim($line));
+                if ($headers === false || count($headers) < 2) {
+                    $headers = preg_split('/\s+/', trim($line));
+                }
+                foreach ($headers as $i => $name) {
+                    $name = strtolower(trim($name));
+                    if (preg_match('/ont.*id|id$/i', $name)) {
+                        $headerCols['ont_id'] = $i;
+                    } elseif (preg_match('/distance/i', $name)) {
+                        $headerCols['distance'] = $i;
+                    }
+                }
+                $isHeaderParsed = true;
+
+                continue;
+            }
+
+            if ($headerCols !== [] && isset($headerCols['ont_id'], $headerCols['distance'])) {
+                $cols = preg_split('/\s+/', trim($line));
+                if ($cols !== false && count($cols) > max($headerCols['ont_id'], $headerCols['distance'])) {
+                    $ontId = (int) $cols[$headerCols['ont_id']];
+                    if ($ontId >= 1 && $ontId <= 128) {
+                        $distRaw = str_replace(['km', 'KM', 'm', 'M'], '', $cols[$headerCols['distance']]);
+                        $distVal = (int) $distRaw;
+                        if ($distVal > 0 && $distVal < 100) {
+                            $distVal = $distVal * 1000;
+                        }
+                        $distances[$ontId] = $distVal > 0 ? $distVal : null;
+
+                        continue;
+                    }
+                }
+            }
+
+            if (preg_match('/^\s*(\d{1,2})\s+\S+.*?(\d{3,5})\s*(?:m|KM)?/i', $line, $m)) {
+                $ontId = (int) $m[1];
+                if ($ontId >= 1 && $ontId <= 128) {
+                    $distVal = (int) $m[2];
+                    if ($distVal > 0 && $distVal < 100) {
+                        $distVal = $distVal * 1000;
+                    }
+                    $distances[$ontId] = ($distVal > 0 && $distVal <= 40000) ? $distVal : null;
+                }
+            }
+
+            if (preg_match('/ONT\s+(\d{1,2})\b/i', $line, $idMatch)) {
+                $ontId = (int) $idMatch[1];
+                if ($ontId >= 1 && $ontId <= 128 && preg_match('/[Dd]istance\s*[:=]?\s*(\d+)', $line, $distMatch)) {
+                    $distVal = (int) $distMatch[1];
+                    if ($distVal > 0 && $distVal < 100) {
+                        $distVal = $distVal * 1000;
+                    }
+                    $distances[$ontId] = ($distVal > 0 && $distVal <= 40000) ? $distVal : null;
+                }
+            }
+        }
+
+        return $distances;
+    }
+
+    private function logCli(string $action, string $output, array $context = []): void
+    {
+        try {
+            $logDir = storage_path('logs');
+            if (! is_dir($logDir)) {
+                mkdir($logDir, 0755, true);
+            }
+
+            $logFile = $logDir.'/olt.log';
+            $timestamp = now()->format('Y-m-d H:i:s.u');
+
+            $entry = array_merge([
+                'timestamp' => $timestamp,
+                'action' => $action,
+                'connector' => 'mikrotik_proxy',
+                'brand' => $this->brand,
+            ], $context, [
+                'raw_output' => $output,
+            ]);
+
+            $line = json_encode($entry, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)."\n";
+            file_put_contents($logFile, $line, FILE_APPEND | LOCK_EX);
+        } catch (\Throwable $e) {
+            Log::warning("MikroTik proxy CLI logging failed: {$e->getMessage()}");
         }
     }
 }

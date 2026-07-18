@@ -1,7 +1,5 @@
 @extends('layouts.app')
-
 @section('title', 'Log Sistem')
-
 @section('content')
 <div class="page-header d-flex flex-wrap justify-content-between align-items-center">
     <div>
@@ -9,7 +7,6 @@
         <p class="section-subtitle mb-0 mt-1">Riwayat aktivitas sistem secara sistematis</p>
     </div>
 </div>
-
 {{-- FILTERS --}}
 <div class="card shadow-sm border-0 mb-4">
     <div class="card-body">
@@ -47,7 +44,6 @@
         </form>
     </div>
 </div>
-
 {{-- LOG TABLE --}}
 <div class="card shadow-sm border-0">
     <div class="card-header bg-white d-flex justify-content-between align-items-center">
@@ -59,9 +55,8 @@
         <small class="text-muted">Halaman {{ $logs->currentPage() }} dari {{ $logs->lastPage() }}</small>
     </div>
     <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table mb-0">
-                <thead>
+        <div class="mon-table-wrap">
+<table class="table table-hover align-middle mb-0 mon-table">
                     <tr>
                         <th style="width:50px;">#</th>
                         <th style="width:160px;">Waktu</th>
@@ -69,7 +64,7 @@
                         <th style="width:140px;">Aksi</th>
                         <th>Detail</th>
                     </tr>
-                </thead>
+
                 <tbody>
                     @forelse($logs as $log)
                         <tr>

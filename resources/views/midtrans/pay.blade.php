@@ -13,7 +13,7 @@
                             <i class="fa-solid fa-credit-card" style="color:#fff;font-size:1.6rem;"></i>
                         </div>
                         <h4 class="fw-bold">Pembayaran Midtrans</h4>
-                        <p class="text-muted small">Invoice: <strong>{{ $invoice->invoice_code }}</strong></p>
+                        <p class="text-muted small">Invoice: <strong>{{ $invoice->invoice_display }}</strong></p>
                         <p class="fw-bold" style="font-size:1.3rem;">Rp {{ number_format($invoice->amount, 0, ',', '.') }}</p>
                     </div>
 
