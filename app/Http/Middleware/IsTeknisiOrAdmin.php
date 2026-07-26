@@ -10,10 +10,15 @@ class IsTeknisiOrAdmin
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if ($request->user() && ! in_array($request->user()->role, ['admin', 'teknisi'])) {
-            abort(403, 'Akses ditolak.');
-        }
+        if ($request->user() &&
+    ! in_array($request->user()->role, [
+        'admin',
+        'superadmin',
+        'teknisi'
+    ])) {
 
+    abort(403, 'Akses ditolak.');
+}
         return $next($request);
     }
 }

@@ -7,18 +7,32 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        DB::statement('
-            DELETE s1 FROM settings s1
-            INNER JOIN settings s2
-            WHERE s1.key = s2.key
-              AND s1.tenant_id = s2.tenant_id
-              AND s1.id < s2.id
-        ');
+        $driver = Schema::getConnection()->getDriverName();
+
+        if ($driver === 'pgsql') {
+
+            DB::statement("
+                DELETE FROM settings a
+                USING settings b
+                WHERE a.key = b.key
+                  AND a.tenant_id = b.tenant_id
+                  AND a.id < b.id
+            ");
+
+        } else {
+
+            DB::statement("
+                DELETE s1
+                FROM settings s1
+                INNER JOIN settings s2
+                    ON s1.key = s2.key
+                   AND s1.tenant_id = s2.tenant_id
+                WHERE s1.id < s2.id
+            ");
+
+        }
 
         Schema::table('settings', function (Blueprint $table) {
             $table->unique(['tenant_id', 'key']);

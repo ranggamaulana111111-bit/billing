@@ -76,7 +76,7 @@
             </div>
 
             <div class="sidebar-menu">
-                @if(auth()->user()->role === 'admin')
+                @if(in_array(auth()->user()->role, ['admin', 'superadmin']))
                 {{-- ADMIN SIDEBAR — full system --}}
                 <ul class="list-unstyled components mt-2">
                     <p>Dashboard Utama</p>

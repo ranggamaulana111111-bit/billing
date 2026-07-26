@@ -104,22 +104,24 @@ class PollOltJob implements ShouldQueue
                     $distanceVal = $distances[$ontIdx] ?? null;
 
                     Onu::updateOrCreate(
-                        [
-                            'olt_port_id' => $port->id,
-                            'onu_id' => $onuData['onu_id'],
-                        ],
-                        [
-                            'serial_number' => $onuData['sn'] ?? null,
-                            'caller_id' => $onuData['caller_id'] ?? $onuData['mac'] ?? null,
-                            'status' => $onuData['status'] ?? 'unknown',
-                            'rx_power' => $optical['rx_power'] ?? null,
-                            'tx_power' => $optical['tx_power'] ?? null,
-                            'distance' => $distanceVal,
-                            'slot_number' => $port->slot_number,
-                            'port_number' => $port->port_number,
-                            'last_seen_at' => now(),
-                        ]
-                    );
+    [
+        'tenant_id'   => $this->olt->tenant_id,
+        'olt_port_id' => $port->id,
+        'onu_id'      => $onuData['onu_id'],
+    ],
+    [
+        'tenant_id'    => $this->olt->tenant_id,
+        'serial_number'=> $onuData['sn'] ?? null,
+        'caller_id'    => $onuData['caller_id'] ?? $onuData['mac'] ?? null,
+        'status'       => $onuData['status'] ?? 'unknown',
+        'rx_power'     => $optical['rx_power'] ?? null,
+        'tx_power'     => $optical['tx_power'] ?? null,
+        'distance'     => $distanceVal,
+        'slot_number'  => $port->slot_number,
+        'port_number'  => $port->port_number,
+        'last_seen_at' => now(),
+    ]
+);
 
                     $totalOnus++;
                 }
@@ -409,20 +411,22 @@ class PollOltJob implements ShouldQueue
 
                 $mac = $session['caller-id'] ?? '';
 
-                Onu::updateOrCreate(
-                    [
-                        'olt_port_id' => $firstPort->id,
-                        'onu_id' => 'mikrotik-'.$customer->id,
-                    ],
-                    [
-                        'customer_id' => $customer->id,
-                        'caller_id' => $mac ?: 'PPPoE-'.$username,
-                        'status' => 'online',
-                        'slot_number' => $firstPort->slot_number,
-                        'port_number' => $firstPort->port_number,
-                        'last_seen_at' => now(),
-                    ]
-                );
+    Onu::updateOrCreate(
+    [
+        'tenant_id'   => $this->olt->tenant_id,
+        'olt_port_id' => $firstPort->id,
+        'onu_id'      => 'mikrotik-'.$customer->id,
+    ],
+    [
+    'tenant_id'   => $this->olt->tenant_id,
+    'customer_id' => $customer->id,
+    'caller_id'   => $mac ?: 'PPPoE-'.$username,
+    'status'      => 'online',
+    'slot_number' => $firstPort->slot_number,
+    'port_number' => $firstPort->port_number,
+    'last_seen_at'=> now(),
+]
+);
 
                 if ($customer->serial_number && ! $customer->onus()->whereNotNull('serial_number')->exists()) {
                     $oltOnu = Onu::where('serial_number', $customer->serial_number)

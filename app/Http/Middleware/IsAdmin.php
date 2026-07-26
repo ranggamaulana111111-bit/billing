@@ -10,10 +10,9 @@ class IsAdmin
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if ($request->user() && $request->user()->role !== 'admin') {
-            abort(403, 'Akses hanya untuk admin.');
-        }
-
+        if ($request->user() && ! in_array($request->user()->role, ['admin', 'superadmin'])) {
+    abort(403, 'Akses hanya untuk admin.');
+}
         return $next($request);
     }
 }

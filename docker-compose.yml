@@ -1,0 +1,42 @@
+services:
+  billing-app:
+    build: .
+    container_name: alk-billing-app
+    restart: unless-stopped
+    working_dir: /var/www/html
+
+    volumes:
+      - ./:/var/www/html
+
+    environment:
+      APP_ENV: production
+      APP_DEBUG: "false"
+
+    networks:
+      - alk-core
+
+  billing-nginx:
+    image: nginx:alpine
+    container_name: alk-billing-nginx
+    restart: unless-stopped
+
+    ports:
+      - "8088:80"
+
+    volumes:
+      - ./:/var/www/html
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+
+    depends_on:
+      - billing-app
+
+    networks:
+      - alk-core
+      - alk-public
+
+networks:
+  alk-core:
+    external: true
+
+  alk-public:
+    external: true
