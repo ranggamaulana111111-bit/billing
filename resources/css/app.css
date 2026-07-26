@@ -1,9 +1,9 @@
-﻿/* ═════════════════════════════════════════════
-   e-billing · Design System
-   Elegant · Futuristic · Systematic
-   ═════════════════════════════════════════════ */
+/* ---------------------------------------------
+   e-billing - Design System
+   Elegant - Futuristic - Systematic
+   --------------------------------------------- */
 
-/* ───── DESIGN TOKENS ───── */
+/* ----- DESIGN TOKENS ----- */
 :root {
     /* palette */
     --primary:        #2563eb;
@@ -38,14 +38,14 @@
     --border-light:   #e2e8f0;
     --border-subtle:  rgba(0,0,0,0.05);
 
-    /* radii — systematic 4px scale */
+    /* radii - systematic 4px scale */
     --radius-xs:  6px;
     --radius-sm:  10px;
     --radius:     16px;
     --radius-lg:  20px;
     --radius-xl:  28px;
 
-    /* shadows — layered for realism */
+    /* shadows - layered for realism */
     --shadow-sm:       0 1px 2px rgba(0,0,0,0.03), 0 1px 4px rgba(0,0,0,0.02);
     --shadow-card:     0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03);
     --shadow-card-hov: 0 8px 24px rgba(0,0,0,0.07), 0 2px 6px rgba(0,0,0,0.03);
@@ -58,7 +58,7 @@
     --font-sans:  'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
     --font-mono:  'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
 
-    /* spacing — 4px base */
+    /* spacing - 4px base */
     --space-xs:   4px;
     --space-sm:   8px;
     --space-md:   16px;
@@ -76,7 +76,7 @@
     --sidebar-width: 270px;
 }
 
-/* ───── BASE ───── */
+/* ----- BASE ----- */
 body {
     background:
         radial-gradient(ellipse at 15% 8%, rgba(37,99,235,0.18), transparent 36rem),
@@ -99,7 +99,7 @@ a { color: var(--primary); }
     color: var(--text-primary);
 }
 
-/* ───── FORM ELEMENTS ───── */
+/* ----- FORM ELEMENTS ----- */
 .form-control,
 .form-select {
     border: 1.5px solid var(--border-light);
@@ -145,12 +145,12 @@ textarea.form-control {
     border-radius: 4px;
 }
 
-/* ───── WRAPPER ───── */
+/* ----- WRAPPER ----- */
 .wrapper { display: flex; align-items: stretch; }
 
-/* ════════════════════════════════════════════
+/* --------------------------------------------
    SIDEBAR
-   ════════════════════════════════════════════ */
+   -------------------------------------------- */
 #sidebar {
     min-width: var(--sidebar-width);
     max-width: var(--sidebar-width);
@@ -254,7 +254,7 @@ textarea.form-control {
     flex-shrink: 0;
 }
 
-/* ─── Sidebar Toggle Button ─── */
+/* --- Sidebar Toggle Button --- */
 .sidebar-toggle {
     position: absolute;
     right: -14px;
@@ -283,7 +283,7 @@ textarea.form-control {
     transition: transform 0.3s var(--ease-out);
 }
 
-/* ─── Collapsed Sidebar ─── */
+/* --- Collapsed Sidebar --- */
 #sidebar.sidebar-collapsed {
     min-width: 70px;
     max-width: 70px;
@@ -340,7 +340,7 @@ textarea.form-control {
     .sidebar-toggle { display: none; }
 }
 
-/* ───── CONTENT ───── */
+/* ----- CONTENT ----- */
 #content {
     flex: 1;
     min-width: 0;
@@ -349,7 +349,7 @@ textarea.form-control {
     margin: 0 auto;
 }
 
-/* ───── BRAND ───── */
+/* ----- BRAND ----- */
 .brand-mark {
     display: inline-flex;
     align-items: center;
@@ -383,9 +383,9 @@ textarea.form-control {
     text-transform: uppercase;
 }
 
-/* ════════════════════════════════════════════
-   CARDS — Colorful accent system
-   ════════════════════════════════════════════ */
+/* --------------------------------------------
+   CARDS - Colorful accent system
+   -------------------------------------------- */
 .card {
     border-radius: var(--radius);
     border: 1px solid var(--border-light);
@@ -393,7 +393,7 @@ textarea.form-control {
     transition: all 0.35s var(--ease-out);
     background: linear-gradient(135deg, #ffffff, #fafcff);
     backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
+
     position: relative;
 }
 .card::before {
@@ -412,7 +412,7 @@ textarea.form-control {
     border-color: rgba(37,99,235,0.12);
     background: #ffffff;
     backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
+
 }
 .card:hover::before { opacity: 1; }
 
@@ -429,7 +429,7 @@ textarea.form-control {
 
 .card-body { padding: 28px; }
 
-/* ───── CARD UTILITIES ───── */
+/* ----- CARD UTILITIES ----- */
 .chart-card-sm .card-header { padding: 12px 18px; font-size: 0.8rem; }
 .chart-card-sm .card-body { padding: 14px; }
 
@@ -449,7 +449,7 @@ textarea.form-control {
     gap: 10px;
 }
 
-/* ───── COMPACT ACTION BUTTONS ───── */
+/* ----- COMPACT ACTION BUTTONS ----- */
 .action-compact .btn-sm {
     width: 28px;
     height: 28px;
@@ -461,7 +461,7 @@ textarea.form-control {
     font-size: 0.72rem;
 }
 
-/* ───── REPORT PAGE CARDS ───── */
+/* ----- REPORT PAGE CARDS ----- */
 .report-filter-card::before { display: none; }
 .report-filter-card { border-top: 3px solid var(--primary); }
 .report-filter-card .card-header { border-bottom-color: rgba(37,99,235,0.12); }
@@ -478,7 +478,7 @@ textarea.form-control {
 .report-unpaid-card { border-top: 3px solid #dc2626; }
 .report-unpaid-card .card-header { border-bottom-color: rgba(220,38,38,0.12); }
 
-/* ───── DASHBOARD CLASS THEMES ───── */
+/* ----- DASHBOARD CLASS THEMES ----- */
 .dash-chart-revenue::before { background: linear-gradient(90deg, #2563eb, #6366f1) !important; }
 .dash-chart-revenue .card-header { border-bottom-color: rgba(37,99,235,0.12) !important; }
 
@@ -578,9 +578,9 @@ textarea.form-control {
 /* Insight cards: hide default top bar (use icon colors) */
 .insight-card::before { display: none; }
 
-/* ════════════════════════════════════════════
+/* --------------------------------------------
    REUSABLE UTILITIES
-   ════════════════════════════════════════════ */
+   -------------------------------------------- */
 .dot {
     display: inline-block;
     width: 8px; height: 8px;
@@ -620,12 +620,12 @@ textarea.form-control {
     letter-spacing: -0.02em;
 }
 
-/* ───── TEXT ───── */
+/* ----- TEXT ----- */
 .text-micro { font-size: 0.7rem; line-height: 1.4; }
 .text-green  { color: #059669; }
 .text-green-check { color: #059669; }
 
-/* ───── SOFT BADGES ───── */
+/* ----- SOFT BADGES ----- */
 .badge-soft-primary {
     background: #60a5fa;
     color: #1e3a8a;
@@ -684,9 +684,9 @@ textarea.form-control {
     border-radius: 999px;
 }
 
-/* ════════════════════════════════════════════
-   STAT CARDS — Premium
-   ════════════════════════════════════════════ */
+/* --------------------------------------------
+   STAT CARDS - Premium
+   -------------------------------------------- */
 .stat-card {
     position: relative;
     overflow: hidden;
@@ -696,7 +696,6 @@ textarea.form-control {
     box-shadow: var(--shadow-stat);
     border: none;
     backdrop-filter: none;
-    -webkit-backdrop-filter: none;
 }
 .stat-card::after {
     content: '';
@@ -742,6 +741,81 @@ textarea.form-control {
 }
 .stat-card:hover::before {
     transform: scale(1.3) translate(-6%, -6%);
+}
+
+/* Kartu stat compact (halaman pelanggan) - tanpa kedip, icon besar bergerak mulus saat hover */
+.stat-card-sm.stat-card-sm {
+    min-height: 64px !important;
+    border-radius: 12px !important;
+    overflow: hidden !important;
+    animation: none !important;
+    transform: none !important;
+    transition: none !important;
+}
+.stat-card-sm.stat-card-sm::after,
+.stat-card-sm.stat-card-sm::before {
+    display: none !important;
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+}
+.stat-card-sm .card-body {
+    padding: 10px 14px !important;
+    position: relative;
+    z-index: 2;
+}
+.stat-card-sm .stat-number {
+    font-size: 1.25rem !important;
+    line-height: 1 !important;
+}
+.stat-card-sm .stat-label {
+    font-size: 0.58rem !important;
+    opacity: 0.9 !important;
+}
+/* Icon besar di latar belakang */
+.stat-card-sm .stat-bg {
+    position: absolute;
+    bottom: -18px;
+    right: -14px;
+    font-size: 2rem;
+    line-height: 1;
+    opacity: 1;
+    color: #fff;
+    pointer-events: none;
+    z-index: 1;
+    transform: none !important;
+    transition: transform 0.35s ease !important;
+    animation: none !important;
+}
+/* Hover: HANYA icon bergerak (mulus), card & teks tetap statis - tidak ada kedip warna */
+/* Specificity dinaikkan agar menang dari .card.stat-card:hover { background:none } */
+.card.stat-card-sm.stat-card-gradient-blue:hover {
+    background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%) !important;
+}
+.card.stat-card-sm.stat-card-gradient-green:hover {
+    background: linear-gradient(135deg, #059669 0%, #10b981 100%) !important;
+}
+.card.stat-card-sm.stat-card-gradient-orange:hover {
+    background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%) !important;
+}
+.card.stat-card-sm.stat-card-gradient-red:hover {
+    background: linear-gradient(135deg, #dc2626 0%, #ea580c 100%) !important;
+}
+.card.stat-card-sm.stat-card-sm:hover {
+    transform: none !important;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.18) !important;
+    animation: none !important;
+    transition: none !important;
+}
+.stat-card-sm:hover .stat-bg {
+    transform: scale(1.18) rotate(8deg) !important;
+}
+.stat-card-sm:hover::after,
+.stat-card-sm:hover::before,
+.stat-card-sm:hover .stat-icon {
+    display: none !important;
+    transform: none !important;
+    background: none !important;
 }
 
 .stat-card .stat-bg {
@@ -834,9 +908,9 @@ textarea.form-control {
     background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%);
 }
 
-/* ════════════════════════════════════════════
-   TABLES — Colorful · Saturated
-   ════════════════════════════════════════════ */
+/* --------------------------------------------
+   TABLES - Colorful - Saturated
+   -------------------------------------------- */
 .table {
     margin-bottom: 0;
     font-size: 0.82rem;
@@ -873,7 +947,7 @@ textarea.form-control {
 
 
 
-/* ───── SCROLL CONTAINER ───── */
+/* ----- SCROLL CONTAINER ----- */
 .table-scroll {
     overflow-x: auto;
 }
@@ -891,7 +965,7 @@ textarea.form-control {
     background: #94a3b8;
 }
 
-/* ───── ODP TABLE — via .table-scroll ───── */
+/* ----- ODP TABLE - via .table-scroll ----- */
 .dash-table-odp .table-scroll {
     overflow-y: auto !important;
 }
@@ -978,9 +1052,9 @@ textarea.form-control {
 
 
 
-/* ════════════════════════════════════════════
+/* --------------------------------------------
    BADGES
-   ════════════════════════════════════════════ */
+   -------------------------------------------- */
 .badge-premium {
     padding: 5px 12px;
     font-weight: 600;
@@ -989,9 +1063,9 @@ textarea.form-control {
     letter-spacing: 0.01em;
 }
 
-/* ════════════════════════════════════════════
-   BUTTONS — Refined
-   ════════════════════════════════════════════ */
+/* --------------------------------------------
+   BUTTONS - Refined
+   -------------------------------------------- */
 .btn {
     border-radius: var(--radius-xs);
     font-weight: 600;
@@ -1102,9 +1176,9 @@ textarea.form-control {
     transform: translateY(-1px);
 }
 
-/* ════════════════════════════════════════════
+/* --------------------------------------------
    SECTION TITLE
-   ════════════════════════════════════════════ */
+   -------------------------------------------- */
 .section-title {
     font-size: 1.35rem;
     font-weight: 700;
@@ -1118,17 +1192,17 @@ textarea.form-control {
     font-weight: 450;
 }
 
-/* ════════════════════════════════════════════
+/* --------------------------------------------
    TABLE CONTAINER
-   ════════════════════════════════════════════ */
+   -------------------------------------------- */
 .table-container {
     border-radius: var(--radius);
     overflow: hidden;
 }
 
-/* ════════════════════════════════════════════
+/* --------------------------------------------
    PROGRESS BAR
-   ════════════════════════════════════════════ */
+   -------------------------------------------- */
 .progress-mini {
     height: 4px;
     border-radius: 999px;
@@ -1142,9 +1216,9 @@ textarea.form-control {
     background: linear-gradient(90deg, var(--primary), var(--accent));
 }
 
-/* ════════════════════════════════════════════
+/* --------------------------------------------
    PAGE HEADER
-   ════════════════════════════════════════════ */
+   -------------------------------------------- */
 .page-header { margin-bottom: 36px; }
 .page-header h2 {
     font-size: 1.6rem;
@@ -1155,9 +1229,9 @@ textarea.form-control {
 }
 .page-header .page-actions { display: flex; gap: 14px; }
 
-/* ════════════════════════════════════════════
+/* --------------------------------------------
    DASHBOARD SPECIFIC
-   ════════════════════════════════════════════ */
+   -------------------------------------------- */
 .dashboard-clock { font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
 .dashboard-chart-card .card-body { padding: 24px 28px; }
 .dashboard-section-gap { margin-bottom: 48px; }
@@ -1178,9 +1252,9 @@ textarea.form-control {
     overflow: hidden;
 }
 
-/* ════════════════════════════════════════════
+/* --------------------------------------------
     PETA (Leaflet)
-    ════════════════════════════════════════════ */
+    -------------------------------------------- */
 #map {
     height: 280px;
     width: 100%;
@@ -1207,9 +1281,9 @@ textarea.form-control {
 
 .map-tiles { filter: saturate(0.9) hue-rotate(5deg); }
 
-/* ════════════════════════════════════════════
+/* --------------------------------------------
    ALERTS
-   ════════════════════════════════════════════ */
+   -------------------------------------------- */
 .alert-custom {
     border-radius: var(--radius-sm);
     border: none;
@@ -1239,9 +1313,9 @@ textarea.form-control {
     border-left: 4px solid var(--info);
 }
 
-/* ════════════════════════════════════════════
+/* --------------------------------------------
     EMPTY STATE
-    ════════════════════════════════════════════ */
+    -------------------------------------------- */
 .empty-state {
     padding: 40px 20px;
     text-align: center;
@@ -1273,9 +1347,9 @@ textarea.form-control {
     background: transparent !important;
 }
 
-/* ════════════════════════════════════════════
+/* --------------------------------------------
    LANDING PAGE
-   ════════════════════════════════════════════ */
+   -------------------------------------------- */
 .landing-shell {
     min-height: 100vh;
     margin: -28px -32px;
@@ -1418,12 +1492,12 @@ textarea.form-control {
 .feature-card h5 { font-weight: 800; letter-spacing: -0.02em; }
 .feature-card p { margin: 0; color: rgba(255,255,255,0.62); line-height: 1.65; }
 
-/* ════════════════════════════════════════════
-   AUTH — Redesign: Enterprise ISP SaaS
-   2-column · Glassmorphism · ISP Identity
-   ════════════════════════════════════════════ */
+/* --------------------------------------------
+   AUTH - Redesign: Enterprise ISP SaaS
+   2-column - Glassmorphism - ISP Identity
+   -------------------------------------------- */
 
-/* ─── Layout Shell ─── */
+/* --- Layout Shell --- */
 .auth-shell {
     min-height: 100vh;
     display: flex;
@@ -1446,7 +1520,7 @@ body:has(.auth-shell) {
     background: #060b18 !important;
 }
 
-/* ─── Animated Background ─── */
+/* --- Animated Background --- */
 .auth-bg {
     position: fixed;
     inset: 0;
@@ -1509,7 +1583,7 @@ body:has(.auth-shell) {
     pointer-events: none;
 }
 
-/* ─── Left Panel: Hero ─── */
+/* --- Left Panel: Hero --- */
 .auth-hero {
     flex: 0 0 58%;
     display: flex;
@@ -1590,7 +1664,7 @@ body:has(.auth-shell) {
     margin-bottom: 36px;
 }
 
-/* ─── Metric Cards ─── */
+/* --- Metric Cards --- */
 .auth-metrics {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -1664,7 +1738,7 @@ body:has(.auth-shell) {
 .auth-metric-cyan .auth-metric-icon   { background: linear-gradient(135deg, #0891b2, #67e8f9); }
 .auth-metric-rose .auth-metric-icon   { background: linear-gradient(135deg, #e11d48, #fb7185); }
 
-/* ─── Network Visualization ─── */
+/* --- Network Visualization --- */
 .auth-network {
     position: relative;
     padding: 24px;
@@ -1725,7 +1799,7 @@ body:has(.auth-shell) {
     flex-shrink: 0;
 }
 
-/* ─── Floating Status Cards ─── */
+/* --- Floating Status Cards --- */
 .auth-floating {
     position: absolute;
     z-index: 2;
@@ -1764,7 +1838,7 @@ body:has(.auth-shell) {
     50%      { transform: translateY(-8px); }
 }
 
-/* ─── Right Panel: Form ─── */
+/* --- Right Panel: Form --- */
 .auth-form-panel {
     flex: 0 0 42%;
     display: flex;
@@ -1788,7 +1862,7 @@ body:has(.auth-shell) {
     border: 1px solid rgba(255,255,255,0.08);
     background: rgba(255,255,255,0.04);
     backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
+
     box-shadow:
         0 1px 0 rgba(255,255,255,0.06) inset,
         0 32px 80px rgba(0,0,0,0.35);
@@ -1805,7 +1879,7 @@ body:has(.auth-shell) {
     background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
 }
 
-/* ─── Form Header ─── */
+/* --- Form Header --- */
 .auth-form-header {
     text-align: center;
     margin-bottom: 32px;
@@ -1823,7 +1897,7 @@ body:has(.auth-shell) {
     margin: 0;
 }
 
-/* ─── Form Fields ─── */
+/* --- Form Fields --- */
 .auth-field {
     margin-bottom: 18px;
     animation: authFadeUp 0.4s var(--ease-out) both;
@@ -1937,7 +2011,7 @@ body:has(.auth-shell) {
 .auth-capslock.show { display: flex; }
 .auth-capslock i { font-size: 0.7rem; }
 
-/* ─── Remember Row ─── */
+/* --- Remember Row --- */
 .auth-remember {
     display: flex;
     align-items: center;
@@ -1973,7 +2047,7 @@ body:has(.auth-shell) {
     color: #93c5fd;
 }
 
-/* ─── Submit Button ─── */
+/* --- Submit Button --- */
 .auth-submit {
     width: 100%;
     padding: 14px 24px;
@@ -2020,7 +2094,7 @@ body:has(.auth-shell) {
     margin-right: 8px;
 }
 
-/* ─── Divider ─── */
+/* --- Divider --- */
 .auth-divider {
     display: flex;
     align-items: center;
@@ -2042,7 +2116,7 @@ body:has(.auth-shell) {
     letter-spacing: 0.08em;
 }
 
-/* ─── Social Login ─── */
+/* --- Social Login --- */
 .auth-social {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -2085,7 +2159,7 @@ body:has(.auth-shell) {
     border-color: rgba(255,255,255,0.2);
 }
 
-/* ─── Footer Link ─── */
+/* --- Footer Link --- */
 .auth-footer-link {
     text-align: center;
     margin-top: 28px;
@@ -2102,7 +2176,7 @@ body:has(.auth-shell) {
     color: #93c5fd;
 }
 
-/* ─── Status Bar ─── */
+/* --- Status Bar --- */
 .auth-status-bar {
     position: fixed;
     bottom: 0;
@@ -2117,7 +2191,7 @@ body:has(.auth-shell) {
     background: rgba(6,11,24,0.9);
     border-top: 1px solid rgba(255,255,255,0.05);
     backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+
 }
 .auth-status-item {
     display: flex;
@@ -2135,7 +2209,7 @@ body:has(.auth-shell) {
     box-shadow: 0 0 6px rgba(52,211,153,0.5);
 }
 
-/* ─── Copyright ─── */
+/* --- Copyright --- */
 .auth-copyright {
     position: fixed;
     bottom: 38px;
@@ -2150,7 +2224,7 @@ body:has(.auth-shell) {
     letter-spacing: 0.02em;
 }
 
-/* ─── Password Strength Meter ─── */
+/* --- Password Strength Meter --- */
 .auth-pw-strength {
     margin-top: 10px;
 }
@@ -2237,7 +2311,7 @@ body:has(.auth-shell) {
     font-size: 0.65rem;
 }
 
-/* ─── Responsive ─── */
+/* --- Responsive --- */
 @media (max-width: 1024px) {
     .auth-hero { flex: 0 0 50%; padding: 40px 40px; }
     .auth-form-panel { flex: 0 0 50%; padding: 40px 32px; }
@@ -2282,9 +2356,9 @@ body:has(.auth-shell) {
     .auth-form-header h3 { font-size: 1.25rem; }
 }
 
-/* ════════════════════════════════════════════
-   ANIMATIONS — Motion system
-   ════════════════════════════════════════════ */
+/* --------------------------------------------
+   ANIMATIONS - Motion system
+   -------------------------------------------- */
 .fade-in {
     animation: fadeInUp 0.5s var(--ease-out) forwards;
 }
@@ -2313,9 +2387,9 @@ body:has(.auth-shell) {
 
 .stat-card { animation: scaleIn 0.4s var(--ease-out) both; }
 
-/* ════════════════════════════════════════════
-   RESPONSIVE — Mobile-first adaptive
-   ════════════════════════════════════════════ */
+/* --------------------------------------------
+   RESPONSIVE - Mobile-first adaptive
+   -------------------------------------------- */
 @media (max-width: 768px) {
     body { padding-bottom: 72px; }
     .wrapper { display: block; }
@@ -2442,11 +2516,11 @@ body:has(.auth-shell) {
     .dashboard-chart-card .card-body { padding: 16px; }
 }
 
-/* ════════════════════════════════════════════
-   SETTINGS PAGE — Modern Refined UI
-   ════════════════════════════════════════════ */
+/* --------------------------------------------
+   SETTINGS PAGE - Modern Refined UI
+   -------------------------------------------- */
 
-/* ─── Layout ─── */
+/* --- Layout --- */
 .settings-layout {
     display: flex;
     flex-direction: column;
@@ -2464,7 +2538,7 @@ body:has(.auth-shell) {
     flex-shrink: 0;
     background: var(--surface-glass);
     backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+
     border-radius: var(--radius);
     padding: 8px;
     border: 1px solid rgba(0,0,0,0.04);
@@ -2508,6 +2582,29 @@ body:has(.auth-shell) {
     box-shadow: 0 1px 3px rgba(37,99,235,0.1);
 }
 
+.settings-tab.active[data-accent] {
+    --tab-accent: #dc2626;
+    --tab-accent-soft: rgba(220,38,38,0.10);
+    --tab-accent-soft2: rgba(220,38,38,0.18);
+    background: linear-gradient(135deg, var(--tab-accent-soft), var(--tab-accent-soft2));
+    color: var(--tab-accent);
+    box-shadow: 0 1px 3px rgba(220,38,38,0.18);
+}
+
+.settings-tab.active[data-accent="#dc2626"] {
+    --tab-accent: #dc2626;
+    --tab-accent-soft: rgba(220,38,38,0.10);
+    --tab-accent-soft2: rgba(248,113,113,0.20);
+    background: linear-gradient(135deg, rgba(220,38,38,0.10), rgba(248,113,113,0.22));
+    color: #dc2626;
+    box-shadow: 0 1px 3px rgba(220,38,38,0.18);
+}
+
+.settings-tab:hover[data-accent="#dc2626"] {
+    background: rgba(220,38,38,0.08);
+    color: #dc2626;
+}
+
 .settings-panels {
     flex: 1;
     min-width: 0;
@@ -2520,13 +2617,13 @@ body:has(.auth-shell) {
     display: block;
 }
 
-/* ─── Card ─── */
+/* --- Card --- */
 .settings-card {
     border-radius: var(--radius);
     transition: all 0.35s var(--ease-out);
     background: var(--surface-glass);
     backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+
     box-shadow:
         0 1px 3px rgba(0,0,0,0.04),
         0 4px 12px rgba(0,0,0,0.03),
@@ -2549,6 +2646,36 @@ body:has(.auth-shell) {
 .settings-card[data-accent]::before {
     background: var(--card-accent, var(--border-light));
 }
+
+/* --- Isolir card: border & surface bergradasi (tidak putih monoton) --- */
+.settings-card.isolir-card {
+    background:
+        linear-gradient(180deg, rgba(254,242,242,0.85), rgba(255,255,255,0.92));
+    border: none;
+}
+.settings-card.isolir-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius);
+    padding: 1.5px;
+    background: linear-gradient(135deg, #dc2626, #f87171 55%, #fca5a5);
+    -webkit-mask:
+        linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    opacity: 0.9;
+    transition: opacity 0.35s var(--ease-out);
+}
+.settings-card.isolir-card:hover::after {
+    opacity: 1;
+    background: linear-gradient(135deg, #dc2626, #ef4444 55%, #f87171);
+}
+.settings-card.isolir-card .settings-icon-badge {
+    background: linear-gradient(135deg, #dc2626, #f87171) !important;
+}
 .settings-card:hover {
     transform: translateY(-3px);
     box-shadow:
@@ -2566,7 +2693,7 @@ body:has(.auth-shell) {
     padding: 18px 24px 22px;
 }
 
-/* ─── Icon Badge ─── */
+/* --- Icon Badge --- */
 .settings-icon-badge {
     width: 36px;
     height: 36px;
@@ -2596,12 +2723,12 @@ body:has(.auth-shell) {
     margin-top: 1px;
 }
 
-/* ─── Field Group ─── */
+/* --- Field Group --- */
 .settings-field-group {
     position: relative;
 }
 
-/* ─── Field Divider ─── */
+/* --- Field Divider --- */
 .settings-field-divider {
     border: 0;
     height: 1px;
@@ -2610,7 +2737,7 @@ body:has(.auth-shell) {
     opacity: 1;
 }
 
-/* ─── Input Group (icon prepend) ─── */
+/* --- Input Group (icon prepend) --- */
 .settings-card .input-group {
     position: relative;
 }
@@ -2638,7 +2765,7 @@ body:has(.auth-shell) {
     border-left-color: transparent;
 }
 
-/* ─── Eye Toggle Button ─── */
+/* --- Eye Toggle Button --- */
 .settings-eye-btn {
     border: 1.5px solid var(--border-light);
     border-left: none;
@@ -2662,7 +2789,7 @@ body:has(.auth-shell) {
     border-color: rgba(37,99,235,0.45);
 }
 
-/* ─── Logo Dropzone ─── */
+/* --- Logo Dropzone --- */
 .settings-dropzone {
     border: 2px dashed var(--border-light);
     border-radius: var(--radius-sm);
@@ -2741,7 +2868,7 @@ body:has(.auth-shell) {
     font-weight: 500;
 }
 
-/* ─── Sticky Save Bar ─── */
+/* --- Sticky Save Bar --- */
 .settings-sticky-bar {
     position: sticky;
     bottom: 28px;
@@ -2749,7 +2876,7 @@ body:has(.auth-shell) {
     margin-top: 48px;
     background: var(--surface-glass);
     backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+
     border-radius: var(--radius);
     padding: 16px 24px;
     border: 1px solid rgba(0,0,0,0.05);
@@ -2767,7 +2894,7 @@ body:has(.auth-shell) {
     color: var(--success);
 }
 
-/* ─── Toggle Area (Production/Sandbox) ─── */
+/* --- Toggle Area (Production/Sandbox) --- */
 .settings-toggle-area {
     background: linear-gradient(135deg, #f8faff, #f1f5f9);
     border-radius: var(--radius-xs);
@@ -2796,13 +2923,13 @@ body:has(.auth-shell) {
     50% { opacity: 1; }
 }
 
-/* ─── Test Button ─── */
+/* --- Test Button --- */
 .settings-test-btn {
     border-radius: 8px;
     font-weight: 600;
 }
 
-/* ─── Info Note ─── */
+/* --- Info Note --- */
 .settings-info-note {
     display: flex;
     align-items: flex-start;
@@ -2837,12 +2964,12 @@ body:has(.auth-shell) {
     border-radius: 4px;
 }
 
-/* ─── Equal-height adjacent inputs ─── */
+/* --- Equal-height adjacent inputs --- */
 .settings-card .row.g-3 > [class*="col-"] .input-group {
     height: fit-content;
 }
 
-/* ─── Stagger Entrance Animation ─── */
+/* --- Stagger Entrance Animation --- */
 .stagger-card {
     animation: fadeSlideUp 0.45s var(--ease-out) both;
 }
@@ -2867,7 +2994,7 @@ body:has(.auth-shell) {
     }
 }
 
-/* ─── Responsive ─── */
+/* --- Responsive --- */
 @media (max-width: 768px) {
     .settings-icon-badge { width: 30px; height: 30px; font-size: 13px; border-radius: 8px; }
     .settings-card .card-header { padding: 14px 16px 10px; }
@@ -2890,9 +3017,9 @@ body:has(.auth-shell) {
     .settings-tab i { font-size: 1.1rem; width: auto; }
 }
 
-/* ════════════════════════════════════════════
+/* --------------------------------------------
    BENTO GRID DASHBOARD
-   ════════════════════════════════════════════ */
+   -------------------------------------------- */
 .bento-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -2984,7 +3111,7 @@ body:has(.auth-shell) {
 /* map container inside bento */
 .bento-map-wrap { width: 100%; height: 360px; }
 
-/* tables inside bento — prevent collapse + allow scroll */
+/* tables inside bento - prevent collapse + allow scroll */
 .bento-grid .bento-table-scroll {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
@@ -3095,7 +3222,7 @@ body:has(.auth-shell) {
     background: rgba(37,99,235,0.04);
 }
 
-/* ─── BENTO RESPONSIVE: TABLET ─── */
+/* --- BENTO RESPONSIVE: TABLET --- */
 @media (max-width: 1199.98px) {
     .bento-grid {
         grid-template-columns: repeat(2, 1fr);
@@ -3107,7 +3234,7 @@ body:has(.auth-shell) {
     .bento-map-wrap { height: 300px; }
 }
 
-/* ─── BENTO RESPONSIVE: MOBILE ─── */
+/* --- BENTO RESPONSIVE: MOBILE --- */
 @media (max-width: 767.98px) {
     .bento-grid {
         grid-template-columns: 1fr;
@@ -3135,9 +3262,9 @@ body:has(.auth-shell) {
     }
 }
 
-/* ════════════════════════════════════════════
+/* --------------------------------------------
    DASHBOARD RESPONSIVE (legacy selectors)
-   ════════════════════════════════════════════ */
+   -------------------------------------------- */
 @media (max-width: 991.98px) {
     .dash-chart-sm .card-body { padding: 12px; }
     .dash-chart-sm canvas { max-height: 130px; }
@@ -3165,15 +3292,15 @@ body:has(.auth-shell) {
     .action-compact { gap: 3px !important; flex-wrap: wrap; }
 }
 
-/* ════════════════════════════════════════════
-   USER CREATE PAGE — Enterprise SaaS Redesign
-   ════════════════════════════════════════════ */
+/* --------------------------------------------
+   USER CREATE PAGE - Enterprise SaaS Redesign
+   -------------------------------------------- */
 
-/* ─── Page Shell ─── */
+/* --- Page Shell --- */
 .uc-page { animation: fadeInUp 0.4s var(--ease-out) both; }
 .uc-hidden { display: none !important; }
 
-/* ─── Hero Header ─── */
+/* --- Hero Header --- */
 .uc-hero {
     background: linear-gradient(135deg, #ffffff 0%, #f8faff 100%);
     border: 1px solid var(--border-light);
@@ -3203,7 +3330,7 @@ body:has(.auth-shell) {
     pointer-events: none;
 }
 
-/* ─── Breadcrumb ─── */
+/* --- Breadcrumb --- */
 .uc-breadcrumb {
     display: flex;
     align-items: center;
@@ -3230,7 +3357,7 @@ body:has(.auth-shell) {
     font-weight: 600;
 }
 
-/* ─── Hero Content ─── */
+/* --- Hero Content --- */
 .uc-hero-row {
     display: flex;
     align-items: flex-start;
@@ -3271,7 +3398,7 @@ body:has(.auth-shell) {
 }
 .uc-hero-badge i { font-size: 0.8rem; }
 
-/* ─── Step Indicator ─── */
+/* --- Step Indicator --- */
 .uc-steps {
     display: flex;
     align-items: center;
@@ -3338,7 +3465,7 @@ body:has(.auth-shell) {
     background: var(--success);
 }
 
-/* ─── Form Grid ─── */
+/* --- Form Grid --- */
 .uc-form-grid {
     display: grid;
     grid-template-columns: 1fr 340px;
@@ -3359,7 +3486,7 @@ body:has(.auth-shell) {
     top: 24px;
 }
 
-/* ─── Form Card ─── */
+/* --- Form Card --- */
 .uc-card {
     background: linear-gradient(135deg, #ffffff, #fafcff);
     border: 1px solid var(--border-light);
@@ -3432,7 +3559,7 @@ body:has(.auth-shell) {
 
 .uc-card-body { padding: 22px 24px 24px; }
 
-/* ─── Input Group (icon prepend) ─── */
+/* --- Input Group (icon prepend) --- */
 .uc-field {
     position: relative;
     margin-bottom: 20px;
@@ -3516,7 +3643,7 @@ body:has(.auth-shell) {
     line-height: 1.45;
 }
 
-/* ─── Password Features ─── */
+/* --- Password Features --- */
 .uc-pw-actions {
     display: flex;
     gap: 8px;
@@ -3611,7 +3738,7 @@ body:has(.auth-shell) {
     color: var(--success);
 }
 
-/* ─── Password Toggle ─── */
+/* --- Password Toggle --- */
 .uc-pw-toggle {
     position: absolute;
     right: 12px;
@@ -3628,7 +3755,7 @@ body:has(.auth-shell) {
 }
 .uc-pw-toggle:hover { color: var(--primary); }
 
-/* ─── Role Selection Cards ─── */
+/* --- Role Selection Cards --- */
 .uc-role-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -3685,7 +3812,7 @@ body:has(.auth-shell) {
     line-height: 1.4;
 }
 
-/* ─── Review Card ─── */
+/* --- Review Card --- */
 .uc-review-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -3712,7 +3839,7 @@ body:has(.auth-shell) {
     word-break: break-all;
 }
 
-/* ─── Sidebar Cards ─── */
+/* --- Sidebar Cards --- */
 .uc-side-card {
     background: linear-gradient(135deg, #ffffff, #fafcff);
     border: 1px solid var(--border-light);
@@ -3741,7 +3868,7 @@ body:has(.auth-shell) {
 }
 .uc-side-body { padding: 16px 18px; }
 
-/* ─── Preview Card ─── */
+/* --- Preview Card --- */
 .uc-preview-avatar {
     width: 64px; height: 64px;
     border-radius: 16px;
@@ -3802,7 +3929,7 @@ body:has(.auth-shell) {
     background: var(--warning);
 }
 
-/* ─── Tips Card ─── */
+/* --- Tips Card --- */
 .uc-tip-list {
     list-style: none;
     padding: 0;
@@ -3827,7 +3954,7 @@ body:has(.auth-shell) {
     flex-shrink: 0;
 }
 
-/* ─── After Create Card ─── */
+/* --- After Create Card --- */
 .uc-activity-list {
     list-style: none;
     padding: 0;
@@ -3855,7 +3982,7 @@ body:has(.auth-shell) {
     flex-shrink: 0;
 }
 
-/* ─── Sticky Footer ─── */
+/* --- Sticky Footer --- */
 .uc-sticky-footer {
     position: sticky;
     bottom: 0;
@@ -3864,7 +3991,7 @@ body:has(.auth-shell) {
     padding: 16px 28px;
     background: var(--surface-glass);
     backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+
     border: 1px solid rgba(0,0,0,0.05);
     border-radius: var(--radius);
     box-shadow: 0 -4px 16px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.03);
@@ -3880,7 +4007,7 @@ body:has(.auth-shell) {
     gap: 10px;
 }
 
-/* ─── User Table Enhancements ─── */
+/* --- User Table Enhancements --- */
 .uc-list-header {
     display: flex;
     align-items: center;
@@ -3910,7 +4037,7 @@ body:has(.auth-shell) {
     font-weight: 450;
 }
 
-/* ─── User Avatar in Table ─── */
+/* --- User Avatar in Table --- */
 .uc-user-cell {
     display: flex;
     align-items: center;
@@ -3937,7 +4064,7 @@ body:has(.auth-shell) {
     font-size: 0.85rem;
 }
 
-/* ─── Responsive ─── */
+/* --- Responsive --- */
 @media (max-width: 1199.98px) {
     .uc-form-grid {
         grid-template-columns: 1fr 300px;
@@ -3987,11 +4114,11 @@ body:has(.auth-shell) {
     .uc-list-header .btn { width: 100%; }
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   v4 — Enterprise NOC Dashboard
-   ═══════════════════════════════════════════════════════════════ */
+/* ---------------------------------------------------------------
+   v4 - Enterprise NOC Dashboard
+   --------------------------------------------------------------- */
 
-/* ─── HERO ─── */
+/* --- HERO --- */
 .v4-hero {
     background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
     border-radius: var(--radius-lg);
@@ -4163,7 +4290,7 @@ body:has(.auth-shell) {
     letter-spacing: .05em;
 }
 
-/* ─── EXECUTIVE SUMMARY ─── */
+/* --- EXECUTIVE SUMMARY --- */
 .v4-grid-5 {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
@@ -4235,7 +4362,7 @@ body:has(.auth-shell) {
 .v4-trend-down { color: #dc2626; }
 .v4-trend-warn { color: #d97706; }
 
-/* ─── CARDS ─── */
+/* --- CARDS --- */
 .v4-card {
     background: var(--surface);
     border: 1px solid var(--border-light);
@@ -4327,7 +4454,7 @@ body:has(.auth-shell) {
 .v4-text-green { color: #059669; }
 .v4-text-red { color: #dc2626; }
 
-/* ─── LAYOUT ROWS ─── */
+/* --- LAYOUT ROWS --- */
 .v4-row-2-1 {
     display: grid;
     grid-template-columns: 2fr 1fr;
@@ -4349,7 +4476,7 @@ body:has(.auth-shell) {
 .v4-col-narrow { min-width: 0; }
 .v4-col-half { min-width: 0; }
 
-/* ─── CHART ─── */
+/* --- CHART --- */
 .v4-chart-wrap { height: 220px; padding: 0 20px 8px; }
 .v4-chart-wrap canvas { width: 100% !important; height: 100% !important; }
 .v4-summary-row {
@@ -4380,7 +4507,7 @@ body:has(.auth-shell) {
     margin-top: 1px;
 }
 
-/* ─── DONUT ─── */
+/* --- DONUT --- */
 .v4-donut-area {
     display: flex;
     align-items: center;
@@ -4421,7 +4548,7 @@ body:has(.auth-shell) {
     display: inline-block;
 }
 
-/* ─── REVENUE + DONUT NEWSPAPER LAYOUT ─── */
+/* --- REVENUE + DONUT NEWSPAPER LAYOUT --- */
 .v4-card-body-row {
     display: grid;
     grid-template-columns: 1fr 300px;
@@ -4454,7 +4581,7 @@ body:has(.auth-shell) {
 }
 .v4-side-cat i { font-size: .65rem; }
 
-/* ─── SEVERITY ─── */
+/* --- SEVERITY --- */
 .v4-severity-row {
     display: flex;
     gap: 8px;
@@ -4476,7 +4603,7 @@ body:has(.auth-shell) {
 .v4-sev-maint { background: #eff6ff; color: #2563eb; }
 .v4-sev-overdue { background: #fff7ed; color: #f97316; }
 
-/* ─── ALERT COMPACT (notifikasi) ─── */
+/* --- ALERT COMPACT (notifikasi) --- */
 .v4-alert-compact { padding: 14px 20px; }
 .v4-alert-warn {
     display: flex;
@@ -4539,7 +4666,7 @@ body:has(.auth-shell) {
     50% { transform: rotate(0); }
 }
 
-/* ─── ALERT LIST ─── */
+/* --- ALERT LIST --- */
 .v4-alert-list { padding: 0; }
 .v4-alert-item {
     display: flex;
@@ -4595,7 +4722,7 @@ body:has(.auth-shell) {
 }
 .v4-alert-more:hover { background: var(--primary-50); }
 
-/* ─── NETWORK HEALTH ─── */
+/* --- NETWORK HEALTH --- */
 .v4-net-list { padding: 8px 0; }
 .v4-net-side {
     display: flex;
@@ -4654,7 +4781,7 @@ body:has(.auth-shell) {
     transition: width .6s var(--ease-out);
 }
 
-/* ─── CUSTOMER LIST ─── */
+/* --- CUSTOMER LIST --- */
 .v4-customer-list { padding: 4px 0; }
 .v4-customer-item {
     display: flex;
@@ -4716,7 +4843,7 @@ body:has(.auth-shell) {
 }
 .v4-btn-sm:hover { transform: translateY(-1px); box-shadow: 0 2px 8px rgba(249,115,22,.3); color: #fff; }
 
-/* ─── PACKAGES ─── */
+/* --- PACKAGES --- */
 .v4-pkg-list { padding: 8px 0; }
 .v4-pkg-item {
     display: flex;
@@ -4756,7 +4883,7 @@ body:has(.auth-shell) {
 }
 .v4-pkg-count { font-size: .7rem; font-weight: 700; color: var(--text-secondary); min-width: 20px; text-align: right; }
 
-/* ─── TIMELINE ─── */
+/* --- TIMELINE --- */
 .v4-timeline { padding: 8px 0; }
 .v4-timeline-item {
     display: flex;
@@ -4777,7 +4904,7 @@ body:has(.auth-shell) {
 .v4-timeline-text { font-size: .75rem; font-weight: 500; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .v4-timeline-meta { font-size: .65rem; color: var(--text-muted); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-/* ─── INVOICE LIST ─── */
+/* --- INVOICE LIST --- */
 .v4-invoice-list { padding: 4px 0; }
 .v4-invoice-item {
     display: flex;
@@ -4812,14 +4939,14 @@ body:has(.auth-shell) {
 .v4-btn-print { background: #f1f5f9; color: #64748b; }
 .v4-btn-print:hover { background: #64748b; color: #fff; }
 
-/* ─── MAP ─── */
+/* --- MAP --- */
 .v4-map-area {
     height: 320px;
     border-radius: 0 0 var(--radius) var(--radius);
     overflow: hidden;
 }
 
-/* ─── RESPONSIVE ─── */
+/* --- RESPONSIVE --- */
 @media (max-width: 1399.98px) {
     .v4-grid-5 { grid-template-columns: repeat(5, 1fr); }
     .v4-row-2-1-1 { grid-template-columns: 1fr 1fr; }
@@ -4864,7 +4991,7 @@ body:has(.auth-shell) {
     .v4-summary-num { font-size: .68rem; }
 }
 
-/* ───── QoS HEALTH DASHBOARD ───── */
+/* ----- QoS HEALTH DASHBOARD ----- */
 .qos-card { min-width: 0; }
 .qos-card .card-body { overflow: visible; padding: 20px; min-width: 0; }
 .qos-card .card-header { min-width: 0; }
@@ -5031,7 +5158,7 @@ body:has(.auth-shell) {
 .mon-code { font-size:0.72rem; color:#334155; background:#f1f5f9; padding:1px 5px; border-radius:4px; }
 .mon-rx { font-variant-numeric:tabular-nums; font-weight:600; }
 
-/* ═══ ALARM CENTER (Incidents) ═══ */
+/* --- ALARM CENTER (Incidents) --- */
 .alarm-stat {
     position: relative;
     overflow: hidden;
@@ -5119,5 +5246,11 @@ body:has(.auth-shell) {
     color:#fff !important;
 }
 .mon-card-head .fw-semibold { color:#fff !important; }
+.mon-card-head h5,
+.mon-card-head .settings-icon-badge {
+    color:#fff !important;
+    background:rgba(255,255,255,.22) !important;
+}
+.mon-card-head small { color:rgba(255,255,255,.7) !important; }
 
 

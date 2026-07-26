@@ -171,47 +171,52 @@
     </div>
 </div>
 
-{{-- ═══ ALERTS + NETWORK ═══ --}}
+{{-- ═══ UNPAID INVOICES (full width) ═══ --}}
 <div class="v4-card" style="margin-top:var(--space-lg);">
     <div class="v4-card-header">
-        <div class="v4-card-title"><span class="v4-dot" style="background:var(--danger);"></span>Critical Alerts
-            @if($totalAlerts > 0)<span class="v4-badge v4-badge-red">{{ $totalAlerts }}</span>@endif
+        <div class="v4-card-title"><span class="v4-dot" style="background:#dc2626;"></span>Tagihan Belum Dibayar
+            @if($overdueCount > 0)<span class="v4-badge v4-badge-red">{{ $overdueCount }} overdue</span>@endif
         </div>
-        <a href="{{ route('incidents.index') }}" class="v4-link">Lihat Semua Gangguan <i class="fa-solid fa-arrow-right"></i></a>
+        <a href="{{ route('invoices.index', ['status' => 'unpaid']) }}" class="v4-link">Lihat Semua <i class="fa-solid fa-arrow-right"></i></a>
     </div>
-    <div class="v4-card-body-row">
-        <div class="v4-alert-compact">
-            @if($totalAlerts > 0)
-                <div class="v4-alert-warn">
-                    <span class="v4-alert-warn-icon"><i class="fa-solid fa-triangle-exclamation"></i></span>
-                    <div class="v4-alert-warn-body">
-                        <div class="v4-alert-warn-title">{{ $totalAlerts }} Alert Aktif Perlu Tindakan</div>
-                        <div class="v4-alert-warn-meta">
-                            @if($critCount > 0)<span class="v4-sev-pill crit">{{ $critCount }} Critical</span>@endif
-                            @if($warnCount > 0)<span class="v4-sev-pill warn">{{ $warnCount }} Warning</span>@endif
-                            @if($maintCount > 0)<span class="v4-sev-pill maint">{{ $maintCount }} Maint.</span>@endif
-                            @if($overdueCount > 0)<span class="v4-sev-pill over">{{ $overdueCount }} Overdue</span>@endif
-                        </div>
-                    </div>
-                </div>
-            @else
-                <div class="v4-alert-empty">
-                    <i class="fa-solid fa-bell-slash"></i>
-                    <span>Semua Aman — Tidak ada gangguan aktif</span>
-                </div>
-            @endif
+    <div class="v4-invoice-list">
+        @forelse($unpaidInvoices->take(5) as $inv)
+        @php
+            $dueDate = $inv->customer?->due_date ? \Carbon\Carbon::parse($inv->customer->due_date) : null;
+            $isOverdue = $dueDate && $dueDate->isPast();
+        @endphp
+        <div class="v4-invoice-item {{ $isOverdue ? 'v4-invoice-overdue' : '' }}">
+            <div class="v4-invoice-info">
+                <div class="v4-invoice-name">{{ $inv->customer->name ?? '-' }}</div>
+                <div class="v4-invoice-meta">{{ $inv->invoice_display }} · {{ $dueDate ? $dueDate->format('d/m') : '-' }}</div>
+            </div>
+            <div class="v4-invoice-amount">Rp{{ number_format($inv->amount, 0, ',', '.') }}</div>
+            <div class="v4-invoice-actions">
+                <a href="{{ route('invoice.reminder', $inv->id) }}" class="v4-btn-icon v4-btn-wa" title="WA Reminder" onclick="return confirm('Kirim reminder ke {{ $inv->customer->name ?? '?' }}?')"><i class="fa-brands fa-whatsapp"></i></a>
+                <a href="{{ route('invoice.paid', $inv->id) }}" class="v4-btn-icon v4-btn-check" title="Tandai Lunas" onclick="return confirm('Konfirmasi pembayaran?')"><i class="fa-solid fa-check"></i></a>
+                <a href="{{ route('invoice.print', $inv->id) }}" class="v4-btn-icon v4-btn-print" title="Cetak" target="_blank"><i class="fa-solid fa-print"></i></a>
+            </div>
         </div>
-        <div class="v4-net-side">
-            <div class="v4-net-side-title"><span class="v4-dot" style="background:var(--success);"></span>Network Health</div>
-            <div class="v4-net-list">
+        @empty
+        <div class="v4-alert-empty"><i class="fa-solid fa-circle-check"></i><span>Semua Tagihan Lunas</span></div>
+        @endforelse
+    </div>
+</div>
+
+{{-- ═══ NETWORK HEALTH (full width) ═══ --}}
+<div class="v4-card" style="margin-top:var(--space-lg);">
+    <div class="v4-card-header">
+        <div class="v4-card-title"><span class="v4-dot" style="background:var(--success);"></span>Network Health</div>
+    </div>
+    <div class="v4-net-list" style="padding:0 20px 8px;">
                 @php
                     $netItems = [
                         ['icon' => 'fa-solid fa-globe', 'color' => '#059669', 'name' => 'Internet', 'status' => 'online', 'label' => 'Connected'],
                         ['icon' => 'fa-solid fa-tower-broadcast', 'color' => '#2563eb', 'name' => 'OLT', 'status' => 'online', 'label' => $odpCount . ' ODP'],
                         ['icon' => 'fa-solid fa-plug', 'color' => $portUsage >= 80 ? '#dc2626' : '#059669', 'name' => 'ONU / Port', 'status' => $portUsage >= 80 ? 'warning' : 'online', 'label' => $totalUsed . '/' . $totalCapacity . ' (' . $portUsage . '%)', 'bar' => $portUsage],
                         ['icon' => 'fa-solid fa-wifi', 'color' => '#06b6d4', 'name' => 'Fiber', 'status' => 'online', 'label' => $routeCount . ' routes'],
-                        ['icon' => 'fa-solid fa-server', 'color' => '#94a3b8', 'name' => 'Core Router', 'status' => 'standby', 'label' => 'N/A'],
-                        ['icon' => 'fa-solid fa-network-wired', 'color' => '#94a3b8', 'name' => 'MikroTik', 'status' => 'standby', 'label' => 'N/A'],
+                        ['icon' => 'fa-solid fa-server', 'color' => ($routerStatus['core'] === 'online' ? '#059669' : ($routerStatus['core'] === 'warning' ? '#d97706' : '#94a3b8')), 'name' => 'Core Router', 'status' => $routerStatus['core'], 'label' => ($routerStatus['core'] === 'online' ? 'Connected' : ($routerStatus['core'] === 'warning' ? 'Delayed' : 'N/A'))],
+                        ['icon' => 'fa-solid fa-network-wired', 'color' => ($routerStatus['mikrotik'] === 'online' ? '#059669' : ($routerStatus['mikrotik'] === 'warning' ? '#d97706' : '#94a3b8')), 'name' => 'MikroTik', 'status' => $routerStatus['mikrotik'], 'label' => ($routerStatus['mikrotik'] === 'online' ? 'Connected' : ($routerStatus['mikrotik'] === 'warning' ? 'Delayed' : 'N/A'))],
                     ];
                 @endphp
                 @foreach($netItems as $ni)
@@ -226,55 +231,17 @@
                 @endforeach
             </div>
         </div>
+
+{{-- ═══ INFRASTRUKTUR (full width) ═══ --}}
+<div class="v4-card" style="margin-top:var(--space-lg);">
+    <div class="v4-card-header">
+        <div class="v4-card-title"><span class="v4-dot" style="background:var(--primary);"></span>Infrastruktur</div>
+        <span class="v4-badge v4-badge-green"><span class="v4-strip-dot v4-strip-dot-on" style="margin-right:4px;"></span>{{ $odps->count() }} titik ODP</span>
     </div>
+    <div class="v4-map-area" id="map"></div>
 </div>
 
 {{-- ═══ CUSTOMERS + PACKAGES + ACTIVITY (removed per request) ═══ --}}
-
-{{-- ═══ UNPAID INVOICES + MAP ═══ --}}
-<div class="v4-row-equal" style="margin-top:var(--space-lg);">
-    <div class="v4-col-half">
-        <div class="v4-card">
-            <div class="v4-card-header">
-                <div class="v4-card-title"><span class="v4-dot" style="background:#dc2626;"></span>Tagihan Belum Dibayar
-                    @if($overdueCount > 0)<span class="v4-badge v4-badge-red">{{ $overdueCount }} overdue</span>@endif
-                </div>
-                <a href="{{ route('invoices.index', ['status' => 'unpaid']) }}" class="v4-link">Lihat Semua <i class="fa-solid fa-arrow-right"></i></a>
-            </div>
-            <div class="v4-invoice-list">
-                @forelse($unpaidInvoices->take(5) as $inv)
-                @php
-                    $dueDate = $inv->customer?->due_date ? \Carbon\Carbon::parse($inv->customer->due_date) : null;
-                    $isOverdue = $dueDate && $dueDate->isPast();
-                @endphp
-                <div class="v4-invoice-item {{ $isOverdue ? 'v4-invoice-overdue' : '' }}">
-                    <div class="v4-invoice-info">
-                        <div class="v4-invoice-name">{{ $inv->customer->name ?? '-' }}</div>
-                        <div class="v4-invoice-meta">{{ $inv->invoice_display }} · {{ $dueDate ? $dueDate->format('d/m') : '-' }}</div>
-                    </div>
-                    <div class="v4-invoice-amount">Rp{{ number_format($inv->amount, 0, ',', '.') }}</div>
-                    <div class="v4-invoice-actions">
-                        <a href="{{ route('invoice.reminder', $inv->id) }}" class="v4-btn-icon v4-btn-wa" title="WA Reminder" onclick="return confirm('Kirim reminder ke {{ $inv->customer->name ?? '?' }}?')"><i class="fa-brands fa-whatsapp"></i></a>
-                        <a href="{{ route('invoice.paid', $inv->id) }}" class="v4-btn-icon v4-btn-check" title="Tandai Lunas" onclick="return confirm('Konfirmasi pembayaran?')"><i class="fa-solid fa-check"></i></a>
-                        <a href="{{ route('invoice.print', $inv->id) }}" class="v4-btn-icon v4-btn-print" title="Cetak" target="_blank"><i class="fa-solid fa-print"></i></a>
-                    </div>
-                </div>
-                @empty
-                <div class="v4-alert-empty"><i class="fa-solid fa-circle-check"></i><span>Semua Tagihan Lunas</span></div>
-                @endforelse
-            </div>
-        </div>
-    </div>
-    <div class="v4-col-half">
-        <div class="v4-card">
-            <div class="v4-card-header">
-                <div class="v4-card-title"><span class="v4-dot" style="background:var(--primary);"></span>Infrastruktur</div>
-                <span class="v4-badge v4-badge-green"><span class="v4-strip-dot v4-strip-dot-on" style="margin-right:4px;"></span>{{ $odps->count() }} titik ODP</span>
-            </div>
-            <div class="v4-map-area" id="map"></div>
-        </div>
-    </div>
-</div>
 
 @endsection
 

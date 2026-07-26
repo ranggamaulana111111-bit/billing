@@ -121,7 +121,8 @@ class BillingService
             ->get();
 
         foreach ($customers as $customer) {
-            $exists = Invoice::where('customer_id', $customer->id)
+            $exists = Invoice::withTrashed()
+                ->where('customer_id', $customer->id)
                 ->where('billing_period', $period)
                 ->exists();
 

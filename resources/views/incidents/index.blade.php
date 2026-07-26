@@ -7,9 +7,11 @@
             <h4 class="fw-bold mb-1">Incident / Gangguan</h4>
             <small class="text-muted">Kelola dan pantau semua gangguan jaringan</small>
         </div>
-        <a href="{{ route('incidents.create') }}" class="btn btn-primary">
-            <i class="fa-solid fa-plus me-1"></i>Buat Incident
-        </a>
+        <div class="d-flex gap-2">
+            <a href="{{ route('incidents.create') }}" class="btn btn-primary">
+                <i class="fa-solid fa-plus me-1"></i>Buat Incident
+            </a>
+        </div>
     </div>
     <div class="row g-3 mb-4">
         <div class="col-md-3">
@@ -49,25 +51,61 @@
             </div>
         </div>
     </div>
-    <div class="card border-0 shadow-sm" style="border-radius:12px;">
-        <div class="card-header alarm-head border-0 d-flex justify-content-between align-items-center py-3" style="border-radius:12px 12px 0 0;">
-            <span class="fw-semibold"><i class="fa-solid fa-bell me-2"></i>Daftar Gangguan</span>
-            <form class="d-flex gap-2" method="GET">
-                <select name="status" class="form-select form-select-sm" style="width:150px;border-radius:8px;" onchange="this.form.submit()">
-                    <option value="">Semua Status</option>
-                    <option value="open" {{ request('status') === 'open' ? 'selected' : '' }}>Open</option>
-                    <option value="investigating" {{ request('status') === 'investigating' ? 'selected' : '' }}>Investigating</option>
-                    <option value="resolved" {{ request('status') === 'resolved' ? 'selected' : '' }}>Resolved</option>
-                    <option value="closed" {{ request('status') === 'closed' ? 'selected' : '' }}>Closed</option>
-                </select>
-                <select name="severity" class="form-select form-select-sm" style="width:150px;border-radius:8px;" onchange="this.form.submit()">
-                    <option value="">Semua Severity</option>
-                    <option value="critical" {{ request('severity') === 'critical' ? 'selected' : '' }}>Critical</option>
-                    <option value="high" {{ request('severity') === 'high' ? 'selected' : '' }}>High</option>
-                    <option value="medium" {{ request('severity') === 'medium' ? 'selected' : '' }}>Medium</option>
-                    <option value="low" {{ request('severity') === 'low' ? 'selected' : '' }}>Low</option>
-                </select>
+
+    <div class="card border-0 shadow-sm mb-3" style="border-radius:10px;">
+        <div class="card-body py-2 px-3 d-flex gap-2 align-items-center flex-wrap">
+            <span class="small fw-semibold text-muted" style="font-size:0.8rem;">
+                <i class="fa-solid fa-clock-rotate-left me-1"></i>Atur Jadwal Hapus History:
+            </span>
+            <form method="POST" action="{{ route('incidents.purge') }}" class="d-flex gap-1 align-items-center flex-wrap" onsubmit="return confirm('Atur jadwal hapus history otomatis? Incident yang dibuat SEBELUM waktu ini akan dihapus otomatis saat waktunya tiba (semua status & severity).');">
+                @csrf
+                <input type="datetime-local" name="purge_at_date" class="form-control form-control-sm"
+                    value="{{ $purgeAtDate ?? '' }}" required style="width:auto;font-size:0.75rem;border-radius:6px;" title="Tanggal & Jam">
+                <input type="number" name="purge_at_second" class="form-control form-control-sm" min="0" max="59"
+                    value="{{ $purgeAtSecond ?? '0' }}" style="width:54px;font-size:0.75rem;border-radius:6px;" title="Detik">
+                <button type="submit" class="btn btn-danger btn-sm" style="border-radius:6px;font-size:0.75rem;">
+                    <i class="fa-solid fa-clock-rotate-left me-1"></i>Atur Jadwal
+                </button>
             </form>
+            <small class="text-muted" style="font-size:0.75rem;">Incident dibuat sebelum waktu ini otomatis terhapus (semua status & severity).</small>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm" style="border-radius:12px;">
+        <div class="card-header alarm-head border-0 d-flex justify-content-between align-items-center py-2 flex-wrap gap-2" style="border-radius:12px 12px 0 0;">
+            <span class="fw-semibold" style="font-size:0.9rem;"><i class="fa-solid fa-bell me-2"></i>Daftar Gangguan</span>
+            <div class="d-flex gap-2 flex-wrap align-items-center">
+                <form class="d-flex gap-1 align-items-center" method="GET">
+                    <select name="status" class="form-select form-select-sm" style="width:auto;font-size:0.75rem;border-radius:6px;" onchange="this.form.submit()">
+                        <option value="">Semua Status</option>
+                        <option value="open" {{ request('status') === 'open' ? 'selected' : '' }}>Open</option>
+                        <option value="investigating" {{ request('status') === 'investigating' ? 'selected' : '' }}>Investigating</option>
+                        <option value="resolved" {{ request('status') === 'resolved' ? 'selected' : '' }}>Resolved</option>
+                        <option value="closed" {{ request('status') === 'closed' ? 'selected' : '' }}>Closed</option>
+                    </select>
+                    <select name="severity" class="form-select form-select-sm" style="width:auto;font-size:0.75rem;border-radius:6px;" onchange="this.form.submit()">
+                        <option value="">Semua Severity</option>
+                        <option value="critical" {{ request('severity') === 'critical' ? 'selected' : '' }}>Critical</option>
+                        <option value="high" {{ request('severity') === 'high' ? 'selected' : '' }}>High</option>
+                        <option value="medium" {{ request('severity') === 'medium' ? 'selected' : '' }}>Medium</option>
+                        <option value="low" {{ request('severity') === 'low' ? 'selected' : '' }}>Low</option>
+                    </select>
+                </form>
+                <span class="border-start mx-1" style="height:22px;"></span>
+                <div class="d-flex gap-1 align-items-center flex-wrap">
+                    <span class="small text-muted" style="white-space:nowrap;font-size:0.75rem;">
+                        <i class="fa-solid fa-clock-rotate-left me-1"></i>Jadwal:
+                    </span>
+                    <span id="purgeSchedule" class="badge bg-danger" style="font-size:0.7rem;">
+                        @if($purgeAtDate)
+                            {{ $purgeAtDate }}:{{ str_pad($purgeAtSecond, 2, '0', STR_PAD_LEFT) }}
+                        @else
+                            Belum diatur
+                        @endif
+                    </span>
+                    <span id="purgeCountdown" class="small fw-semibold" style="white-space:nowrap;font-size:0.75rem;color:#16a34a;text-shadow:0 0 6px rgba(22,163,74,0.7);background:#ffffff;padding:1px 6px;border-radius:5px;"></span>
+                </div>
+            </div>
         </div>
         <div class="card-body p-0">
             <div class="mon-table-wrap">
@@ -166,4 +204,41 @@
         @endif
     </div>
 </div>
+
+@push('scripts')
+<script>
+(function(){
+    var purgeAtRaw = @json($purgeAt ?? null);
+    var el = document.getElementById('purgeCountdown');
+    if(!purgeAtRaw || !el) return;
+
+    var parts = purgeAtRaw.split(/[- :]/);
+    var target = new Date(parts[0], parts[1]-1, parts[2], parts[3], parts[4], parts[5]);
+
+    function pad(n){ return n < 10 ? '0'+n : ''+n; }
+
+    function tick(){
+        var now = new Date();
+        var diff = Math.floor((target - now) / 1000);
+
+        if(diff <= 0){
+            el.textContent = 'Waktu hapus tiba — memproses...';
+            el.className = 'small fw-bold text-success';
+            setTimeout(function(){ location.reload(); }, 1500);
+            return;
+        }
+
+        var d = Math.floor(diff / 86400);
+        var h = Math.floor((diff % 86400) / 3600);
+        var m = Math.floor((diff % 3600) / 60);
+        var s = diff % 60;
+
+        el.textContent = '(' + (d > 0 ? d + 'h ' : '') + pad(h) + ':' + pad(m) + ':' + pad(s) + ')';
+    }
+
+    tick();
+    setInterval(tick, 1000);
+})();
+</script>
+@endpush
 @endsection

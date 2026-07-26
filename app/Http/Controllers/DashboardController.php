@@ -6,6 +6,7 @@ use App\Models\ActivityLog;
 use App\Models\Customer;
 use App\Models\Incident;
 use App\Models\Invoice;
+use App\Models\MikrotikRouter;
 use App\Models\Odp;
 use App\Models\OdpPort;
 use App\Models\OdpRoute;
@@ -133,6 +134,21 @@ class DashboardController extends Controller
             ->get();
         $activityLogs = ActivityLog::latest()->take(5)->get();
 
+        $routerStatus = Cache::remember('dashboard_router_status', 60, function () {
+            $router = MikrotikRouter::where('is_active', true)
+                ->orderByDesc('last_seen')
+                ->first();
+
+            if (! $router) {
+                return ['core' => 'standby', 'mikrotik' => 'standby'];
+            }
+
+            $fresh = $router->last_seen && $router->last_seen->gt(now()->subMinutes(5));
+            $status = $fresh ? 'online' : 'warning';
+
+            return ['core' => $status, 'mikrotik' => $status];
+        });
+
         return view('dashboard', compact(
             'totalCustomers', 'activeCustomers', 'suspendedCustomers', 'inactiveCustomers',
             'totalRoutes', 'totalPoints', 'totalCapacity', 'totalUsed',
@@ -142,6 +158,7 @@ class DashboardController extends Controller
             'months', 'monthlyRevenue', 'totalInvoices', 'paidCount', 'unpaidCount',
             'paymentMethods', 'packageDistribution', 'overdueCount', 'monthUnpaid',
             'paymentRate', 'topPackage', 'activePackageCount', 'inactivePackageCount', 'overdueTotal',
+            'routerStatus',
         ));
     }
 }

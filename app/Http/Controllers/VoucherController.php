@@ -6,6 +6,7 @@ use App\Models\ActivityLog;
 use App\Models\MikrotikRouter;
 use App\Models\Setting;
 use App\Models\Voucher;
+use App\Models\VoucherPrintTemplate;
 use App\Models\VoucherProfile;
 use App\Models\VoucherTemplate;
 use App\Services\MikrotikService;
@@ -287,6 +288,12 @@ class VoucherController extends Controller
 
     public function print(Voucher $voucher)
     {
+        if ($template = VoucherPrintTemplate::active()) {
+            $html = $this->renderPrintTemplate($template->content, $voucher);
+
+            return response($html)->header('Content-Type', 'text/html');
+        }
+
         $companyName = Setting::get('company_name', 'ALKONEK');
 
         return view('vouchers.print', compact('voucher', 'companyName'));
@@ -307,11 +314,61 @@ class VoucherController extends Controller
         }
 
         $vouchers = Voucher::whereIn('id', $ids)->get();
-        $companyName = Setting::get('company_name', 'ALKONEK');
 
         ActivityLog::log('Cetak Batch Voucher', 'Cetak batch '.$vouchers->count().' voucher');
 
+        if ($template = VoucherPrintTemplate::active()) {
+            $cards = $vouchers->map(function ($v) use ($template) {
+                return $this->renderPrintTemplate($template->content, $v);
+            })->implode('');
+
+            $paper = $template->paper_size;
+            $html = '<!doctype html><html><head><meta charset="utf-8"><style>'
+                .'body{font-family:monospace;margin:0;padding:16px;}'
+                .'.print-card{display:inline-block;vertical-align:top;margin:8px;width:'
+                .($paper === '58mm' ? '58mm' : ($paper === 'A4' ? '180mm' : '80mm')).';}'
+                .'@media print{body{padding:0}.no-print{display:none}}'
+                .'</style></head><body>'.$cards
+                .'<button class="no-print" onclick="window.print()" style="padding:12px 24px">Cetak</button>'
+                .'</body></html>';
+
+            return response($html)->header('Content-Type', 'text/html');
+        }
+
+        $companyName = Setting::get('company_name', 'ALKONEK');
+
         return view('vouchers.print-batch', compact('vouchers', 'companyName'));
+    }
+
+    private function renderPrintTemplate(string $content, Voucher $voucher): string
+    {
+        $days = intdiv($voucher->duration_hours, 24);
+        $hours = $voucher->duration_hours % 24;
+        $durationText = $days > 0
+            ? trim($days.' Hari '.($hours > 0 ? $hours.' Jam' : ''))
+            : $hours.' Jam';
+
+        $map = [
+            '{COMPANY}' => Setting::get('company_name', 'ALKONEK'),
+            '{USERNAME}' => $voucher->username,
+            '{PASSWORD}' => $voucher->password,
+            '{DURATION}' => $durationText,
+            '{HOTSPOT_SERVER}' => $voucher->hotspot_server ?? Setting::get('mikrotik_hotspot_server', 'hotspot1'),
+            '{ADMIN_PHONE}' => Setting::get('admin_phone', ''),
+            '{ADMIN_NAME}' => Setting::get('admin_name', 'Admin'),
+        ];
+
+        $rendered = str_replace(array_keys($map), array_values($map), $content);
+
+        $paper = (VoucherPrintTemplate::active())->paper_size ?? '80mm';
+        $width = $paper === '58mm' ? '58mm' : ($paper === 'A4' ? '180mm' : '80mm');
+
+        return '<!doctype html><html><head><meta charset="utf-8"><style>'
+            .'body{font-family:monospace;margin:0;padding:16px}'
+            .'.print-card{width:'.$width.';margin:0 auto}'
+            .'.no-print{display:none}@media print{body{padding:0}.no-print{display:none}}'
+            .'</style></head><body><div class="print-card">'.$rendered
+            .'</div><button class="no-print" onclick="window.print()" style="margin-top:12px;padding:12px 24px">Cetak</button></body></html>';
     }
 
     public function destroy(Voucher $voucher)

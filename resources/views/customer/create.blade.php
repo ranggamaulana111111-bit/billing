@@ -326,42 +326,55 @@ document.addEventListener('DOMContentLoaded', function () {
     const resultsBox = document.getElementById('onu_results');
     let debounceTimer;
 
+    function renderOnus(data) {
+        resultsBox.innerHTML = '';
+        if (!data.length) {
+            resultsBox.innerHTML = '<div class="list-group-item text-muted" style="font-size:0.8rem;">Tidak ada ONU terdeteksi ditemukan</div>';
+            resultsBox.style.display = 'block';
+            return;
+        }
+        data.forEach(onu => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'list-group-item list-group-item-action';
+            btn.style.cssText = 'font-size:0.78rem;text-align:left;';
+            btn.innerHTML = '<i class="fa-solid fa-tower-broadcast me-1 text-primary"></i>' +
+                '<strong>' + (onu.serial_number || onu.caller_id || onu.onu_id) + '</strong>' +
+                '<br><small class="text-muted">' + onu.olt_name + ' — Port ' + onu.olt_port +
+                (onu.vendor ? ' — ' + onu.vendor : '') + '</small>';
+            btn.addEventListener('click', function () {
+                document.getElementById('serial_number').value = onu.serial_number || '';
+                document.getElementById('modem_sn').value = onu.caller_id || onu.mac_address || onu.onu_id || '';
+                document.getElementById('selected_onu_id').value = onu.id;
+                searchInput.value = onu.serial_number || onu.caller_id || '';
+                resultsBox.style.display = 'none';
+            });
+            resultsBox.appendChild(btn);
+        });
+        resultsBox.style.display = 'block';
+    }
+
+    function fetchOnus(q) {
+        const url = q
+            ? '{{ route("onu.available") }}?search=' + encodeURIComponent(q)
+            : '{{ route("onu.available") }}';
+        fetch(url)
+            .then(r => r.json())
+            .then(renderOnus);
+    }
+
+    searchInput.addEventListener('focus', function () {
+        if (!resultsBox.innerHTML.trim()) {
+            fetchOnus(this.value.trim());
+        }
+    });
+
     searchInput.addEventListener('input', function () {
         clearTimeout(debounceTimer);
         const q = this.value.trim();
         if (q.length < 2) { resultsBox.style.display = 'none'; return; }
 
-        debounceTimer = setTimeout(() => {
-            fetch('{{ route("onu.available") }}?search=' + encodeURIComponent(q))
-                .then(r => r.json())
-                .then(data => {
-                    resultsBox.innerHTML = '';
-                    if (!data.length) {
-                        resultsBox.innerHTML = '<div class="list-group-item text-muted" style="font-size:0.8rem;">Tidak ada ONU ditemukan</div>';
-                        resultsBox.style.display = 'block';
-                        return;
-                    }
-                    data.forEach(onu => {
-                        const btn = document.createElement('button');
-                        btn.type = 'button';
-                        btn.className = 'list-group-item list-group-item-action';
-                        btn.style.cssText = 'font-size:0.78rem;text-align:left;';
-                        btn.innerHTML = '<i class="fa-solid fa-tower-broadcast me-1 text-primary"></i>' +
-                            '<strong>' + (onu.serial_number || onu.caller_id || onu.onu_id) + '</strong>' +
-                            '<br><small class="text-muted">' + onu.olt_name + ' — Port ' + onu.olt_port +
-                            (onu.vendor ? ' — ' + onu.vendor : '') + '</small>';
-                        btn.addEventListener('click', function () {
-                            document.getElementById('serial_number').value = onu.serial_number || '';
-                            document.getElementById('modem_sn').value = onu.caller_id || onu.mac_address || onu.onu_id || '';
-                            document.getElementById('selected_onu_id').value = onu.id;
-                            searchInput.value = onu.serial_number || onu.caller_id || '';
-                            resultsBox.style.display = 'none';
-                        });
-                        resultsBox.appendChild(btn);
-                    });
-                    resultsBox.style.display = 'block';
-                });
-        }, 300);
+        debounceTimer = setTimeout(() => fetchOnus(q), 300);
     });
 
     document.addEventListener('click', function (e) {

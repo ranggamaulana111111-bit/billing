@@ -5,10 +5,11 @@ namespace App\Models;
 use App\Models\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Invoice extends Model
 {
-    use BelongsToTenant, HasFactory;
+    use BelongsToTenant, HasFactory, SoftDeletes;
 
     protected $fillable = ['tenant_id', 'invoice_code', 'invoice_number', 'customer_id', 'amount', 'payment_status',
         'billing_period', 'period', 'status', 'paid_at', 'payment_method', 'midtrans_order_id',

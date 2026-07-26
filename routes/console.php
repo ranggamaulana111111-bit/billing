@@ -9,12 +9,16 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('billing:process')->dailyAt('08:00');
+Schedule::command('invoices:purge-paid')->dailyAt('08:30');
 // voucher:sync-mikrotik dihapus — diganti event-driven API (POST /api/v1/mikrotik/hotspot-login)
 Schedule::command('olt:poll')->hourly()->withoutOverlapping();
 Schedule::command('customers:onu-sync')->hourly()->withoutOverlapping();
 Schedule::command('customer:auto-isolir')->dailyAt('00:30')->withoutOverlapping();
 Schedule::command('customer:sync-isolir-ips')->everyFiveMinutes()->withoutOverlapping();
 Schedule::command('incident:check-sla')->hourly();
+Schedule::command('incidents:purge')->monthly()->withoutOverlapping();
+Schedule::command('incidents:purge-auto')->everyMinute()->withoutOverlapping();
+Schedule::command('customers:backup')->dailyAt('03:00')->withoutOverlapping();
 Schedule::command('routeros:sync-config')->everyFifteenMinutes()->withoutOverlapping();
 Schedule::command('automation:scheduler')->everyMinute()->withoutOverlapping();
 Schedule::command('automation:worker --once')->everyMinute()->withoutOverlapping();

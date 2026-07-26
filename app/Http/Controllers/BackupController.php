@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\ActivityLog;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Response;
 
 class BackupController extends Controller
 {
@@ -171,5 +173,56 @@ class BackupController extends Controller
         ActivityLog::log('Upload Backup', "Upload file backup: {$filename}");
 
         return back()->with('success', "File backup {$filename} berhasil di-upload.");
+    }
+
+    public function customersBackup()
+    {
+        $exitCode = Artisan::call('customers:backup', ['--download' => true]);
+        $output = Artisan::output();
+
+        $path = null;
+        if (preg_match('/Path: (.+)/', $output, $m)) {
+            $path = trim($m[1]);
+        }
+
+        if (! $path || ! File::exists($path)) {
+            return back()->with('error', 'Gagal membuat backup pelanggan.');
+        }
+
+        ActivityLog::log('Backup Pelanggan', 'Backup pelanggan PPPoE & Hotspot: '.basename($path));
+
+        return Response::download($path)->deleteFileAfterSend(false);
+    }
+
+    public function customersBackupList()
+    {
+        $dir = storage_path('app/backups/customers');
+        $files = [];
+
+        if (File::exists($dir)) {
+            foreach (File::files($dir) as $file) {
+                $files[] = [
+                    'name' => $file->getFilename(),
+                    'size' => round($file->getSize() / 1024, 2),
+                    'date' => date('d/m/Y H:i', $file->getMTime()),
+                ];
+            }
+            rsort($files);
+        }
+
+        return view('backups.customers', compact('files'));
+    }
+
+    public function customersBackupDownload(string $filename)
+    {
+        $path = storage_path("app/backups/customers/{$filename}");
+
+        if (! File::exists($path)) {
+            return back()->with('error', 'File backup pelanggan tidak ditemukan.');
+        }
+
+        ActivityLog::log('Download Backup Pelanggan', 'Mengunduh: '.$filename);
+
+        return Response::download($path);
     }
 }

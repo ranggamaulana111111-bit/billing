@@ -13,7 +13,6 @@ use App\Http\Controllers\HotspotCustomerController;
 use App\Http\Controllers\IncidentController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\InvoiceController;
-use App\Http\Controllers\IsolirController;
 use App\Http\Controllers\LogController;
 use App\Http\Controllers\MidtransController;
 use App\Http\Controllers\MikrotikController;
@@ -22,6 +21,7 @@ use App\Http\Controllers\MonitoringController;
 use App\Http\Controllers\Noc\AutomationController;
 use App\Http\Controllers\Noc\ConfigModuleController;
 use App\Http\Controllers\Noc\ConfigRepositoryController;
+use App\Http\Controllers\Noc\GenieacsController;
 use App\Http\Controllers\Noc\InterfaceCenterController;
 use App\Http\Controllers\Noc\InternetServiceController;
 use App\Http\Controllers\Noc\MikrotikDashboardController;
@@ -118,10 +118,6 @@ Route::post('/vouchers/public/generate', [PublicVoucherController::class, 'gener
 Route::get('/vouchers/check', [PublicVoucherController::class, 'check'])->name('vouchers.public.check');
 Route::post('/vouchers/check-status', [PublicVoucherController::class, 'checkStatus'])->name('vouchers.check-status');
 
-// ── ISOLIR (public — MikroTik DST-NAT target) ──
-Route::get('/isolir', [IsolirController::class, 'byIp'])->name('isolir.by-ip');
-Route::get('/isolir/{customer}', [IsolirController::class, 'index'])->name('isolir.index');
-
 // ── TEKNISI & ADMIN: all authenticated users ──
 Route::middleware(['auth', 'teknisi'])->group(function () {
 
@@ -187,6 +183,9 @@ Route::middleware(['auth', 'teknisi'])->group(function () {
 
     // ── INCIDENTS / GANGGUAN ──
     Route::get('/incidents', [IncidentController::class, 'index'])->name('incidents.index');
+    Route::get('/incidents/settings', [IncidentController::class, 'settings'])->name('incidents.settings');
+    Route::post('/incidents/settings', [IncidentController::class, 'updateSettings'])->name('incidents.settings.update');
+    Route::post('/incidents/purge', [IncidentController::class, 'purge'])->name('incidents.purge');
     Route::get('/incidents/create', [IncidentController::class, 'create'])->name('incidents.create');
     Route::post('/incidents', [IncidentController::class, 'store'])->name('incidents.store');
     Route::get('/incidents/{incident}', [IncidentController::class, 'show'])->name('incidents.show');
@@ -271,12 +270,18 @@ Route::middleware(['auth', 'teknisi'])->group(function () {
 
     // ── NOC CONTROL CENTER ──
     Route::get('/noc/traffic-analyzer', [NocController::class, 'trafficAnalyzer'])->name('noc.traffic-analyzer');
-    Route::get('/noc/genieacs', [NocController::class, 'genieacs'])->name('noc.genieacs');
-    Route::get('/noc/genieacs/devices', [NocController::class, 'genieacsDevices'])->name('noc.genieacs.devices');
-    Route::get('/noc/genieacs/provision', [NocController::class, 'genieacsProvision'])->name('noc.genieacs.provision');
-    Route::get('/noc/genieacs/templates', [NocController::class, 'genieacsTemplates'])->name('noc.genieacs.templates');
-    Route::get('/noc/genieacs/reboot', [NocController::class, 'genieacsReboot'])->name('noc.genieacs.reboot');
-    Route::get('/noc/genieacs/factory-reset', [NocController::class, 'genieacsFactoryReset'])->name('noc.genieacs.factory-reset');
+
+    // ── GENIEACS ──
+    Route::get('/noc/genieacs', [GenieacsController::class, 'dashboard'])->name('noc.genieacs');
+    Route::get('/noc/genieacs/devices', [GenieacsController::class, 'devices'])->name('noc.genieacs.devices');
+    Route::get('/noc/genieacs/devices/{deviceId}', [GenieacsController::class, 'deviceDetail'])->name('noc.genieacs.device-detail');
+    Route::get('/noc/genieacs/presets', [GenieacsController::class, 'presets'])->name('noc.genieacs.presets');
+    Route::get('/noc/genieacs/faults', [GenieacsController::class, 'faults'])->name('noc.genieacs.faults');
+    Route::get('/noc/genieacs/settings', [GenieacsController::class, 'settings'])->name('noc.genieacs.settings');
+    Route::post('/noc/genieacs/test-connection', [GenieacsController::class, 'testConnection'])->name('noc.genieacs.test-connection');
+    Route::post('/noc/genieacs/{deviceId}/reboot', [GenieacsController::class, 'reboot'])->name('noc.genieacs.reboot');
+    Route::post('/noc/genieacs/{deviceId}/factory-reset', [GenieacsController::class, 'factoryReset'])->name('noc.genieacs.factory-reset');
+    Route::post('/noc/genieacs/{deviceId}/refresh', [GenieacsController::class, 'refreshObject'])->name('noc.genieacs.refresh');
     Route::get('/noc/linux-server', [NocController::class, 'linuxServer'])->name('noc.linux-server');
     Route::get('/noc/dns', [NocController::class, 'dns'])->name('noc.dns');
     Route::get('/noc/vpn', [NocController::class, 'vpn'])->name('noc.vpn');
@@ -616,15 +621,6 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/settings', [SettingController::class, 'index'])->name('settings.index');
     Route::post('/settings', [SettingController::class, 'update'])->name('settings.update');
     Route::get('/settings/test-mikrotik', [SettingController::class, 'testMikrotik'])->name('settings.test-mikrotik');
-    Route::get('/settings/isolir-editor', [SettingController::class, 'isolirEditor'])->name('settings.isolir-editor');
-    Route::post('/settings/isolir-editor', [SettingController::class, 'isolirTemplateSave'])->name('settings.isolir-editor.save');
-    Route::get('/settings/isolir-preview', [SettingController::class, 'isolirPreview'])->name('settings.isolir-preview');
-    Route::get('/settings/isolir-templates', [SettingController::class, 'isolirTemplateList'])->name('settings.isolir-templates.list');
-    Route::post('/settings/isolir-templates/load', [SettingController::class, 'isolirTemplateLoad'])->name('settings.isolir-templates.load');
-    Route::post('/settings/isolir-templates/activate', [SettingController::class, 'isolirTemplateActivate'])->name('settings.isolir-templates.activate');
-    Route::post('/settings/isolir-templates/delete', [SettingController::class, 'isolirTemplateDelete'])->name('settings.isolir-templates.delete');
-    Route::post('/settings/isolir-templates/duplicate', [SettingController::class, 'isolirTemplateDuplicate'])->name('settings.isolir-templates.duplicate');
-    Route::post('/settings/isolir-image/upload', [SettingController::class, 'isolirImageUpload'])->name('settings.isolir-image.upload');
 
     // ── USER MANAGEMENT ──
     Route::get('/settings/users', [UserController::class, 'index'])->name('settings.users');
@@ -711,6 +707,20 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::put('/voucher-templates/{template}', [VoucherTemplateController::class, 'update'])->name('voucher-templates.update');
     Route::delete('/voucher-templates/{template}', [VoucherTemplateController::class, 'destroy'])->name('voucher-templates.destroy');
 
+    Route::get('/voucher-templates', [VoucherTemplateController::class, 'index'])->name('voucher-templates.index');
+    Route::get('/voucher-templates/{template}/edit', [VoucherTemplateController::class, 'edit'])->name('voucher-templates.edit');
+
+    // Voucher print templates (edit desain struk)
+    Route::get('/voucher-print-templates', [VoucherPrintTemplateController::class, 'index'])->name('voucher-print-templates.index');
+    Route::get('/voucher-print-templates/create', [VoucherPrintTemplateController::class, 'create'])->name('voucher-print-templates.create');
+    Route::post('/voucher-print-templates', [VoucherPrintTemplateController::class, 'store'])->name('voucher-print-templates.store');
+    Route::get('/voucher-print-templates/{template}/edit', [VoucherPrintTemplateController::class, 'edit'])->name('voucher-print-templates.edit');
+    Route::put('/voucher-print-templates/{template}', [VoucherPrintTemplateController::class, 'update'])->name('voucher-print-templates.update');
+    Route::delete('/voucher-print-templates/{template}', [VoucherPrintTemplateController::class, 'destroy'])->name('voucher-print-templates.destroy');
+    Route::post('/voucher-print-templates/{template}/activate', [VoucherPrintTemplateController::class, 'activate'])->name('voucher-print-templates.activate');
+    Route::get('/voucher-print-templates/{template}/preview', [VoucherPrintTemplateController::class, 'preview'])->name('voucher-print-templates.preview');
+    Route::get('/voucher-print-templates/preview', [VoucherPrintTemplateController::class, 'preview'])->name('voucher-print-templates.preview-active');
+
     Route::get('/backups', [BackupController::class, 'index'])->name('backups.index');
     Route::get('/backups/download/{filename}', [BackupController::class, 'download'])->name('backups.download');
     Route::delete('/backups/{filename}', [BackupController::class, 'destroy'])->name('backups.destroy');
@@ -718,6 +728,9 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/backups/restore', [BackupController::class, 'restoreForm'])->name('backups.restore-form');
     Route::post('/backups/restore', [BackupController::class, 'restore'])->name('backups.restore');
     Route::post('/backups/upload', [BackupController::class, 'upload'])->name('backups.upload');
+    Route::get('/backups/customers', [BackupController::class, 'customersBackupList'])->name('backups.customers');
+    Route::post('/backups/customers', [BackupController::class, 'customersBackup'])->name('backups.customers.backup');
+    Route::get('/backups/customers/{filename}/download', [BackupController::class, 'customersBackupDownload'])->name('backups.customers.download');
 
     Route::get('/export/invoices', [ExportController::class, 'invoices'])->name('export.invoices');
     Route::get('/export/payments', [ExportController::class, 'payments'])->name('export.payments');

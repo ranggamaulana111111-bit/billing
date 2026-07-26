@@ -65,10 +65,10 @@
                 }
             @endphp
             <div class="sidebar-header d-flex align-items-center gap-3">
-                <img src="{{ $sidebarLogo ? asset('storage/' . $sidebarLogo) : asset('images/logo.png') }}" alt="Logo" style="height:56px;width:auto;border-radius:10px;">
-                <div>
-                    <h4 class="mb-0">{{ $sidebarShortName ?: 'ALKONEK' }}</h4>
-                    <small style="font-size:10px;color:rgba(255,255,255,0.35);font-weight:500;letter-spacing:0.05em;display:block;margin-top:-2px;">{{ $sidebarCompanyName ?: 'PT. ALKONEK NETWORK ACCESS' }}</small>
+                <img src="{{ $sidebarLogo ? asset('storage/' . $sidebarLogo) : asset('images/logo.png') }}" alt="Logo" style="height:56px;width:auto;border-radius:10px;background:linear-gradient(135deg,#2563eb,#7c3aed);padding:3px;">
+                <div style="min-width:0;overflow:hidden;">
+                    <h4 class="mb-0" style="font-size:1.7rem;font-weight:800;color:#ffffff;letter-spacing:0;line-height:1.05;white-space:nowrap;">{{ $sidebarShortName ?: 'ALKONEK' }}</h4>
+                    <small style="font-size:9px;color:rgba(255,255,255,0.35);font-weight:500;letter-spacing:0.06em;display:block;margin-top:-1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ $sidebarCompanyName ?: 'PT. ALKONEK NETWORK ACCESS' }}</small>
                 </div>
                 <button class="sidebar-toggle" id="sidebarToggle" type="button" title="Buka/Tutup Sidebar">
                     <i class="fa-solid fa-chevron-left"></i>
@@ -96,11 +96,8 @@
                                     ->whereHas('customer', fn ($q) => $q->whereNotNull('due_date')->whereDate('due_date','<',now()))
                                     ->count();
                         @endphp
-                        <a href="{{ route('incidents.index') }}" class="position-relative">
+                        <a href="{{ route('incidents.index') }}">
                             <i class="fa-solid fa-bell"></i><span>Alarm Center</span>
-                            @if($navAlerts > 0)
-                                <span class="nav-bell-badge">{{ $navAlerts > 99 ? '99+' : $navAlerts }}</span>
-                            @endif
                         </a>
                     </li>
 
@@ -359,28 +356,28 @@
                         <div id="genieacsMenu" class="collapse {{ request()->routeIs('noc.genieacs*') ? 'show' : '' }}">
                             <ul class="nav flex-column ms-3 mt-1" style="font-size:0.85rem;">
                                 <li class="nav-item">
-                                    <a class="nav-link {{ request()->routeIs('noc.genieacs.devices') ? 'active py-1' : 'py-1' }}" href="{{ route('noc.genieacs.devices') }}">
-                                        <i class="fa-solid fa-hard-drive me-1"></i> Device
+                                    <a class="nav-link {{ request()->routeIs('noc.genieacs') ? 'active py-1' : 'py-1' }}" href="{{ route('noc.genieacs') }}">
+                                        <i class="fa-solid fa-gauge-high me-1"></i> Dashboard
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link {{ request()->routeIs('noc.genieacs.provision') ? 'active py-1' : 'py-1' }}" href="{{ route('noc.genieacs.provision') }}">
-                                        <i class="fa-solid fa-cloud-arrow-down me-1"></i> Provision
+                                    <a class="nav-link {{ request()->routeIs('noc.genieacs.devices') || request()->routeIs('noc.genieacs.device-detail') ? 'active py-1' : 'py-1' }}" href="{{ route('noc.genieacs.devices') }}">
+                                        <i class="fa-solid fa-hard-drive me-1"></i> Devices
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link {{ request()->routeIs('noc.genieacs.templates') ? 'active py-1' : 'py-1' }}" href="{{ route('noc.genieacs.templates') }}">
-                                        <i class="fa-solid fa-file-code me-1"></i> Template
+                                    <a class="nav-link {{ request()->routeIs('noc.genieacs.presets') ? 'active py-1' : 'py-1' }}" href="{{ route('noc.genieacs.presets') }}">
+                                        <i class="fa-solid fa-file-code me-1"></i> Presets
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link {{ request()->routeIs('noc.genieacs.reboot') ? 'active py-1' : 'py-1' }}" href="{{ route('noc.genieacs.reboot') }}">
-                                        <i class="fa-solid fa-rotate me-1"></i> Reboot
+                                    <a class="nav-link {{ request()->routeIs('noc.genieacs.faults') ? 'active py-1' : 'py-1' }}" href="{{ route('noc.genieacs.faults') }}">
+                                        <i class="fa-solid fa-triangle-exclamation me-1"></i> Faults
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link {{ request()->routeIs('noc.genieacs.factory-reset') ? 'active py-1' : 'py-1' }}" href="{{ route('noc.genieacs.factory-reset') }}">
-                                        <i class="fa-solid fa-trash-can me-1"></i> Factory Reset
+                                    <a class="nav-link {{ request()->routeIs('noc.genieacs.settings') ? 'active py-1' : 'py-1' }}" href="{{ route('noc.genieacs.settings') }}">
+                                        <i class="fa-solid fa-gear me-1"></i> Settings
                                     </a>
                                 </li>
                             </ul>
@@ -501,7 +498,7 @@
                 @endif
             </div>
 
-            <div class="sidebar-footer">
+            <div class="sidebar-footer" style="display:flex;flex-direction:column;">
                 @auth
                 <div style="display:flex;align-items:center;gap:10px;color:rgba(255,255,255,0.6);text-decoration:none;font-size:12px;padding:8px 0;">
                     <div style="width:28px;height:28px;background:var(--primary);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
@@ -517,6 +514,10 @@
                             <i class="fa-solid fa-right-from-bracket"></i>
                         </button>
                     </form>
+                </div>
+                <div style="text-align:center;font-size:9px;color:rgba(255,255,255,0.35);padding-top:8px;margin-top:auto;white-space:nowrap;">
+                    Developed by: <a href="https://www.instagram.com/rangga.mrw" target="_blank" rel="noopener" style="color:var(--primary);font-weight:600;text-decoration:none;">Rangga Maulana</a>
+                    <span style="color:rgba(255,255,255,0.25);"> · Refactor: </span><a href="https://www.instagram.com/faisal_alqodar/" target="_blank" rel="noopener" style="color:var(--primary);font-weight:400;text-decoration:none;">Faisal Alqodar</a>
                 </div>
                 @else
                 <div style="display:flex;gap:8px;">

@@ -5,8 +5,12 @@ namespace App\Http\Controllers;
 use App\Models\ActivityLog;
 use App\Models\Incident;
 use App\Models\Odp;
+use App\Models\OdpPort;
+use App\Models\Setting;
 use App\Services\IncidentNotificationService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class IncidentController extends Controller
@@ -33,7 +37,25 @@ class IncidentController extends Controller
             'breached' => Incident::where('sla_status', 'breached')->count(),
         ];
 
-        return view('incidents.index', compact('incidents', 'stats'));
+        $purgeAt = Setting::get('incident_history_purge_at');
+        if ($purgeAt && now()->gte(Carbon::parse($purgeAt))) {
+            $cutoff = Carbon::parse($purgeAt);
+            Incident::withoutGlobalScopes()
+                ->where('created_at', '<', $cutoff)
+                ->chunkById(100, function ($incidents) {
+                    foreach ($incidents as $incident) {
+                        $incident->notifications()->delete();
+                        $incident->delete();
+                    }
+                });
+            Setting::set('incident_history_purge_at', null);
+            $purgeAt = null;
+        }
+
+        $purgeAtDate = $purgeAt ? Carbon::parse($purgeAt)->format('Y-m-d\TH:i') : '';
+        $purgeAtSecond = $purgeAt ? Carbon::parse($purgeAt)->format('s') : '0';
+
+        return view('incidents.index', compact('incidents', 'stats', 'purgeAt', 'purgeAtDate', 'purgeAtSecond'));
     }
 
     public function create()
@@ -145,17 +167,36 @@ class IncidentController extends Controller
 
     public function resolve(Incident $incident)
     {
-        $incident->update([
-            'status' => 'resolved',
-            'resolved_at' => now(),
-            'sla_status' => $incident->sla_deadline && now()->lte($incident->sla_deadline) ? 'met' : 'breached',
-        ]);
+        DB::transaction(function () use ($incident) {
+            $wasDown = $incident->odp && $incident->odp->kondisi_jalur === 'DOWN_LINK_FAILURE';
+
+            $incident->update([
+                'status' => 'resolved',
+                'resolved_at' => now(),
+                'sla_status' => $incident->sla_deadline && now()->lte($incident->sla_deadline) ? 'met' : 'breached',
+            ]);
+
+            if ($incident->odp_id) {
+                $odp = Odp::withoutGlobalScopes()->find($incident->odp_id);
+
+                if ($odp && $odp->kondisi_jalur !== 'UP') {
+                    $odp->update(['kondisi_jalur' => 'UP']);
+
+                    if ($wasDown) {
+                        OdpPort::withoutGlobalScopes()
+                            ->where('odp_id', $odp->id)
+                            ->where('status', 'broken')
+                            ->update(['status' => 'used']);
+                    }
+                }
+            }
+        });
 
         (new IncidentNotificationService)->notifyStatusChange($incident, 'resolved');
 
         ActivityLog::log('Incident Resolved', "Incident #{$incident->id}: {$incident->title}");
 
-        return back()->with('success', 'Incident berhasil diselesaikan. Notifikasi resolved terkirim ke pelanggan.');
+        return back()->with('success', 'Incident berhasil diselesaikan. Status ODP dikembalikan normal & notifikasi resolved terkirim ke pelanggan.');
     }
 
     public function close(Incident $incident)
@@ -165,6 +206,44 @@ class IncidentController extends Controller
         ActivityLog::log('Incident Ditutup', "Incident #{$incident->id}: {$incident->title}");
 
         return back()->with('success', 'Incident berhasil ditutup.');
+    }
+
+    public function settings()
+    {
+        $retentionDays = (int) Setting::get('incident_history_retention_days', '365');
+
+        return view('incidents.settings', compact('retentionDays'));
+    }
+
+    public function updateSettings(Request $request)
+    {
+        $validated = $request->validate([
+            'retention_days' => 'required|integer|min:1|max:3650',
+        ]);
+
+        Setting::set('incident_history_retention_days', (string) $validated['retention_days']);
+
+        return redirect()->route('incidents.settings')
+            ->with('success', "Rentang waktu penyimpanan history gangguan diatur ke {$validated['retention_days']} hari.");
+    }
+
+    public function purge(Request $request)
+    {
+        $validated = $request->validate([
+            'purge_at_date' => 'required|string',
+            'purge_at_second' => 'nullable|integer|min:0|max:59',
+        ]);
+
+        $second = str_pad((int) ($validated['purge_at_second'] ?? 0), 2, '0', STR_PAD_LEFT);
+        $purgeAt = Carbon::parse($validated['purge_at_date'])->format('Y-m-d H:i').':'.$second;
+        $purgeAt = Carbon::parse($purgeAt);
+
+        Setting::set('incident_history_purge_at', $purgeAt->format('Y-m-d H:i:s'));
+
+        ActivityLog::log('Incident Purge Schedule', "Jadwal hapus history diatur ke {$purgeAt} (otomatis saat waktu tiba, semua status & severity).");
+
+        return redirect()->route('incidents.index')
+            ->with('success', "Jadwal hapus history diatur ke {$purgeAt->format('d/m/Y H:i:s')}. Data akan otomatis terhapus saat waktu tersebut tiba.");
     }
 
     protected function buildTimeline(Incident $incident): array

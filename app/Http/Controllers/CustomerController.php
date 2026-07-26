@@ -771,7 +771,7 @@ class CustomerController extends Controller
 
         try {
             $mikrotik->addHttpRedirectForAddressList('isolir-users', $redirectIp, 80);
-            $mikrotik->addHttpRedirectForAddressList('isolir-users', $redirectIp, 443);
+            $mikrotik->addHttpRedirectForAddressList('isolir-users', $redirectIp, 443, 80);
             $mikrotik->addFilterDropForAddressList('isolir-users', $redirectIp);
         } catch (\Exception $e) {
             Log::warning("Gagal setup isolir firewall: {$e->getMessage()}");

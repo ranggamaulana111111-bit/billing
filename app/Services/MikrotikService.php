@@ -569,18 +569,20 @@ class MikrotikService
         }
     }
 
-    public function addHttpRedirectForAddressList(string $addressList, string $redirectIp, int $redirectPort = 80): array
+    public function addHttpRedirectForAddressList(string $addressList, string $redirectIp, int $redirectPort = 80, ?int $toPort = null): array
     {
+        $toPort = $toPort ?? $redirectPort;
+
         try {
             $rule = [
                 'chain' => 'dstnat',
                 'src-address-list' => $addressList,
                 'protocol' => 'tcp',
-                'dst-port' => '8728',
+                'dst-port' => (string) $redirectPort,
                 'action' => 'dst-nat',
                 'to-addresses' => $redirectIp,
-                'to-ports' => (string) $redirectPort,
-                'comment' => 'isolir-http-redirect',
+                'to-ports' => (string) $toPort,
+                'comment' => 'isolir-http-redirect-'.$redirectPort,
             ];
 
             $this->client()->put($this->restUrl('/ip/firewall/nat'), $rule);
@@ -594,11 +596,14 @@ class MikrotikService
     public function removeHttpRedirectForAddressList(string $addressList): array
     {
         try {
-            $rules = $this->safeGet('/ip/firewall/nat', ['comment' => 'isolir-http-redirect']);
+            $rules = $this->safeGet('/ip/firewall/nat', ['src-address-list' => $addressList]);
             foreach ($rules as $rule) {
-                $id = $rule['.id'] ?? null;
-                if ($id) {
-                    $this->client()->delete($this->restUrl("/ip/firewall/nat/{$id}"));
+                $comment = $rule['comment'] ?? '';
+                if (str_starts_with($comment, 'isolir-http-redirect-')) {
+                    $id = $rule['.id'] ?? null;
+                    if ($id) {
+                        $this->client()->delete($this->restUrl("/ip/firewall/nat/{$id}"));
+                    }
                 }
             }
 

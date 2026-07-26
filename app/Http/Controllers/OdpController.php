@@ -6,6 +6,7 @@ use App\Models\ActivityLog;
 use App\Models\Customer;
 use App\Models\Incident;
 use App\Models\Odp;
+use App\Models\OdpPort;
 use App\Services\IncidentNotificationService;
 use Illuminate\Http\Request;
 
@@ -107,6 +108,13 @@ class OdpController extends Controller
             ]);
 
             (new IncidentNotificationService($incident->tenant_id))->notifyStatusChange($incident, 'resolved');
+        }
+
+        if ($odp->kondisi_jalur === 'UP') {
+            OdpPort::withoutGlobalScopes()
+                ->where('odp_id', $odp->id)
+                ->where('status', 'broken')
+                ->update(['status' => 'used']);
         }
     }
 }

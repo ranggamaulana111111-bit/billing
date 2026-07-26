@@ -27,27 +27,31 @@
 {{-- STATS --}}
 <div class="row g-3 mb-4">
     <div class="col-md-3">
-        <div class="card shadow-sm border-0 p-3 text-center">
-            <div class="stat-number" style="color:var(--primary);">{{ $stats['total'] }}</div>
-            <small class="text-muted">Total Pelanggan</small>
+        <div class="card shadow-sm border-0 p-3 text-center stat-card stat-card-sm stat-card-gradient-blue text-white">
+            <i class="fa-solid fa-users stat-bg"></i>
+            <div class="stat-number">{{ $stats['total'] }}</div>
+            <small class="stat-label">Total Pelanggan</small>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card shadow-sm border-0 p-3 text-center">
-            <div class="stat-number" style="color:#059669;">{{ $stats['active'] }}</div>
-            <small class="text-muted"><i class="fa-regular fa-circle-check me-1"></i>Aktif</small>
+        <div class="card shadow-sm border-0 p-3 text-center stat-card stat-card-sm stat-card-gradient-green text-white">
+            <i class="fa-regular fa-circle-check stat-bg"></i>
+            <div class="stat-number">{{ $stats['active'] }}</div>
+            <small class="stat-label"><i class="fa-regular fa-circle-check me-1"></i>Aktif</small>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card shadow-sm border-0 p-3 text-center">
-            <div class="stat-number" style="color:#d97706;">{{ $stats['suspended'] }}</div>
-            <small class="text-muted"><i class="fa-solid fa-pause me-1"></i>Ditangguhkan</small>
+        <div class="card shadow-sm border-0 p-3 text-center stat-card stat-card-sm stat-card-gradient-orange text-white">
+            <i class="fa-solid fa-pause stat-bg"></i>
+            <div class="stat-number">{{ $stats['suspended'] }}</div>
+            <small class="stat-label"><i class="fa-solid fa-pause me-1"></i>Ditangguhkan</small>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card shadow-sm border-0 p-3 text-center">
-            <div class="stat-number" style="color:#dc2626;">{{ $stats['inactive'] }}</div>
-            <small class="text-muted"><i class="fa-solid fa-ban me-1"></i>Nonaktif</small>
+        <div class="card shadow-sm border-0 p-3 text-center stat-card stat-card-sm stat-card-gradient-red text-white">
+            <i class="fa-solid fa-ban stat-bg"></i>
+            <div class="stat-number">{{ $stats['inactive'] }}</div>
+            <small class="stat-label"><i class="fa-solid fa-ban me-1"></i>Nonaktif</small>
         </div>
     </div>
 </div>
@@ -74,7 +78,7 @@
                     <thead class="mon-thead-gradient">
                     <tr>
                         <th>Client</th>
-                        <th>KTP</th>
+                        <th>Redaman</th>
                         <th>Paket / ODP</th>
                         <th>Type Client</th>
                         <th>ONU / OLT</th>
@@ -99,11 +103,26 @@
                                 </div>
                             </td>
                             <td class="text-center">
-                                @if($c->ktp_photo)
-                                    <a href="{{ Storage::url($c->ktp_photo) }}" target="_blank" title="Lihat KTP">
-                                        <img src="{{ Storage::url($c->ktp_photo) }}" alt="KTP"
-                                             style="width:40px;height:40px;object-fit:cover;border-radius:4px;border:1px solid #e2e8f0;cursor:pointer;">
-                                    </a>
+                                @php
+                                    $onuRx = $c->onus->first();
+                                    $rx = $onuRx?->rx_power;
+                                @endphp
+                                @if($rx !== null)
+                                    @php
+                                        if ($rx >= -25) {
+                                            $rxClass = 'background:#f0fdf4;color:#059669;';
+                                            $rxIcon = 'fa-circle-check';
+                                        } elseif ($rx >= -30) {
+                                            $rxClass = 'background:#fef3c7;color:#d97706;';
+                                            $rxIcon = 'fa-triangle-exclamation';
+                                        } else {
+                                            $rxClass = 'background:#fef2f2;color:#dc2626;';
+                                            $rxIcon = 'fa-circle-xmark';
+                                        }
+                                    @endphp
+                                    <span class="badge badge-premium" style="{{ $rxClass }};font-size:0.7rem;" title="Redaman RX power ONT">
+                                        <i class="fa-solid {{ $rxIcon }} me-1"></i>{{ number_format($rx, 2) }} dBm
+                                    </span>
                                 @else
                                     <span class="text-muted" style="font-size:0.75rem;">—</span>
                                 @endif

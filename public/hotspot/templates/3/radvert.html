@@ -1,0 +1,24 @@
+<html>
+
+<head>
+	<title>adv</title>
+	<meta http-equiv="refresh" content="2;url=$(link-orig)">
+	<style>
+		body {
+			color: #737373;
+			font: 12px verdana;
+			text-align: center
+		}
+
+		a {
+			color: #AAA;
+			text-decoration: none
+		}
+	</style>
+	<script>function openOrig() { location.href = '$(link-orig)' } function openAdvert() { if (window.name != 'hotspot_advert') { var p = open('$(link-redirect)', 'hotspot_advert', ''); setTimeout(openOrig, 1000) } else setTimeout(function () { location.href = '$(link-redirect)' }, 1000) }</script>
+</head>
+
+<body onLoad="openAdvert()">Advertisement.<br><br>If nothing happens, open <a href="$(link-redirect)"
+		target="hotspot_advert">advertisement</a> manually.</body>
+
+</html>

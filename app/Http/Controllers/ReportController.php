@@ -58,7 +58,9 @@ class ReportController extends Controller
             ->get();
 
         // Paid invoices (already paid) for selected month
-        $paidInvoices = Invoice::with(['customer', 'payments'])
+        // withTrashed: invoice lunas yang sudah di-purge dari halaman invoice tetap masuk laporan keuangan
+        $paidInvoices = Invoice::withTrashed()
+            ->with(['customer', 'payments'])
             ->where('payment_status', 'paid')
             ->whereYear('paid_at', $year)
             ->whereMonth('paid_at', $month)

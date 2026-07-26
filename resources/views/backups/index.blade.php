@@ -6,7 +6,10 @@
         <h2 class="mb-0"><i class="fa-solid fa-floppy-disk me-2" style="color:var(--primary);"></i>Backup Database</h2>
         <p class="section-subtitle mb-0 mt-1">Download backup database SQLite atau lihat riwayat backup</p>
     </div>
-    <div class="page-actions mt-2 mt-md-0">
+    <div class="page-actions mt-2 mt-md-0 d-flex gap-2 flex-wrap">
+        <a href="{{ route('backups.customers') }}" class="btn btn-outline-secondary px-4 py-2">
+            <i class="fa-solid fa-users me-2"></i>Backup Pelanggan
+        </a>
         <form method="POST" action="{{ route('backups.database') }}" class="d-inline" onsubmit="return confirm('Download backup database sekarang?')">
             @csrf
             <button type="submit" class="btn btn-primary px-4 py-2">

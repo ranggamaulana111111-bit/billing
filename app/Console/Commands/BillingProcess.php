@@ -6,7 +6,7 @@ use App\Models\ActivityLog;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\Setting;
-use App\Models\User;
+use App\Models\Tenant;
 use App\Services\Billing\InvoiceGenerator;
 use App\Services\FonnteService;
 use Carbon\Carbon;
@@ -25,10 +25,28 @@ class BillingProcess extends Command
 
         $this->info("=== Billing Process: {$today->format('d/m/Y')} ===");
 
-        $users = User::all();
+        // Generate invoice hanya di awal bulan (tanggal 1)
+        if ($day !== 1) {
+            $this->info('Bukan tanggal 1, lewati generate invoice. (Reminder tetap diproses.)');
+        }
 
-        if ($users->isEmpty()) {
-            $this->warn('Tidak ada user.');
+        // Berlaku mulai periode Agustus 2026
+        $billingPeriod = $today->format('Y-m');
+        $startPeriod = '2026-08';
+
+        if ($billingPeriod < $startPeriod) {
+            $this->warn("Periode {$billingPeriod} belum masa berlaku (mulai {$startPeriod}), skip generate.");
+
+            return 0;
+        }
+
+        // Tempo default semua pelanggan = tanggal 5
+        $dueDay = 5;
+
+        $tenants = Tenant::all();
+
+        if ($tenants->isEmpty()) {
+            $this->warn('Tidak ada tenant.');
 
             return 0;
         }
@@ -38,13 +56,13 @@ class BillingProcess extends Command
         $globalGenerated = 0;
         $globalReminders = 0;
 
-        foreach ($users as $user) {
-            $this->info("--- Tenant: {$user->name} ({$user->email}) ---");
+        foreach ($tenants as $tenant) {
+            $this->info("--- Tenant: {$tenant->name} ({$tenant->id}) ---");
 
-            $customers = Customer::where('user_id', $user->id)->with('package')->get();
+            $customers = Customer::where('tenant_id', $tenant->id)->with('package')->get();
 
             if ($customers->isEmpty()) {
-                $this->warn("  Tidak ada pelanggan untuk {$user->name}.");
+                $this->warn("  Tidak ada pelanggan untuk {$tenant->name}.");
 
                 continue;
             }
@@ -59,15 +77,19 @@ class BillingProcess extends Command
                     continue;
                 }
 
-                $dueDay = $customer->due_date ? (int) Carbon::parse($customer->due_date)->format('d') : null;
-                $billingPeriod = $today->format('Y-m');
+                // Override tempo ke tanggal 5 agar seragam
+                $customerDueDate = $today->copy()->day(5)->format('Y-m-d');
+                if ($customer->due_date !== $customerDueDate) {
+                    $customer->update(['due_date' => $customerDueDate]);
+                }
 
-                $existing = Invoice::where('customer_id', $customer->id)
+                $existing = Invoice::withTrashed()
+                    ->where('customer_id', $customer->id)
                     ->where('billing_period', $billingPeriod)
                     ->exists();
 
-                if (! $existing) {
-                    $invoiceNumber = $generator->generate($billingPeriod);
+                if ($day === 1 && ! $existing) {
+                    $invoiceNumber = $generator->generate($customer->customer_code, $billingPeriod);
 
                     Invoice::create([
                         'invoice_number' => $invoiceNumber,
@@ -93,38 +115,18 @@ class BillingProcess extends Command
                     continue;
                 }
 
-                $shouldRemind = false;
-                $reminderType = '';
-
-                if ($dueDay) {
-                    $daysUntilDue = $dueDay - $day;
-
-                    if ($daysUntilDue === 3) {
-                        $shouldRemind = true;
-                        $reminderType = 'H-3';
-                    }
-                    if ($daysUntilDue === 1) {
-                        $shouldRemind = true;
-                        $reminderType = 'H-1';
-                    }
-                    if ($daysUntilDue === 0) {
-                        $shouldRemind = true;
-                        $reminderType = 'Jatuh Tempo';
-                    }
-                    if (in_array(abs($daysUntilDue), [1, 3, 7]) && $daysUntilDue < 0) {
-                        $shouldRemind = true;
-                        $reminderType = 'Telat '.abs($daysUntilDue).' hari';
-                    }
-                }
+                // Kirim WA reminder otomatis setiap tanggal 15-20
+                $shouldRemind = $day >= 15 && $day <= 20;
+                $reminderType = $shouldRemind ? 'Pengingat Tagihan' : '';
 
                 if ($shouldRemind) {
-                    $this->sendWa($user->id, $customer, $unpaidInvoice, $reminderType, $dueDay);
+                    $this->sendWa($tenant->id, $customer, $unpaidInvoice, $reminderType, $dueDay);
                     $reminders++;
                 }
             }
 
             $this->newLine();
-            $this->info("  Tenant {$user->name}: Invoice baru: {$generated}, Reminder: {$reminders}");
+            $this->info("  Tenant {$tenant->name}: Invoice baru: {$generated}, Reminder: {$reminders}");
 
             $globalGenerated += $generated;
             $globalReminders += $reminders;

@@ -94,9 +94,9 @@ class MikrotikSetupIsolir extends Command
                 $this->warn("  ⚠️  {$result['message']}");
             }
 
-            $result = $mikrotik->addHttpRedirectForAddressList('isolir-users', $redirectIp, 443);
+            $result = $mikrotik->addHttpRedirectForAddressList('isolir-users', $redirectIp, 443, 80);
             if ($result['success']) {
-                $this->info('  ✅ DST-NAT redirect HTTPS (port 443) ditambahkan');
+                $this->info('  ✅ DST-NAT redirect HTTPS (port 443 → 80) ditambahkan');
             } else {
                 $this->warn("  ⚠️  {$result['message']}");
             }

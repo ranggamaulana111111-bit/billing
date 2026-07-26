@@ -24,60 +24,6 @@ class NocController extends Controller
         );
     }
 
-    public function genieacs()
-    {
-        return $this->comingSoon(
-            'GenieACS Center',
-            'Manajemen perangkat CPE via GenieACS. Monitoring status, konfigurasi remote, dan firmware upgrade.',
-            'fa-satellite-dish'
-        );
-    }
-
-    public function genieacsDevices()
-    {
-        return $this->comingSoon(
-            'GenieACS — Devices',
-            'Daftar dan monitoring semua perangkat CPE yang terdaftar di GenieACS. Status online/offline, informasi perangkat.',
-            'fa-hard-drive'
-        );
-    }
-
-    public function genieacsProvision()
-    {
-        return $this->comingSoon(
-            'GenieACS — Provision',
-            'Provisioning perangkat CPE. Konfigurasi remote, pengaturan parameter, dan deployment bulk.',
-            'fa-cloud-arrow-down'
-        );
-    }
-
-    public function genieacsTemplates()
-    {
-        return $this->comingSoon(
-            'GenieACS — Templates',
-            'Template konfigurasi GenieACS. Buat, edit, dan assign template ke perangkat CPE.',
-            'fa-file-code'
-        );
-    }
-
-    public function genieacsReboot()
-    {
-        return $this->comingSoon(
-            'GenieACS — Reboot',
-            'Reboot remote perangkat CPE via GenieACS. Reboot individual atau bulk.',
-            'fa-rotate'
-        );
-    }
-
-    public function genieacsFactoryReset()
-    {
-        return $this->comingSoon(
-            'GenieACS — Factory Reset',
-            'Factory reset perangkat CPE via GenieACS. Kembalikan perangkat ke pengaturan pabrik.',
-            'fa-trash-can'
-        );
-    }
-
     public function linuxServer()
     {
         return $this->comingSoon(

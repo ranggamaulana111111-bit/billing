@@ -300,6 +300,8 @@
 @push('scripts')
 <style>
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+/* ── Monitoring tables (unified) ── */
 .wan-card { transition: transform 0.2s ease, box-shadow 0.2s ease; }
 .wan-card:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.15); }
 .rate-pulse { animation: ratePulse 0.5s ease; }

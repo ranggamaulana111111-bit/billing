@@ -6,7 +6,7 @@
         <h2 class="mb-0"><i class="fa-solid fa-pause-circle me-2" style="color:#d97706;"></i>Suspend / Isolir</h2>
         <p class="section-subtitle mb-0 mt-1">Pelanggan yang ditangguhkan — PPP Profile isolir aktif</p>
     </div>
-    <div class="page-actions mt-2 mt-md-0">
+    <div class="page-actions mt-2 mt-md-0 d-flex gap-2">
         <a href="{{ route('customers.index') }}" class="btn btn-outline-secondary px-3 py-2">
             <i class="fa-solid fa-list me-1"></i>Semua Pelanggan
         </a>
