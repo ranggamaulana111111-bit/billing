@@ -591,9 +591,9 @@
         <div class="portal-copyright">&copy; 2026 {{ $company['name'] }} &middot; Powered by Fiber Network Technology</div>
         <div class="portal-sb-items">
             <div class="portal-sb-item"><div class="portal-sb-dot"></div> System Online</div>
-            <div class="portal-sb-item">Laravel</div>
-            <div class="portal-sb-item">Fiber Network</div>
-            <div class="portal-sb-item">Secure Connection</div>
+            <div class="portal-sb-item"><div class="portal-sb-dot"></div> Laravel</div>
+            <div class="portal-sb-item"><div class="portal-sb-dot"></div> Fiber Network</div>
+            <div class="portal-sb-item"><div class="portal-sb-dot"></div> Secure Connection</div>
         </div>
     </div>
 
