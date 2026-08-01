@@ -233,7 +233,7 @@
                                     <div class="col-md-6 d-flex align-items-end">
                                         <div class="settings-info-note">
                                             <i class="fa-solid fa-info-circle"></i>
-                                            <span>Setting ini sebagai default/fallback. Untuk multi-router, gunakan <a href="{{ route('mikrotik-routers.index') }}">Kelola Router</a>. REST API RouterOS v7+.</span>
+                                            <span>Setting ini sebagai default/fallback untuk koneksi MikroTik (REST API RouterOS v7+).</span>
                                         </div>
                                     </div>
                                 </div>

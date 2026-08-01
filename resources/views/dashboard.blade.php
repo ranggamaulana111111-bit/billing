@@ -59,7 +59,7 @@
             <a href="{{ route('invoices.create') }}" class="v4-btn v4-btn-success"><i class="fa-solid fa-file-invoice"></i> Buat Tagihan</a>
             <button type="button" class="v4-btn v4-btn-ghost" onclick="window.location.reload()" title="Refresh"><i class="fa-solid fa-arrows-rotate"></i></button>
             <a href="{{ route('customers.index') }}" class="v4-btn v4-btn-ghost" title="Pelanggan"><i class="fa-solid fa-users"></i></a>
-            <a href="{{ route('noc.mikrotik.dashboard') }}" class="v4-btn v4-btn-ghost" title="Monitoring"><i class="fa-solid fa-network-wired"></i></a>
+            {{-- <a href="{{ route('noc.mikrotik.dashboard') }}" class="v4-btn v4-btn-ghost" title="Monitoring"><i class="fa-solid fa-network-wired"></i></a> --}}
         </div>
     </div>
     <div class="v4-hero-strip">

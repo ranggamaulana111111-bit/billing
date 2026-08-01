@@ -15,10 +15,10 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        if (! User::where('email', 'admin@rabegnet.id')->exists()) {
+        if (! User::where('email', 'admin@alkonek.net')->exists()) {
             User::create([
                 'name' => 'Admin',
-                'email' => 'admin@rabegnet.id',
+                'email' => 'admin@alkonek.net',
                 'password' => bcrypt('admin123'),
                 'role' => 'admin',
             ]);

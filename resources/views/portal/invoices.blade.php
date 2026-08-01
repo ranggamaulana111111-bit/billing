@@ -81,12 +81,16 @@
                                 </div>
 
                                 @forelse($invoices as $inv)
-                                    <div class="invoice-item d-flex justify-content-between align-items-center">
-                                        <div>
-                                            <small class="text-muted">{{ $inv->invoice_display }}</small>
-                                            <p class="fw-bold mb-0 mt-1">Rp {{ number_format($inv->amount, 0, ',', '.') }}</p>
-                                            <small class="text-muted">{{ $inv->created_at->format('d/m/Y') }}</small>
-                                        </div>
+                                @php
+                                    $idMonths = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+                                    $fmtDate = $inv->created_at->format('d ').$idMonths[$inv->created_at->format('n') - 1].' '.$inv->created_at->format('Y');
+                                @endphp
+                                <div class="invoice-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <small class="text-muted">{{ $inv->invoice_display }}</small>
+                                        <p class="fw-bold mb-0 mt-1">Rp {{ number_format($inv->amount, 0, ',', '.') }}</p>
+                                        <small class="text-muted">{{ $fmtDate }}</small>
+                                    </div>
                                         <div class="text-end">
                                             @if($inv->payment_status === 'paid')
                                                 <span class="badge-status" style="background:#f0fdf4;color:#059669;">

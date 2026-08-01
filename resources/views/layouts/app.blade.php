@@ -86,9 +86,9 @@
                     <li class="{{ request()->routeIs('monitoring.*') ? 'active' : '' }}">
                         <a href="{{ route('monitoring.index') }}"><i class="fa-solid fa-signal"></i><span>Monitoring</span></a>
                     </li>
-                    <li class="{{ request()->routeIs('onu-health.topology') ? 'active' : '' }}">
+                    {{-- <li class="{{ request()->routeIs('onu-health.topology') ? 'active' : '' }}">
                         <a href="{{ route('onu-health.topology') }}"><i class="fa-solid fa-diagram-project"></i><span>Live Network Topology</span></a>
-                    </li>
+                    </li> --}}
                     <li class="{{ request()->routeIs('incidents.*') ? 'active' : '' }}">
                         @php
                             $navAlerts = \App\Models\Incident::active()->count()
@@ -220,6 +220,7 @@
                             </ul>
                         </div>
                     </li>
+                    {{-- PPPoE menu hidden (MikroTik) --
                     <li class="{{ request()->routeIs('noc.internet.pppsecret') || request()->routeIs('noc.internet.pppprofile') ? 'active' : '' }}">
                         <a href="#pppoeMenu" data-bs-toggle="collapse">
                             <i class="fa-solid fa-plug"></i><span>PPPoE</span>
@@ -240,8 +241,10 @@
                             </ul>
                         </div>
                     </li>
+                    --}}
 
                     <p>📡 Infrastruktur</p>
+                    {{-- OLT menu hidden --
                     <li class="{{ request()->routeIs('olt.*') || request()->routeIs('distribution.*') || request()->routeIs('odp.show') || request()->routeIs('onu.*') || request()->routeIs('noc.pon-manager') || request()->routeIs('onu-health.*') ? 'active' : '' }}">
                         <a href="#oltMenu" data-bs-toggle="collapse">
                             <i class="fa-solid fa-tower-cell"></i><span>OLT</span>
@@ -292,6 +295,9 @@
                             </ul>
                         </div>
                     </li>
+                    --}}
+
+                    {{-- MikroTik Center menu hidden --
                     <li class="{{ request()->routeIs('noc.interface-center.*') || request()->routeIs('noc.mikrotik.*') || request()->routeIs('noc.mikrotik-devices.*') || request()->routeIs('noc.sync.*') || request()->routeIs('noc.config.*') || request()->routeIs('noc.traffic-analyzer') || request()->routeIs('noc.internet.*') ? 'active' : '' }}">
                         <a href="#mikrotikCenterSubmenu" data-bs-toggle="collapse">
                             <i class="fa-solid fa-network-wired"></i><span>MikroTik Center</span>
@@ -347,7 +353,9 @@
                             </ul>
                         </div>
                     </li>
-                    {{-- <p>🏠 GenieACS</p> --}}
+                    --}}
+
+                    {{-- GenieACS menu hidden --
                     <li class="{{ request()->routeIs('noc.genieacs*') ? 'active' : '' }}">
                         <a href="#genieacsMenu" data-bs-toggle="collapse">
                             <i class="fa-solid fa-satellite-dish"></i><span>GenieACS</span>
@@ -383,6 +391,7 @@
                             </ul>
                         </div>
                     </li>
+                    --}}
 
                     {{-- <p>🖥 Server</p> --}}
                     <li class="{{ request()->routeIs('noc.linux-server') || request()->routeIs('noc.dns') || request()->routeIs('noc.speedtest') ? 'active' : '' }}">
@@ -450,14 +459,23 @@
                         </a>
                         <div id="systemMenu" class="collapse {{ request()->routeIs('logs.*') || request()->routeIs('settings.*') || request()->routeIs('mikrotik-routers.*') || request()->routeIs('qos.*') ? 'show' : '' }}">
                             <ul class="nav flex-column ms-3 mt-1" style="font-size:0.85rem;">
+                                {{-- Smart QoS menu hidden (MikroTik)
                                 <li class="nav-item">
                                     <a class="nav-link {{ request()->routeIs('qos.*') ? 'active py-1' : 'py-1' }}" href="{{ route('qos.health') }}">
                                         <i class="fa-solid fa-shield-halved me-1"></i> Smart QoS
                                     </a>
                                 </li>
+                                --}}
+                                {{-- Kelola Router menu hidden (MikroTik)
                                 <li class="nav-item">
                                     <a class="nav-link {{ request()->routeIs('mikrotik-routers.*') ? 'active py-1' : 'py-1' }}" href="{{ route('mikrotik-routers.index') }}">
                                         <i class="fa-solid fa-server me-1"></i> Kelola Router
+                                    </a>
+                                </li>
+                                --}}
+                                <li class="nav-item">
+                                    <a class="nav-link {{ request()->routeIs('settings.integrations*') ? 'active py-1' : 'py-1' }}" href="{{ route('settings.integrations') }}">
+                                        <i class="fa-solid fa-plug-circle-plus me-1"></i> Integrasi MikroTik &amp; OLT
                                     </a>
                                 </li>
                                 <li class="nav-item">
@@ -476,7 +494,7 @@
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link {{ request()->routeIs('settings.*') && !request()->routeIs('settings.users*') ? 'active py-1' : 'py-1' }}" href="{{ route('settings.index') }}">
+                                    <a class="nav-link {{ request()->routeIs('settings.index') ? 'active py-1' : 'py-1' }}" href="{{ route('settings.index') }}">
                                         <i class="fa-solid fa-gear me-1"></i> Pengaturan
                                     </a>
                                 </li>

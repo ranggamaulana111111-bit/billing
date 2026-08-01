@@ -37,9 +37,9 @@
     {{-- LEFT: Hero Section --}}
     <div class="auth-hero">
         <div class="auth-hero-brand">
-            <img src="{{ asset('images/logo.png') }}" alt="RabegNet" class="auth-hero-logo">
+            <img src="{{ asset('images/logo.png') }}" alt="ALKONEKbill" class="auth-hero-logo">
             <div class="auth-hero-brand-text">
-                <h2>RabegNet</h2>
+                <h2>ALKONEKbill</h2>
                 <span>ISP Platform</span>
             </div>
         </div>
@@ -165,7 +165,7 @@
                             id="email"
                             class="auth-input @error('email') is-invalid @enderror"
                             value="{{ old('email') }}"
-                            placeholder="admin@rabegnet.id"
+                            placeholder="admin@alkonek.net"
                             required
                             autocomplete="username"
                         >
@@ -262,7 +262,7 @@
         <div class="auth-status-item">MySQL</div>
         <div class="auth-status-item">Fiber Network</div>
     </div>
-    <div class="auth-copyright">&copy; 2026 RabegNet ISP Billing Platform &middot; Built with Laravel &middot; Powered by Fiber Network Technology</div>
+    <div class="auth-copyright">&copy; 2026 PT. Alkonek Network Access. All rights reserved.</div>
 </div>
 @endsection
 

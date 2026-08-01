@@ -11,6 +11,7 @@ use App\Http\Controllers\DistributionController;
 use App\Http\Controllers\ExportController;
 use App\Http\Controllers\HotspotCustomerController;
 use App\Http\Controllers\IncidentController;
+use App\Http\Controllers\IntegrationController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\LogController;
@@ -47,6 +48,7 @@ use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\TeknisiController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VoucherController;
+use App\Http\Controllers\VoucherPrintTemplateController;
 use App\Http\Controllers\VoucherProfileController;
 use App\Http\Controllers\VoucherReportController;
 use App\Http\Controllers\VoucherTemplateController;
@@ -100,7 +102,14 @@ Route::get('/auth/{provider}/callback', [SocialiteController::class, 'callback']
 Route::get('/', function () {
     $packages = Package::where('is_active', true)->orderBy('price')->get();
 
-    return view('welcome', compact('packages'));
+    $company = [
+        'name' => \App\Models\Setting::get('company_name', 'ALKONEK'),
+        'address' => \App\Models\Setting::get('company_address', ''),
+        'phone' => \App\Models\Setting::get('company_phone', ''),
+        'email' => 'admin@alkonek.net',
+    ];
+
+    return view('welcome', compact('packages', 'company'));
 });
 
 // ── MIDTRANS (auth required for pay & finish, not for notification) ──
@@ -165,19 +174,20 @@ Route::middleware(['auth', 'teknisi'])->group(function () {
 
     Route::get('/vouchers/report', [VoucherReportController::class, 'index'])->name('vouchers.report');
 
-    Route::get('/mikrotik', fn () => redirect()->route('noc.mikrotik.dashboard'))->name('mikrotik.dashboard');
-    Route::get('/mikrotik/profiles', [MikrotikController::class, 'profiles'])->name('mikrotik.profiles');
-    Route::post('/mikrotik/profiles/sync', [MikrotikController::class, 'syncProfiles'])->name('mikrotik.profiles.sync');
-    Route::get('/mikrotik/active', [MikrotikController::class, 'activeSessions'])->name('mikrotik.active');
-    Route::post('/mikrotik/active/disconnect/{sessionId}', [MikrotikController::class, 'disconnectHotspot'])->name('mikrotik.active.disconnect');
-    Route::post('/mikrotik/active/ppp-disconnect/{sessionId}', [MikrotikController::class, 'disconnectPpp'])->name('mikrotik.active.ppp-disconnect');
-    Route::get('/mikrotik/ppp', [MikrotikController::class, 'pppSecrets'])->name('mikrotik.ppp');
-    Route::get('/mikrotik/queues', [MikrotikController::class, 'queues'])->name('mikrotik.queues');
-    Route::post('/mikrotik/queues/sync', [MikrotikController::class, 'syncQueue'])->name('mikrotik.queues.sync');
-    Route::get('/mikrotik/ppp-profiles', [MikrotikController::class, 'pppProfiles'])->name('mikrotik.ppp-profiles');
-    Route::post('/mikrotik/ppp-profiles/sync', [MikrotikController::class, 'syncPppProfiles'])->name('mikrotik.ppp-profiles.sync');
-    Route::get('/mikrotik/hotspot-users', [MikrotikController::class, 'hotspotUsers'])->name('mikrotik.hotspot-users');
-    Route::post('/mikrotik/hotspot-users/sync', [MikrotikController::class, 'syncHotspotUsers'])->name('mikrotik.hotspot-users.sync');
+    // ── MIKROTIK PAGES (hidden per request) ──
+    // Route::get('/mikrotik', fn () => redirect()->route('noc.mikrotik.dashboard'))->name('mikrotik.dashboard');
+    // Route::get('/mikrotik/profiles', [MikrotikController::class, 'profiles'])->name('mikrotik.profiles');
+    // Route::post('/mikrotik/profiles/sync', [MikrotikController::class, 'syncProfiles'])->name('mikrotik.profiles.sync');
+    // Route::get('/mikrotik/active', [MikrotikController::class, 'activeSessions'])->name('mikrotik.active');
+    // Route::post('/mikrotik/active/disconnect/{sessionId}', [MikrotikController::class, 'disconnectHotspot'])->name('mikrotik.active.disconnect');
+    // Route::post('/mikrotik/active/ppp-disconnect/{sessionId}', [MikrotikController::class, 'disconnectPpp'])->name('mikrotik.active.ppp-disconnect');
+    // Route::get('/mikrotik/ppp', [MikrotikController::class, 'pppSecrets'])->name('mikrotik.ppp');
+    // Route::get('/mikrotik/queues', [MikrotikController::class, 'queues'])->name('mikrotik.queues');
+    // Route::post('/mikrotik/queues/sync', [MikrotikController::class, 'syncQueue'])->name('mikrotik.queues.sync');
+    // Route::get('/mikrotik/ppp-profiles', [MikrotikController::class, 'pppProfiles'])->name('mikrotik.ppp-profiles');
+    // Route::post('/mikrotik/ppp-profiles/sync', [MikrotikController::class, 'syncPppProfiles'])->name('mikrotik.ppp-profiles.sync');
+    // Route::get('/mikrotik/hotspot-users', [MikrotikController::class, 'hotspotUsers'])->name('mikrotik.hotspot-users');
+    // Route::post('/mikrotik/hotspot-users/sync', [MikrotikController::class, 'syncHotspotUsers'])->name('mikrotik.hotspot-users.sync');
 
     Route::get('/logs', [LogController::class, 'index'])->name('logs.index');
 
@@ -194,45 +204,46 @@ Route::middleware(['auth', 'teknisi'])->group(function () {
     Route::post('/incidents/{incident}/resolve', [IncidentController::class, 'resolve'])->name('incidents.resolve');
     Route::post('/incidents/{incident}/close', [IncidentController::class, 'close'])->name('incidents.close');
 
-    Route::get('/distribution', [DistributionController::class, 'index'])->name('distribution.index');
+    // ── DISTRIBUTION (hidden per request, OLT menu) ──
+    // Route::get('/distribution', [DistributionController::class, 'index'])->name('distribution.index');
 
-    // ── OLT (teknisi full access) ──
-    Route::get('/olts', [OltController::class, 'index'])->name('olt.index');
-    Route::get('/olts/create', [OltController::class, 'create'])->name('olt.create');
-    Route::post('/olts', [OltController::class, 'store'])->name('olt.store');
-    Route::get('/olts/map', [OltController::class, 'map'])->name('olt.map');
-    Route::get('/olts-monitoring', [OltController::class, 'monitoring'])->name('olt.monitoring');
-    Route::get('/olts/export', [OltController::class, 'exportOlt'])->name('olt.export');
-    Route::get('/olts/{olt}', [OltController::class, 'show'])->name('olt.show');
-    Route::get('/olts/{olt}/edit', [OltController::class, 'edit'])->name('olt.edit');
-    Route::put('/olts/{olt}', [OltController::class, 'update'])->name('olt.update');
-    Route::delete('/olts/{olt}', [OltController::class, 'destroy'])->name('olt.destroy');
-    Route::post('/olts/{olt}/test', [OltController::class, 'testConnection'])->name('olt.test');
-    Route::post('/olts/{olt}/scan', [OltController::class, 'scanOnus'])->name('olt.scan');
-    Route::post('/olts/{olt}/onu/{onu}/reboot', [OltController::class, 'rebootOnu'])->name('olt.onu.reboot');
-    Route::delete('/olts/{olt}/onu/{onu}', [OltController::class, 'removeOnu'])->name('olt.onu.remove');
-    Route::post('/olts/{olt}/ports', [OltController::class, 'syncPorts'])->name('olt.ports.sync');
-    Route::post('/onu/{onu}/link-customer', [OltController::class, 'linkCustomer'])->name('olt.onu.link');
-    Route::post('/onu/{onu}/unlink-customer', [OltController::class, 'unlinkCustomer'])->name('olt.onu.unlink');
-    Route::post('/olts/{olt}/sync-mikrotik', [OltController::class, 'syncFromMikrotik'])->name('olt.sync-mikrotik');
-    Route::get('/olts/{olt}/live', [OltController::class, 'liveData'])->name('olt.live');
-    Route::get('/onus/export', [OltController::class, 'exportOnu'])->name('onu.export');
-    Route::get('/onus/search', [OltController::class, 'searchOnu'])->name('onu.search');
+    // ── OLT (hidden per request) ──
+    // Route::get('/olts', [OltController::class, 'index'])->name('olt.index');
+    // Route::get('/olts/create', [OltController::class, 'create'])->name('olt.create');
+    // Route::post('/olts', [OltController::class, 'store'])->name('olt.store');
+    // Route::get('/olts/map', [OltController::class, 'map'])->name('olt.map');
+    // Route::get('/olts-monitoring', [OltController::class, 'monitoring'])->name('olt.monitoring');
+    // Route::get('/olts/export', [OltController::class, 'exportOlt'])->name('olt.export');
+    // Route::get('/olts/{olt}', [OltController::class, 'show'])->name('olt.show');
+    // Route::get('/olts/{olt}/edit', [OltController::class, 'edit'])->name('olt.edit');
+    // Route::put('/olts/{olt}', [OltController::class, 'update'])->name('olt.update');
+    // Route::delete('/olts/{olt}', [OltController::class, 'destroy'])->name('olt.destroy');
+    // Route::post('/olts/{olt}/test', [OltController::class, 'testConnection'])->name('olt.test');
+    // Route::post('/olts/{olt}/scan', [OltController::class, 'scanOnus'])->name('olt.scan');
+    // Route::post('/olts/{olt}/onu/{onu}/reboot', [OltController::class, 'rebootOnu'])->name('olt.onu.reboot');
+    // Route::delete('/olts/{olt}/onu/{onu}', [OltController::class, 'removeOnu'])->name('olt.onu.remove');
+    // Route::post('/olts/{olt}/ports', [OltController::class, 'syncPorts'])->name('olt.ports.sync');
+    // Route::post('/onu/{onu}/link-customer', [OltController::class, 'linkCustomer'])->name('olt.onu.link');
+    // Route::post('/onu/{onu}/unlink-customer', [OltController::class, 'unlinkCustomer'])->name('olt.onu.unlink');
+    // Route::post('/olts/{olt}/sync-mikrotik', [OltController::class, 'syncFromMikrotik'])->name('olt.sync-mikrotik');
+    // Route::get('/olts/{olt}/live', [OltController::class, 'liveData'])->name('olt.live');
+    // Route::get('/onus/export', [OltController::class, 'exportOnu'])->name('onu.export');
+    // Route::get('/onus/search', [OltController::class, 'searchOnu'])->name('onu.search');
     Route::get('/onus/available', [OltController::class, 'availableOnus'])->name('onu.available');
     Route::get('/pppoe/available', [CustomerController::class, 'pppoeAvailable'])->name('pppoe.available');
 
-    // ── ONU Health Monitoring ──
-    Route::prefix('onu-health')->name('onu-health.')->group(function () {
-        Route::get('/', [OnuHealthController::class, 'dashboard'])->name('dashboard');
-        Route::get('/topology/graph', [OnuHealthController::class, 'topology'])->name('topology');
-        Route::get('/ping/monitor', [OnuHealthController::class, 'pingMonitor'])->name('ping');
-        Route::post('/ping/execute', [OnuHealthController::class, 'pingExecute'])->name('ping.execute');
-        Route::get('/speedtest', [OnuHealthController::class, 'speedTest'])->name('speedtest');
-        Route::get('/api/live', [OnuHealthController::class, 'liveDashboardData'])->name('live');
-        Route::get('/{onu}', [OnuHealthController::class, 'detail'])->name('detail');
-        Route::get('/{onu}/diagnosis', [OnuHealthController::class, 'diagnosis'])->name('diagnosis');
-        Route::post('/{onu}/snapshot', [OnuHealthController::class, 'recordSnapshot'])->name('snapshot');
-    });
+    // ── ONU HEALTH MONITORING (hidden per request, OLT menu) ──
+    // Route::prefix('onu-health')->name('onu-health.')->group(function () {
+    //     Route::get('/', [OnuHealthController::class, 'dashboard'])->name('dashboard');
+    //     Route::get('/topology/graph', [OnuHealthController::class, 'topology'])->name('topology');
+    //     Route::get('/ping/monitor', [OnuHealthController::class, 'pingMonitor'])->name('ping');
+    //     Route::post('/ping/execute', [OnuHealthController::class, 'pingExecute'])->name('ping.execute');
+    //     Route::get('/speedtest', [OnuHealthController::class, 'speedTest'])->name('speedtest');
+    //     Route::get('/api/live', [OnuHealthController::class, 'liveDashboardData'])->name('live');
+    //     Route::get('/{onu}', [OnuHealthController::class, 'detail'])->name('detail');
+    //     Route::get('/{onu}/diagnosis', [OnuHealthController::class, 'diagnosis'])->name('diagnosis');
+    //     Route::post('/{onu}/snapshot', [OnuHealthController::class, 'recordSnapshot'])->name('snapshot');
+    // });
 
     Route::get('/vouchers', [VoucherController::class, 'index'])->name('vouchers.index');
     Route::get('/vouchers/{voucher}/print', [VoucherController::class, 'print'])->name('vouchers.print');
@@ -269,19 +280,19 @@ Route::middleware(['auth', 'teknisi'])->group(function () {
     Route::get('/midtrans/finish', [MidtransController::class, 'finish'])->name('midtrans.finish');
 
     // ── NOC CONTROL CENTER ──
-    Route::get('/noc/traffic-analyzer', [NocController::class, 'trafficAnalyzer'])->name('noc.traffic-analyzer');
+    // Route::get('/noc/traffic-analyzer', [NocController::class, 'trafficAnalyzer'])->name('noc.traffic-analyzer');
 
-    // ── GENIEACS ──
-    Route::get('/noc/genieacs', [GenieacsController::class, 'dashboard'])->name('noc.genieacs');
-    Route::get('/noc/genieacs/devices', [GenieacsController::class, 'devices'])->name('noc.genieacs.devices');
-    Route::get('/noc/genieacs/devices/{deviceId}', [GenieacsController::class, 'deviceDetail'])->name('noc.genieacs.device-detail');
-    Route::get('/noc/genieacs/presets', [GenieacsController::class, 'presets'])->name('noc.genieacs.presets');
-    Route::get('/noc/genieacs/faults', [GenieacsController::class, 'faults'])->name('noc.genieacs.faults');
-    Route::get('/noc/genieacs/settings', [GenieacsController::class, 'settings'])->name('noc.genieacs.settings');
-    Route::post('/noc/genieacs/test-connection', [GenieacsController::class, 'testConnection'])->name('noc.genieacs.test-connection');
-    Route::post('/noc/genieacs/{deviceId}/reboot', [GenieacsController::class, 'reboot'])->name('noc.genieacs.reboot');
-    Route::post('/noc/genieacs/{deviceId}/factory-reset', [GenieacsController::class, 'factoryReset'])->name('noc.genieacs.factory-reset');
-    Route::post('/noc/genieacs/{deviceId}/refresh', [GenieacsController::class, 'refreshObject'])->name('noc.genieacs.refresh');
+    // ── GENIEACS (hidden per request, MikroTik-related) ──
+    // Route::get('/noc/genieacs', [GenieacsController::class, 'dashboard'])->name('noc.genieacs');
+    // Route::get('/noc/genieacs/devices', [GenieacsController::class, 'devices'])->name('noc.genieacs.devices');
+    // Route::get('/noc/genieacs/devices/{deviceId}', [GenieacsController::class, 'deviceDetail'])->name('noc.genieacs.device-detail');
+    // Route::get('/noc/genieacs/presets', [GenieacsController::class, 'presets'])->name('noc.genieacs.presets');
+    // Route::get('/noc/genieacs/faults', [GenieacsController::class, 'faults'])->name('noc.genieacs.faults');
+    // Route::get('/noc/genieacs/settings', [GenieacsController::class, 'settings'])->name('noc.genieacs.settings');
+    // Route::post('/noc/genieacs/test-connection', [GenieacsController::class, 'testConnection'])->name('noc.genieacs.test-connection');
+    // Route::post('/noc/genieacs/{deviceId}/reboot', [GenieacsController::class, 'reboot'])->name('noc.genieacs.reboot');
+    // Route::post('/noc/genieacs/{deviceId}/factory-reset', [GenieacsController::class, 'factoryReset'])->name('noc.genieacs.factory-reset');
+    // Route::post('/noc/genieacs/{deviceId}/refresh', [GenieacsController::class, 'refreshObject'])->name('noc.genieacs.refresh');
     Route::get('/noc/linux-server', [NocController::class, 'linuxServer'])->name('noc.linux-server');
     Route::get('/noc/dns', [NocController::class, 'dns'])->name('noc.dns');
     Route::get('/noc/vpn', [NocController::class, 'vpn'])->name('noc.vpn');
@@ -295,72 +306,72 @@ Route::middleware(['auth', 'teknisi'])->group(function () {
     Route::get('/noc/audit', [NocController::class, 'audit'])->name('noc.audit');
     Route::get('/noc/knowledge-base', [NocController::class, 'knowledgeBase'])->name('noc.knowledge-base');
     Route::get('/noc/settings', [NocController::class, 'nocSettings'])->name('noc.settings');
-    Route::get('/noc/pon-manager', [NocController::class, 'ponManager'])->name('noc.pon-manager');
+    // Route::get('/noc/pon-manager', [NocController::class, 'ponManager'])->name('noc.pon-manager');
 
-    // ── MIKROTIK DASHBOARD (NOC) ──
-    Route::get('/noc/mikrotik', [MikrotikDashboardController::class, 'index'])->name('noc.mikrotik.dashboard');
-    Route::get('/noc/mikrotik/{mikrotikDevice}', [MikrotikDashboardController::class, 'detail'])->name('noc.mikrotik.detail');
-    Route::get('/api/noc/mikrotik/live', [MikrotikDashboardController::class, 'liveApi'])->name('noc.mikrotik.live-api');
-    Route::get('/api/noc/mikrotik/{mikrotikDevice}/live', [MikrotikDashboardController::class, 'liveDetailApi'])->name('noc.mikrotik.live-detail-api');
+    // ── MIKROTIK DASHBOARD (NOC) — hidden per request ──
+    // Route::get('/noc/mikrotik', [MikrotikDashboardController::class, 'index'])->name('noc.mikrotik.dashboard');
+    // Route::get('/noc/mikrotik/{mikrotikDevice}', [MikrotikDashboardController::class, 'detail'])->name('noc.mikrotik.detail');
+    // Route::get('/api/noc/mikrotik/live', [MikrotikDashboardController::class, 'liveApi'])->name('noc.mikrotik.live-api');
+    // Route::get('/api/noc/mikrotik/{mikrotikDevice}/live', [MikrotikDashboardController::class, 'liveDetailApi'])->name('noc.mikrotik.live-detail-api');
 
-    // ── MIKROTIK DEVICE MANAGER (NOC) ──
-    Route::prefix('noc/mikrotik-devices')->name('noc.mikrotik-devices.')->group(function () {
-        Route::get('/', [MikrotikDeviceController::class, 'index'])->name('index');
-        Route::get('/create', [MikrotikDeviceController::class, 'create'])->name('create');
-        Route::post('/', [MikrotikDeviceController::class, 'store'])->name('store');
-        Route::get('/{mikrotikDevice}', [MikrotikDeviceController::class, 'show'])->name('show');
-        Route::get('/{mikrotikDevice}/edit', [MikrotikDeviceController::class, 'edit'])->name('edit');
-        Route::put('/{mikrotikDevice}', [MikrotikDeviceController::class, 'update'])->name('update');
-        Route::delete('/{mikrotikDevice}', [MikrotikDeviceController::class, 'destroy'])->name('destroy');
-        Route::post('/{mikrotikDevice}/test-connection', [MikrotikDeviceController::class, 'testConnection'])->name('test-connection');
-        Route::post('/{mikrotikDevice}/toggle-status', [MikrotikDeviceController::class, 'toggleStatus'])->name('toggle-status');
-    });
+    // ── MIKROTIK DEVICE MANAGER (NOC) — hidden per request ──
+    // Route::prefix('noc/mikrotik-devices')->name('noc.mikrotik-devices.')->group(function () {
+    //     Route::get('/', [MikrotikDeviceController::class, 'index'])->name('index');
+    //     Route::get('/create', [MikrotikDeviceController::class, 'create'])->name('create');
+    //     Route::post('/', [MikrotikDeviceController::class, 'store'])->name('store');
+    //     Route::get('/{mikrotikDevice}', [MikrotikDeviceController::class, 'show'])->name('show');
+    //     Route::get('/{mikrotikDevice}/edit', [MikrotikDeviceController::class, 'edit'])->name('edit');
+    //     Route::put('/{mikrotikDevice}', [MikrotikDeviceController::class, 'update'])->name('update');
+    //     Route::delete('/{mikrotikDevice}', [MikrotikDeviceController::class, 'destroy'])->name('destroy');
+    //     Route::post('/{mikrotikDevice}/test-connection', [MikrotikDeviceController::class, 'testConnection'])->name('test-connection');
+    //     Route::post('/{mikrotikDevice}/toggle-status', [MikrotikDeviceController::class, 'toggleStatus'])->name('toggle-status');
+    // });
 
-    // ── INTERFACE CENTER (NOC) ──
-    Route::get('/noc/interface-center', [InterfaceCenterController::class, 'dashboard'])->name('noc.interface-center.dashboard');
-    Route::get('/noc/interface-center/all', [InterfaceCenterController::class, 'index'])->name('noc.interface-center.index');
-    Route::get('/noc/interface-center/{routerId}/{interfaceName}', [InterfaceCenterController::class, 'detail'])->name('noc.interface-center.detail');
-    Route::put('/noc/interface-center/{routerId}/{interfaceName}', [InterfaceCenterController::class, 'update'])->name('noc.interface-center.update');
-    Route::put('/noc/interface-center/{routerId}/{interfaceName}/metadata', [InterfaceCenterController::class, 'updateMetadata'])->name('noc.interface-center.update-metadata');
-    Route::post('/noc/interface-center/bulk', [InterfaceCenterController::class, 'bulk'])->name('noc.interface-center.bulk');
-    Route::get('/noc/interface-center/{routerId}/{interfaceName}/history', [InterfaceCenterController::class, 'history'])->name('noc.interface-center.history');
-    Route::get('/api/noc/interface-center/live', [InterfaceCenterController::class, 'liveApi'])->name('noc.interface-center.live-api');
-    Route::get('/api/noc/interface-center/{routerId}/live/{interfaceName}', [InterfaceCenterController::class, 'liveDetailApi'])->name('noc.interface-center.live-detail-api');
+    // ── INTERFACE CENTER (NOC) — hidden per request ──
+    // Route::get('/noc/interface-center', [InterfaceCenterController::class, 'dashboard'])->name('noc.interface-center.dashboard');
+    // Route::get('/noc/interface-center/all', [InterfaceCenterController::class, 'index'])->name('noc.interface-center.index');
+    // Route::get('/noc/interface-center/{routerId}/{interfaceName}', [InterfaceCenterController::class, 'detail'])->name('noc.interface-center.detail');
+    // Route::put('/noc/interface-center/{routerId}/{interfaceName}', [InterfaceCenterController::class, 'update'])->name('noc.interface-center.update');
+    // Route::put('/noc/interface-center/{routerId}/{interfaceName}/metadata', [InterfaceCenterController::class, 'updateMetadata'])->name('noc.interface-center.update-metadata');
+    // Route::post('/noc/interface-center/bulk', [InterfaceCenterController::class, 'bulk'])->name('noc.interface-center.bulk');
+    // Route::get('/noc/interface-center/{routerId}/{interfaceName}/history', [InterfaceCenterController::class, 'history'])->name('noc.interface-center.history');
+    // Route::get('/api/noc/interface-center/live', [InterfaceCenterController::class, 'liveApi'])->name('noc.interface-center.live-api');
+    // Route::get('/api/noc/interface-center/{routerId}/live/{interfaceName}', [InterfaceCenterController::class, 'liveDetailApi'])->name('noc.interface-center.live-detail-api');
 
-    // ── CONFIG SYNC DASHBOARD (NOC) ──
-    Route::prefix('noc/sync')->name('noc.sync.')->group(function () {
-        Route::get('/', [SyncDashboardController::class, 'dashboard'])->name('dashboard');
-        Route::get('/logs', [SyncDashboardController::class, 'logs'])->name('logs');
-        Route::get('/configs', [SyncDashboardController::class, 'configs'])->name('configs');
-        Route::post('/sync-now', [SyncDashboardController::class, 'syncNow'])->name('sync-now');
-        Route::post('/sync-all', [SyncDashboardController::class, 'syncAll'])->name('sync-all');
-    });
-    Route::get('/api/noc/sync/live', [SyncDashboardController::class, 'liveApi'])->name('noc.sync.live-api');
+    // ── CONFIG SYNC DASHBOARD (NOC) — hidden per request ──
+    // Route::prefix('noc/sync')->name('noc.sync.')->group(function () {
+    //     Route::get('/', [SyncDashboardController::class, 'dashboard'])->name('dashboard');
+    //     Route::get('/logs', [SyncDashboardController::class, 'logs'])->name('logs');
+    //     Route::get('/configs', [SyncDashboardController::class, 'configs'])->name('configs');
+    //     Route::post('/sync-now', [SyncDashboardController::class, 'syncNow'])->name('sync-now');
+    //     Route::post('/sync-all', [SyncDashboardController::class, 'syncAll'])->name('sync-all');
+    // });
+    // Route::get('/api/noc/sync/live', [SyncDashboardController::class, 'liveApi'])->name('noc.sync.live-api');
 
-    // ── CONFIGURATION CENTER (NOC) ──
-    Route::get('/noc/config-center', [ConfigModuleController::class, 'modules'])->name('noc.config.modules');
-    Route::prefix('noc/config-center/{module}')->name('noc.config.')->group(function () {
-        Route::get('/', [ConfigModuleController::class, 'index'])->name('module');
-        Route::get('/detail', [ConfigModuleController::class, 'detail'])->name('detail');
-        Route::get('/history', [ConfigModuleController::class, 'history'])->name('history');
-        Route::get('/create', [ConfigModuleController::class, 'create'])->name('create');
-        Route::post('/store', [ConfigModuleController::class, 'store'])->name('store');
-        Route::get('/edit', [ConfigModuleController::class, 'edit'])->name('edit');
-        Route::post('/update', [ConfigModuleController::class, 'update'])->name('update');
-        Route::post('/destroy', [ConfigModuleController::class, 'destroy'])->name('destroy');
-        Route::post('/sync', [ConfigModuleController::class, 'syncModule'])->name('sync-module');
-        Route::post('/sync-all', [ConfigModuleController::class, 'syncAll'])->name('sync-all');
-    });
-    Route::get('/api/noc/config-center/{module}/live', [ConfigModuleController::class, 'liveApi'])->name('noc.config.live-api');
+    // ── CONFIGURATION CENTER (NOC) — hidden per request ──
+    // Route::get('/noc/config-center', [ConfigModuleController::class, 'modules'])->name('noc.config.modules');
+    // Route::prefix('noc/config-center/{module}')->name('noc.config.')->group(function () {
+    //     Route::get('/', [ConfigModuleController::class, 'index'])->name('module');
+    //     Route::get('/detail', [ConfigModuleController::class, 'detail'])->name('detail');
+    //     Route::get('/history', [ConfigModuleController::class, 'history'])->name('history');
+    //     Route::get('/create', [ConfigModuleController::class, 'create'])->name('create');
+    //     Route::post('/store', [ConfigModuleController::class, 'store'])->name('store');
+    //     Route::get('/edit', [ConfigModuleController::class, 'edit'])->name('edit');
+    //     Route::post('/update', [ConfigModuleController::class, 'update'])->name('update');
+    //     Route::post('/destroy', [ConfigModuleController::class, 'destroy'])->name('destroy');
+    //     Route::post('/sync', [ConfigModuleController::class, 'syncModule'])->name('sync-module');
+    //     Route::post('/sync-all', [ConfigModuleController::class, 'syncAll'])->name('sync-all');
+    // });
+    // Route::get('/api/noc/config-center/{module}/live', [ConfigModuleController::class, 'liveApi'])->name('noc.config.live-api');
 
-    // ── CONFIGURATION REPOSITORY (NOC) ──
-    Route::prefix('noc/config-repository')->name('noc.repo.')->group(function () {
-        Route::get('/', [ConfigRepositoryController::class, 'index'])->name('index');
-        Route::get('/changes', [ConfigRepositoryController::class, 'changes'])->name('changes');
-        Route::get('/compare', [ConfigRepositoryController::class, 'compare'])->name('compare');
-        Route::get('/{id}', [ConfigRepositoryController::class, 'show'])->name('show');
-        Route::get('/{routerId}/{module}/{itemId}/history', [ConfigRepositoryController::class, 'itemHistory'])->name('item-history');
-    });
+    // ── CONFIGURATION REPOSITORY (NOC) — disabled (MikroTik hidden) ──
+    // Route::prefix('noc/config-repository')->name('noc.repo.')->group(function () {
+    //     Route::get('/', [ConfigRepositoryController::class, 'index'])->name('index');
+    //     Route::get('/changes', [ConfigRepositoryController::class, 'changes'])->name('changes');
+    //     Route::get('/compare', [ConfigRepositoryController::class, 'compare'])->name('compare');
+    //     Route::get('/{id}', [ConfigRepositoryController::class, 'show'])->name('show');
+    //     Route::get('/{routerId}/{module}/{itemId}/history', [ConfigRepositoryController::class, 'itemHistory'])->name('item-history');
+    // });
 
     // ── AUTOMATION ENGINE (NOC) ──
     Route::prefix('noc/automation')->name('noc.automation.')->group(function () {
@@ -394,113 +405,113 @@ Route::middleware(['auth', 'teknisi'])->group(function () {
         Route::post('/{resource}/sync', [NetworkConfigController::class, 'sync'])->name('sync');
     });
 
-    // ── INTERNET SERVICE CENTER (NOC) ──
-    Route::prefix('noc/internet')->name('noc.internet.')->group(function () {
-        Route::get('/', [InternetServiceController::class, 'dashboard'])->name('dashboard');
-        Route::get('/audit', [InternetServiceController::class, 'auditLogs'])->name('audit');
-        Route::get('/radius', [InternetServiceController::class, 'radius'])->name('radius');
-        Route::get('/active', [InternetServiceController::class, 'activeSessions'])->name('active');
-        Route::post('/disconnect/{type}/{sessionId}', [InternetServiceController::class, 'disconnectSession'])->name('disconnect-session');
+    // ── INTERNET SERVICE CENTER (NOC) — hidden per request (MikroTik Center / PPPoE) ──
+    // Route::prefix('noc/internet')->name('noc.internet.')->group(function () {
+    //     Route::get('/', [InternetServiceController::class, 'dashboard'])->name('dashboard');
+    //     Route::get('/audit', [InternetServiceController::class, 'auditLogs'])->name('audit');
+    //     Route::get('/radius', [InternetServiceController::class, 'radius'])->name('radius');
+    //     Route::get('/active', [InternetServiceController::class, 'activeSessions'])->name('active');
+    //     Route::post('/disconnect/{type}/{sessionId}', [InternetServiceController::class, 'disconnectSession'])->name('disconnect-session');
 
-        // IP Pool
-        Route::get('/ippool', [InternetServiceController::class, 'ipPools'])->name('ippool');
-        Route::post('/ippool', [InternetServiceController::class, 'ipPoolStore'])->name('ippool-store');
-        Route::put('/ippool/{itemId}', [InternetServiceController::class, 'ipPoolUpdate'])->name('ippool-update');
-        Route::delete('/ippool/{itemId}', [InternetServiceController::class, 'ipPoolDestroy'])->name('ippool-destroy');
-        Route::post('/ippool/{itemId}/toggle', [InternetServiceController::class, 'ipPoolToggle'])->name('ippool-toggle');
-        Route::post('/ippool/bulk', [InternetServiceController::class, 'ipPoolBulk'])->name('ippool-bulk');
+    //     // IP Pool
+    //     Route::get('/ippool', [InternetServiceController::class, 'ipPools'])->name('ippool');
+    //     Route::post('/ippool', [InternetServiceController::class, 'ipPoolStore'])->name('ippool-store');
+    //     Route::put('/ippool/{itemId}', [InternetServiceController::class, 'ipPoolUpdate'])->name('ippool-update');
+    //     Route::delete('/ippool/{itemId}', [InternetServiceController::class, 'ipPoolDestroy'])->name('ippool-destroy');
+    //     Route::post('/ippool/{itemId}/toggle', [InternetServiceController::class, 'ipPoolToggle'])->name('ippool-toggle');
+    //     Route::post('/ippool/bulk', [InternetServiceController::class, 'ipPoolBulk'])->name('ippool-bulk');
 
-        // DHCP Server
-        Route::get('/dhcp', [InternetServiceController::class, 'dhcpServers'])->name('dhcp');
-        Route::post('/dhcp', [InternetServiceController::class, 'dhcpStore'])->name('dhcp-store');
-        Route::put('/dhcp/{itemId}', [InternetServiceController::class, 'dhcpUpdate'])->name('dhcp-update');
-        Route::delete('/dhcp/{itemId}', [InternetServiceController::class, 'dhcpDestroy'])->name('dhcp-destroy');
-        Route::post('/dhcp/{itemId}/toggle', [InternetServiceController::class, 'dhcpToggle'])->name('dhcp-toggle');
-        Route::post('/dhcp/bulk', [InternetServiceController::class, 'dhcpBulk'])->name('dhcp-bulk');
+    //     // DHCP Server
+    //     Route::get('/dhcp', [InternetServiceController::class, 'dhcpServers'])->name('dhcp');
+    //     Route::post('/dhcp', [InternetServiceController::class, 'dhcpStore'])->name('dhcp-store');
+    //     Route::put('/dhcp/{itemId}', [InternetServiceController::class, 'dhcpUpdate'])->name('dhcp-update');
+    //     Route::delete('/dhcp/{itemId}', [InternetServiceController::class, 'dhcpDestroy'])->name('dhcp-destroy');
+    //     Route::post('/dhcp/{itemId}/toggle', [InternetServiceController::class, 'dhcpToggle'])->name('dhcp-toggle');
+    //     Route::post('/dhcp/bulk', [InternetServiceController::class, 'dhcpBulk'])->name('dhcp-bulk');
 
-        // DHCP Lease
-        Route::get('/dhcplease', [InternetServiceController::class, 'dhcpLeases'])->name('dhcplease');
-        Route::post('/dhcplease', [InternetServiceController::class, 'dhcpLeaseStore'])->name('dhcplease-store');
-        Route::put('/dhcplease/{itemId}', [InternetServiceController::class, 'dhcpLeaseUpdate'])->name('dhcplease-update');
-        Route::delete('/dhcplease/{itemId}', [InternetServiceController::class, 'dhcpLeaseDestroy'])->name('dhcplease-destroy');
-        Route::post('/dhcplease/{itemId}/make-static', [InternetServiceController::class, 'dhcpLeaseMakeStatic'])->name('dhcplease-make-static');
-        Route::post('/dhcplease/bulk', [InternetServiceController::class, 'dhcpLeaseBulk'])->name('dhcplease-bulk');
+    //     // DHCP Lease
+    //     Route::get('/dhcplease', [InternetServiceController::class, 'dhcpLeases'])->name('dhcplease');
+    //     Route::post('/dhcplease', [InternetServiceController::class, 'dhcpLeaseStore'])->name('dhcplease-store');
+    //     Route::put('/dhcplease/{itemId}', [InternetServiceController::class, 'dhcpLeaseUpdate'])->name('dhcplease-update');
+    //     Route::delete('/dhcplease/{itemId}', [InternetServiceController::class, 'dhcpLeaseDestroy'])->name('dhcplease-destroy');
+    //     Route::post('/dhcplease/{itemId}/make-static', [InternetServiceController::class, 'dhcpLeaseMakeStatic'])->name('dhcplease-make-static');
+    //     Route::post('/dhcplease/bulk', [InternetServiceController::class, 'dhcpLeaseBulk'])->name('dhcplease-bulk');
 
-        // PPP Profile
-        Route::get('/pppprofile', [InternetServiceController::class, 'pppProfiles'])->name('pppprofile');
-        Route::post('/pppprofile', [InternetServiceController::class, 'pppProfileStore'])->name('pppprofile-store');
-        Route::put('/pppprofile/{itemId}', [InternetServiceController::class, 'pppProfileUpdate'])->name('pppprofile-update');
-        Route::delete('/pppprofile/{itemId}', [InternetServiceController::class, 'pppProfileDestroy'])->name('pppprofile-destroy');
-        Route::post('/pppprofile/bulk', [InternetServiceController::class, 'pppProfileBulk'])->name('pppprofile-bulk');
+    //     // PPP Profile
+    //     Route::get('/pppprofile', [InternetServiceController::class, 'pppProfiles'])->name('pppprofile');
+    //     Route::post('/pppprofile', [InternetServiceController::class, 'pppProfileStore'])->name('pppprofile-store');
+    //     Route::put('/pppprofile/{itemId}', [InternetServiceController::class, 'pppProfileUpdate'])->name('pppprofile-update');
+    //     Route::delete('/pppprofile/{itemId}', [InternetServiceController::class, 'pppProfileDestroy'])->name('pppprofile-destroy');
+    //     Route::post('/pppprofile/bulk', [InternetServiceController::class, 'pppProfileBulk'])->name('pppprofile-bulk');
 
-        // PPP Secret
-        Route::get('/pppsecret', [InternetServiceController::class, 'pppSecrets'])->name('pppsecret');
-        Route::post('/pppsecret', [InternetServiceController::class, 'pppSecretStore'])->name('pppsecret-store');
-        Route::put('/pppsecret/{itemId}', [InternetServiceController::class, 'pppSecretUpdate'])->name('pppsecret-update');
-        Route::delete('/pppsecret/{itemId}', [InternetServiceController::class, 'pppSecretDestroy'])->name('pppsecret-destroy');
-        Route::post('/pppsecret/{itemId}/toggle', [InternetServiceController::class, 'pppSecretToggle'])->name('pppsecret-toggle');
-        Route::post('/pppsecret/bulk', [InternetServiceController::class, 'pppSecretBulk'])->name('pppsecret-bulk');
+    //     // PPP Secret
+    //     Route::get('/pppsecret', [InternetServiceController::class, 'pppSecrets'])->name('pppsecret');
+    //     Route::post('/pppsecret', [InternetServiceController::class, 'pppSecretStore'])->name('pppsecret-store');
+    //     Route::put('/pppsecret/{itemId}', [InternetServiceController::class, 'pppSecretUpdate'])->name('pppsecret-update');
+    //     Route::delete('/pppsecret/{itemId}', [InternetServiceController::class, 'pppSecretDestroy'])->name('pppsecret-destroy');
+    //     Route::post('/pppsecret/{itemId}/toggle', [InternetServiceController::class, 'pppSecretToggle'])->name('pppsecret-toggle');
+    //     Route::post('/pppsecret/bulk', [InternetServiceController::class, 'pppSecretBulk'])->name('pppsecret-bulk');
 
-        // Hotspot Server
-        Route::get('/hotspot', [InternetServiceController::class, 'hotspotServers'])->name('hotspot');
-        Route::post('/hotspot', [InternetServiceController::class, 'hotspotServerStore'])->name('hotspot-store');
-        Route::put('/hotspot/{itemId}', [InternetServiceController::class, 'hotspotServerUpdate'])->name('hotspot-update');
-        Route::delete('/hotspot/{itemId}', [InternetServiceController::class, 'hotspotServerDestroy'])->name('hotspot-destroy');
-        Route::post('/hotspot/{itemId}/toggle', [InternetServiceController::class, 'hotspotServerToggle'])->name('hotspot-toggle');
-        Route::post('/hotspot/bulk', [InternetServiceController::class, 'hotspotServerBulk'])->name('hotspot-bulk');
+    //     // Hotspot Server
+    //     Route::get('/hotspot', [InternetServiceController::class, 'hotspotServers'])->name('hotspot');
+    //     Route::post('/hotspot', [InternetServiceController::class, 'hotspotServerStore'])->name('hotspot-store');
+    //     Route::put('/hotspot/{itemId}', [InternetServiceController::class, 'hotspotServerUpdate'])->name('hotspot-update');
+    //     Route::delete('/hotspot/{itemId}', [InternetServiceController::class, 'hotspotServerDestroy'])->name('hotspot-destroy');
+    //     Route::post('/hotspot/{itemId}/toggle', [InternetServiceController::class, 'hotspotServerToggle'])->name('hotspot-toggle');
+    //     Route::post('/hotspot/bulk', [InternetServiceController::class, 'hotspotServerBulk'])->name('hotspot-bulk');
 
-        // Hotspot User
-        Route::get('/hotspotuser', [InternetServiceController::class, 'hotspotUsers'])->name('hotspotuser');
-        Route::post('/hotspotuser', [InternetServiceController::class, 'hotspotUserStore'])->name('hotspotuser-store');
-        Route::put('/hotspotuser/{itemId}', [InternetServiceController::class, 'hotspotUserUpdate'])->name('hotspotuser-update');
-        Route::delete('/hotspotuser/{itemId}', [InternetServiceController::class, 'hotspotUserDestroy'])->name('hotspotuser-destroy');
-        Route::post('/hotspotuser/{itemId}/toggle', [InternetServiceController::class, 'hotspotUserToggle'])->name('hotspotuser-toggle');
-        Route::post('/hotspotuser/bulk', [InternetServiceController::class, 'hotspotUserBulk'])->name('hotspotuser-bulk');
+    //     // Hotspot User
+    //     Route::get('/hotspotuser', [InternetServiceController::class, 'hotspotUsers'])->name('hotspotuser');
+    //     Route::post('/hotspotuser', [InternetServiceController::class, 'hotspotUserStore'])->name('hotspotuser-store');
+    //     Route::put('/hotspotuser/{itemId}', [InternetServiceController::class, 'hotspotUserUpdate'])->name('hotspotuser-update');
+    //     Route::delete('/hotspotuser/{itemId}', [InternetServiceController::class, 'hotspotUserDestroy'])->name('hotspotuser-destroy');
+    //     Route::post('/hotspotuser/{itemId}/toggle', [InternetServiceController::class, 'hotspotUserToggle'])->name('hotspotuser-toggle');
+    //     Route::post('/hotspotuser/bulk', [InternetServiceController::class, 'hotspotUserBulk'])->name('hotspotuser-bulk');
 
-        // Hotspot Profile
-        Route::get('/hotspotprofile', [InternetServiceController::class, 'hotspotProfiles'])->name('hotspotprofile');
-        Route::post('/hotspotprofile', [InternetServiceController::class, 'hotspotProfileStore'])->name('hotspotprofile-store');
-        Route::put('/hotspotprofile/{itemId}', [InternetServiceController::class, 'hotspotProfileUpdate'])->name('hotspotprofile-update');
-        Route::delete('/hotspotprofile/{itemId}', [InternetServiceController::class, 'hotspotProfileDestroy'])->name('hotspotprofile-destroy');
+    //     // Hotspot Profile
+    //     Route::get('/hotspotprofile', [InternetServiceController::class, 'hotspotProfiles'])->name('hotspotprofile');
+    //     Route::post('/hotspotprofile', [InternetServiceController::class, 'hotspotProfileStore'])->name('hotspotprofile-store');
+    //     Route::put('/hotspotprofile/{itemId}', [InternetServiceController::class, 'hotspotProfileUpdate'])->name('hotspotprofile-update');
+    //     Route::delete('/hotspotprofile/{itemId}', [InternetServiceController::class, 'hotspotProfileDestroy'])->name('hotspotprofile-destroy');
 
-        // Hotspot Host
-        Route::get('/host', [InternetServiceController::class, 'hotspotHosts'])->name('host');
+    //     // Hotspot Host
+    //     Route::get('/host', [InternetServiceController::class, 'hotspotHosts'])->name('host');
 
-        // Hotspot Cookie
-        Route::get('/cookie', [InternetServiceController::class, 'hotspotCookies'])->name('cookie');
+    //     // Hotspot Cookie
+    //     Route::get('/cookie', [InternetServiceController::class, 'hotspotCookies'])->name('cookie');
 
-        // Hotspot Login History
-        Route::get('/login-history', [InternetServiceController::class, 'hotspotLoginHistory'])->name('login-history');
+    //     // Hotspot Login History
+    //     Route::get('/login-history', [InternetServiceController::class, 'hotspotLoginHistory'])->name('login-history');
 
-        // Monitoring Center
-        Route::get('/monitoring', [InternetServiceController::class, 'monitoring'])->name('monitoring');
-        Route::get('/monitoring/interface-rates', [InternetServiceController::class, 'interfaceRates'])->name('monitoring.interface-rates');
-        Route::get('/monitoring/router-status', [InternetServiceController::class, 'routerStatus'])->name('monitoring.router-status');
-        Route::get('/monitoring/active-sessions', [InternetServiceController::class, 'activeSessionsLive'])->name('monitoring.active-sessions');
+    //     // Monitoring Center
+    //     Route::get('/monitoring', [InternetServiceController::class, 'monitoring'])->name('monitoring');
+    //     Route::get('/monitoring/interface-rates', [InternetServiceController::class, 'interfaceRates'])->name('monitoring.interface-rates');
+    //     Route::get('/monitoring/router-status', [InternetServiceController::class, 'routerStatus'])->name('monitoring.router-status');
+    //     Route::get('/monitoring/active-sessions', [InternetServiceController::class, 'activeSessionsLive'])->name('monitoring.active-sessions');
 
-        // IP Conflicts
-        Route::get('/conflicts', [InternetServiceController::class, 'ipConflicts'])->name('conflicts');
+    //     // IP Conflicts
+    //     Route::get('/conflicts', [InternetServiceController::class, 'ipConflicts'])->name('conflicts');
 
-        // Bulk Comment (per resource)
-        Route::post('/ippool/bulk-comment', [InternetServiceController::class, 'bulkComment'])->name('ippool-bulk-comment');
-        Route::post('/dhcp/bulk-comment', [InternetServiceController::class, 'bulkComment'])->name('dhcp-bulk-comment');
-        Route::post('/dhcplease/bulk-comment', [InternetServiceController::class, 'bulkComment'])->name('dhcplease-bulk-comment');
-        Route::post('/pppprofile/bulk-comment', [InternetServiceController::class, 'bulkComment'])->name('pppprofile-bulk-comment');
-        Route::post('/pppsecret/bulk-comment', [InternetServiceController::class, 'bulkComment'])->name('pppsecret-bulk-comment');
-        Route::post('/hotspot/bulk-comment', [InternetServiceController::class, 'bulkComment'])->name('hotspot-bulk-comment');
-        Route::post('/hotspotuser/bulk-comment', [InternetServiceController::class, 'bulkComment'])->name('hotspotuser-bulk-comment');
-        Route::post('/hotspotprofile/bulk-comment', [InternetServiceController::class, 'bulkComment'])->name('hotspotprofile-bulk-comment');
+    //     // Bulk Comment (per resource)
+    //     Route::post('/ippool/bulk-comment', [InternetServiceController::class, 'bulkComment'])->name('ippool-bulk-comment');
+    //     Route::post('/dhcp/bulk-comment', [InternetServiceController::class, 'bulkComment'])->name('dhcp-bulk-comment');
+    //     Route::post('/dhcplease/bulk-comment', [InternetServiceController::class, 'bulkComment'])->name('dhcplease-bulk-comment');
+    //     Route::post('/pppprofile/bulk-comment', [InternetServiceController::class, 'bulkComment'])->name('pppprofile-bulk-comment');
+    //     Route::post('/pppsecret/bulk-comment', [InternetServiceController::class, 'bulkComment'])->name('pppsecret-bulk-comment');
+    //     Route::post('/hotspot/bulk-comment', [InternetServiceController::class, 'bulkComment'])->name('hotspot-bulk-comment');
+    //     Route::post('/hotspotuser/bulk-comment', [InternetServiceController::class, 'bulkComment'])->name('hotspotuser-bulk-comment');
+    //     Route::post('/hotspotprofile/bulk-comment', [InternetServiceController::class, 'bulkComment'])->name('hotspotprofile-bulk-comment');
 
-        // Bulk Refresh (per resource)
-        Route::post('/ippool/refresh', [InternetServiceController::class, 'bulkRefresh'])->name('ippool-refresh');
-        Route::post('/dhcp/refresh', [InternetServiceController::class, 'bulkRefresh'])->name('dhcp-refresh');
-        Route::post('/dhcplease/refresh', [InternetServiceController::class, 'bulkRefresh'])->name('dhcplease-refresh');
-        Route::post('/pppprofile/refresh', [InternetServiceController::class, 'bulkRefresh'])->name('pppprofile-refresh');
-        Route::post('/pppsecret/refresh', [InternetServiceController::class, 'bulkRefresh'])->name('pppsecret-refresh');
-        Route::post('/hotspot/refresh', [InternetServiceController::class, 'bulkRefresh'])->name('hotspot-refresh');
-        Route::post('/hotspotuser/refresh', [InternetServiceController::class, 'bulkRefresh'])->name('hotspotuser-refresh');
-        Route::post('/hotspotprofile/refresh', [InternetServiceController::class, 'bulkRefresh'])->name('hotspotprofile-refresh');
-    });
+    //     // Bulk Refresh (per resource)
+    //     Route::post('/ippool/refresh', [InternetServiceController::class, 'bulkRefresh'])->name('ippool-refresh');
+    //     Route::post('/dhcp/refresh', [InternetServiceController::class, 'bulkRefresh'])->name('dhcp-refresh');
+    //     Route::post('/dhcplease/refresh', [InternetServiceController::class, 'bulkRefresh'])->name('dhcplease-refresh');
+    //     Route::post('/pppprofile/refresh', [InternetServiceController::class, 'bulkRefresh'])->name('pppprofile-refresh');
+    //     Route::post('/pppsecret/refresh', [InternetServiceController::class, 'bulkRefresh'])->name('pppsecret-refresh');
+    //     Route::post('/hotspot/refresh', [InternetServiceController::class, 'bulkRefresh'])->name('hotspot-refresh');
+    //     Route::post('/hotspotuser/refresh', [InternetServiceController::class, 'bulkRefresh'])->name('hotspotuser-refresh');
+    //     Route::post('/hotspotprofile/refresh', [InternetServiceController::class, 'bulkRefresh'])->name('hotspotprofile-refresh');
+    // });
 
     // ── SECURITY POLICY CENTER ──
     Route::prefix('noc/security')->name('noc.security.')->group(function () {
@@ -605,13 +616,13 @@ Route::middleware(['auth', 'teknisi'])->group(function () {
         Route::get('/analytics', [TrafficEngineeringController::class, 'analytics'])->name('analytics');
     });
 
-    // ── SMART QOS (standalone, outside NOC) ──
-    Route::prefix('qos')->name('qos.')->group(function () {
-        Route::get('/health', [QosHealthController::class, 'index'])->name('health');
-        Route::get('/health/json', [QosHealthController::class, 'jsonHealth'])->name('health.json');
-        Route::post('/sync', [QosHealthController::class, 'syncAll'])->name('sync-all');
-        Route::post('/optimize', [QosHealthController::class, 'optimizeNow'])->name('optimize-now');
-    });
+    // ── SMART QOS (standalone, outside NOC) — hidden per request (MikroTik) ──
+    // Route::prefix('qos')->name('qos.')->group(function () {
+    //     Route::get('/health', [QosHealthController::class, 'index'])->name('health');
+    //     Route::get('/health/json', [QosHealthController::class, 'jsonHealth'])->name('health.json');
+    //     Route::post('/sync', [QosHealthController::class, 'syncAll'])->name('sync-all');
+    //     Route::post('/optimize', [QosHealthController::class, 'optimizeNow'])->name('optimize-now');
+    // });
 
 });
 
@@ -621,6 +632,17 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/settings', [SettingController::class, 'index'])->name('settings.index');
     Route::post('/settings', [SettingController::class, 'update'])->name('settings.update');
     Route::get('/settings/test-mikrotik', [SettingController::class, 'testMikrotik'])->name('settings.test-mikrotik');
+
+    // ── INTEGRASI MIKROTIK & OLT ──
+    Route::get('/settings/integrations', [IntegrationController::class, 'index'])->name('settings.integrations');
+    Route::post('/settings/integrations/mikrotik', [IntegrationController::class, 'storeMikrotik'])->name('settings.integrations.mikrotik.store');
+    Route::put('/settings/integrations/mikrotik/{mikrotikRouter}', [IntegrationController::class, 'updateMikrotik'])->name('settings.integrations.mikrotik.update');
+    Route::delete('/settings/integrations/mikrotik/{mikrotikRouter}', [IntegrationController::class, 'destroyMikrotik'])->name('settings.integrations.mikrotik.destroy');
+    Route::post('/settings/integrations/mikrotik/{mikrotikRouter}/test', [IntegrationController::class, 'testMikrotik'])->name('settings.integrations.mikrotik.test');
+    Route::post('/settings/integrations/olt', [IntegrationController::class, 'storeOlt'])->name('settings.integrations.olt.store');
+    Route::put('/settings/integrations/olt/{olt}', [IntegrationController::class, 'updateOlt'])->name('settings.integrations.olt.update');
+    Route::delete('/settings/integrations/olt/{olt}', [IntegrationController::class, 'destroyOlt'])->name('settings.integrations.olt.destroy');
+    Route::post('/settings/integrations/olt/{olt}/test', [IntegrationController::class, 'testOlt'])->name('settings.integrations.olt.test');
 
     // ── USER MANAGEMENT ──
     Route::get('/settings/users', [UserController::class, 'index'])->name('settings.users');
@@ -641,23 +663,24 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::post('/inventory/keluar', [InventoryController::class, 'storeKeluar'])->name('inventory.keluar.store');
     Route::get('/inventory/laporan-aset', [InventoryController::class, 'laporanAset'])->name('inventory.laporan-aset');
 
-    Route::post('/mikrotik/profiles', [MikrotikController::class, 'storeProfile'])->name('mikrotik.profiles.store');
-    Route::put('/mikrotik/profiles/{profileId}', [MikrotikController::class, 'updateProfile'])->name('mikrotik.profiles.update');
-    Route::delete('/mikrotik/profiles/{profileId}', [MikrotikController::class, 'destroyProfile'])->name('mikrotik.profiles.destroy');
-    Route::post('/mikrotik/ppp', [MikrotikController::class, 'storePppSecret'])->name('mikrotik.ppp.store');
-    Route::delete('/mikrotik/ppp/{secretId}', [MikrotikController::class, 'destroyPppSecret'])->name('mikrotik.ppp.destroy');
-    Route::post('/mikrotik/queues', [MikrotikController::class, 'storeQueue'])->name('mikrotik.queues.store');
-    Route::put('/mikrotik/queues/{queueId}', [MikrotikController::class, 'updateQueue'])->name('mikrotik.queues.update');
-    Route::delete('/mikrotik/queues/{queueId}', [MikrotikController::class, 'destroyQueue'])->name('mikrotik.queues.destroy');
-    Route::post('/mikrotik/ppp-profiles', [MikrotikController::class, 'storePppProfile'])->name('mikrotik.ppp-profiles.store');
-    Route::put('/mikrotik/ppp-profiles/{profileId}', [MikrotikController::class, 'updatePppProfile'])->name('mikrotik.ppp-profiles.update');
-    Route::delete('/mikrotik/ppp-profiles/{profileId}', [MikrotikController::class, 'destroyPppProfile'])->name('mikrotik.ppp-profiles.destroy');
-    Route::post('/mikrotik/hotspot-users/{userId}/toggle', [MikrotikController::class, 'toggleHotspotUser'])->name('mikrotik.hotspot-users.toggle');
-    Route::post('/mikrotik/hotspot-users', [MikrotikController::class, 'storeHotspotUser'])->name('mikrotik.hotspot-users.store');
-    Route::put('/mikrotik/hotspot-users/{userId}', [MikrotikController::class, 'updateHotspotUser'])->name('mikrotik.hotspot-users.update');
-    Route::delete('/mikrotik/hotspot-users/{userId}', [MikrotikController::class, 'destroyHotspotUser'])->name('mikrotik.hotspot-users.destroy');
-    Route::post('/mikrotik/backup', [MikrotikController::class, 'backup'])->name('mikrotik.backup');
-    Route::get('/mikrotik/live', [MikrotikController::class, 'liveData'])->name('mikrotik.live');
+    // ── MIKROTIK ACTIONS (hidden per request) ──
+    // Route::post('/mikrotik/profiles', [MikrotikController::class, 'storeProfile'])->name('mikrotik.profiles.store');
+    // Route::put('/mikrotik/profiles/{profileId}', [MikrotikController::class, 'updateProfile'])->name('mikrotik.profiles.update');
+    // Route::delete('/mikrotik/profiles/{profileId}', [MikrotikController::class, 'destroyProfile'])->name('mikrotik.profiles.destroy');
+    // Route::post('/mikrotik/ppp', [MikrotikController::class, 'storePppSecret'])->name('mikrotik.ppp.store');
+    // Route::delete('/mikrotik/ppp/{secretId}', [MikrotikController::class, 'destroyPppSecret'])->name('mikrotik.ppp.destroy');
+    // Route::post('/mikrotik/queues', [MikrotikController::class, 'storeQueue'])->name('mikrotik.queues.store');
+    // Route::put('/mikrotik/queues/{queueId}', [MikrotikController::class, 'updateQueue'])->name('mikrotik.queues.update');
+    // Route::delete('/mikrotik/queues/{queueId}', [MikrotikController::class, 'destroyQueue'])->name('mikrotik.queues.destroy');
+    // Route::post('/mikrotik/ppp-profiles', [MikrotikController::class, 'storePppProfile'])->name('mikrotik.ppp-profiles.store');
+    // Route::put('/mikrotik/ppp-profiles/{profileId}', [MikrotikController::class, 'updatePppProfile'])->name('mikrotik.ppp-profiles.update');
+    // Route::delete('/mikrotik/ppp-profiles/{profileId}', [MikrotikController::class, 'destroyPppProfile'])->name('mikrotik.ppp-profiles.destroy');
+    // Route::post('/mikrotik/hotspot-users/{userId}/toggle', [MikrotikController::class, 'toggleHotspotUser'])->name('mikrotik.hotspot-users.toggle');
+    // Route::post('/mikrotik/hotspot-users', [MikrotikController::class, 'storeHotspotUser'])->name('mikrotik.hotspot-users.store');
+    // Route::put('/mikrotik/hotspot-users/{userId}', [MikrotikController::class, 'updateHotspotUser'])->name('mikrotik.hotspot-users.update');
+    // Route::delete('/mikrotik/hotspot-users/{userId}', [MikrotikController::class, 'destroyHotspotUser'])->name('mikrotik.hotspot-users.destroy');
+    // Route::post('/mikrotik/backup', [MikrotikController::class, 'backup'])->name('mikrotik.backup');
+    // Route::get('/mikrotik/live', [MikrotikController::class, 'liveData'])->name('mikrotik.live');
 
     // ── VOUCHER PROFILES (MikroTik) ──
     Route::get('/voucher-profiles', [VoucherProfileController::class, 'index'])->name('voucher-profiles.index');
@@ -666,26 +689,27 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::post('/voucher-profiles/delete-mikrotik/{profileId}', [VoucherProfileController::class, 'destroyMikrotik'])->name('voucher-profiles.destroy-mikrotik');
     Route::post('/voucher-profiles/update-mikrotik/{profileId}', [VoucherProfileController::class, 'updateMikrotik'])->name('voucher-profiles.update-mikrotik');
 
-    // ── MIKROTIK ROUTERS ──
-    Route::get('/mikrotik-routers', [MikrotikRouterController::class, 'index'])->name('mikrotik-routers.index');
-    Route::post('/mikrotik-routers', [MikrotikRouterController::class, 'store'])->name('mikrotik-routers.store');
-    Route::put('/mikrotik-routers/{mikrotikRouter}', [MikrotikRouterController::class, 'update'])->name('mikrotik-routers.update');
-    Route::delete('/mikrotik-routers/{mikrotikRouter}', [MikrotikRouterController::class, 'destroy'])->name('mikrotik-routers.destroy');
-    Route::post('/mikrotik-routers/{mikrotikRouter}/test', [MikrotikRouterController::class, 'test'])->name('mikrotik-routers.test');
-    Route::post('/distribution/odcs', [DistributionController::class, 'storeOdc'])->name('distribution.odcs.store');
-    Route::put('/distribution/odcs/{odc}', [DistributionController::class, 'updateOdc'])->name('distribution.odcs.update');
-    Route::delete('/distribution/odcs/{odc}', [DistributionController::class, 'destroyOdc'])->name('distribution.odcs.destroy');
-    Route::post('/distribution/routes', [DistributionController::class, 'storeRoute'])->name('distribution.routes.store');
-    Route::put('/distribution/routes/{odpRoute}', [DistributionController::class, 'updateRoute'])->name('distribution.routes.update');
-    Route::delete('/distribution/routes/{odpRoute}', [DistributionController::class, 'destroyRoute'])->name('distribution.routes.destroy');
-    Route::post('/distribution/points', [DistributionController::class, 'storePoint'])->name('distribution.points.store');
-    Route::put('/distribution/points/{odpPoint}', [DistributionController::class, 'updatePoint'])->name('distribution.points.update');
-    Route::delete('/distribution/points/{odpPoint}', [DistributionController::class, 'destroyPoint'])->name('distribution.points.destroy');
-    Route::post('/distribution/odps', [DistributionController::class, 'storeOdp'])->name('distribution.odps.store');
-    Route::delete('/distribution/odps/{odp}', [DistributionController::class, 'destroyOdp'])->name('distribution.odps.destroy');
-    Route::get('/odc/{odc}', [OdcController::class, 'show'])->name('odc.show');
-    Route::get('/odp/{odp}', [OdpController::class, 'show'])->name('odp.show');
-    Route::post('/odp/{odp}/toggle-jalur', [OdpController::class, 'toggleJalur'])->name('odp.toggle-jalur');
+    // ── MIKROTIK ROUTERS — hidden per request ──
+    // Route::get('/mikrotik-routers', [MikrotikRouterController::class, 'index'])->name('mikrotik-routers.index');
+    // Route::post('/mikrotik-routers', [MikrotikRouterController::class, 'store'])->name('mikrotik-routers.store');
+    // Route::put('/mikrotik-routers/{mikrotikRouter}', [MikrotikRouterController::class, 'update'])->name('mikrotik-routers.update');
+    // Route::delete('/mikrotik-routers/{mikrotikRouter}', [MikrotikRouterController::class, 'destroy'])->name('mikrotik-routers.destroy');
+    // Route::post('/mikrotik-routers/{mikrotikRouter}/test', [MikrotikRouterController::class, 'test'])->name('mikrotik-routers.test');
+    // ── DISTRIBUTION / ODC / ODP — hidden per request (OLT menu) ──
+    // Route::post('/distribution/odcs', [DistributionController::class, 'storeOdc'])->name('distribution.odcs.store');
+    // Route::put('/distribution/odcs/{odc}', [DistributionController::class, 'updateOdc'])->name('distribution.odcs.update');
+    // Route::delete('/distribution/odcs/{odc}', [DistributionController::class, 'destroyOdc'])->name('distribution.odcs.destroy');
+    // Route::post('/distribution/routes', [DistributionController::class, 'storeRoute'])->name('distribution.routes.store');
+    // Route::put('/distribution/routes/{odpRoute}', [DistributionController::class, 'updateRoute'])->name('distribution.routes.update');
+    // Route::delete('/distribution/routes/{odpRoute}', [DistributionController::class, 'destroyRoute'])->name('distribution.routes.destroy');
+    // Route::post('/distribution/points', [DistributionController::class, 'storePoint'])->name('distribution.points.store');
+    // Route::put('/distribution/points/{odpPoint}', [DistributionController::class, 'updatePoint'])->name('distribution.points.update');
+    // Route::delete('/distribution/points/{odpPoint}', [DistributionController::class, 'destroyPoint'])->name('distribution.points.destroy');
+    // Route::post('/distribution/odps', [DistributionController::class, 'storeOdp'])->name('distribution.odps.store');
+    // Route::delete('/distribution/odps/{odp}', [DistributionController::class, 'destroyOdp'])->name('distribution.odps.destroy');
+    // Route::get('/odc/{odc}', [OdcController::class, 'show'])->name('odc.show');
+    // Route::get('/odp/{odp}', [OdpController::class, 'show'])->name('odp.show');
+    // Route::post('/odp/{odp}/toggle-jalur', [OdpController::class, 'toggleJalur'])->name('odp.toggle-jalur');
 
     Route::post('/vouchers', [VoucherController::class, 'store'])->name('vouchers.store');
     Route::get('/vouchers/create', [VoucherController::class, 'create'])->name('vouchers.create');

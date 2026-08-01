@@ -4,134 +4,76 @@
 
 @push('styles')
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+    .auth-hero-brand-text h2.auth-brand-name {
+        font-family: 'Space Grotesk', 'Inter', sans-serif;
+        font-size: 2rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        line-height: 1.05;
+        background: linear-gradient(135deg, #ffffff 20%, #93c5fd 90%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        color: #ffffff;
+    }
+    .auth-brand-tag {
+        font-family: 'Space Grotesk', 'Inter', sans-serif;
+        font-size: 0.72rem;
+        font-weight: 500;
+        letter-spacing: 0.24em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.45);
+    }
+    .auth-copyright {
+        position: fixed;
+        bottom: 20px;
+        left: 0;
+        right: 0;
+        z-index: 20;
+        text-align: center;
+        padding: 8px 16px;
+        font-size: 0.72rem;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.55);
+        letter-spacing: 0.02em;
+        text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+    }
+    @media (max-height: 680px) {
+        .auth-shell { overflow-y: auto; }
+        .auth-form-panel { align-items: flex-start; }
+    }
+</style>
 @endpush
 
 @section('content')
-<div class="auth-shell">
-    {{-- Animated Background --}}
+<div class="auth-shell" style="flex-direction:column;">
     <div class="auth-bg"></div>
     <div class="auth-grid"></div>
     <div class="auth-noise"></div>
 
-    {{-- Floating Status Cards --}}
-    <div class="auth-floating" style="top:18%;right:60%;z-index:3;">
-        <div class="auth-float-card" style="animation-delay:0s;">
-            <div class="dot" style="background:#34d399;"></div>
-            <div>
-                <span>System Online</span>
-                <small>99.9% Uptime</small>
+    {{-- Centered Login Card --}}
+    <div class="auth-form-panel" style="flex:1 1 auto;width:100%;max-width:100%;padding:48px 24px;">
+        <div class="auth-form-glass" style="text-align:center;">
+            <div class="auth-hero-brand" style="justify-content:center;margin-bottom:28px;">
+                <span class="logo-chip" style="width:58px;height:58px;border-radius:14px;">
+                    <img src="{{ asset('images/logo-alkonek.gif') }}" alt="ALKONEK">
+                </span>
+                <div class="auth-hero-brand-text" style="text-align:left;">
+                    <h2 class="auth-brand-name">ALKONEKbill</h2>
+                    <span class="auth-brand-tag">ISP Billing Platform</span>
+                </div>
             </div>
-        </div>
-    </div>
-    <div class="auth-floating" style="bottom:22%;right:59%;z-index:3;">
-        <div class="auth-float-card" style="animation-delay:2s;">
-            <i class="fa-solid fa-tower-broadcast" style="color:#60a5fa;font-size:0.85rem;"></i>
-            <div>
-                <span>OLT Active</span>
-                <small>4/4 Ports Online</small>
-            </div>
-        </div>
-    </div>
 
-    {{-- LEFT: Hero Section --}}
-    <div class="auth-hero">
-        <div class="auth-hero-brand">
-            <img src="{{ asset('images/logo.png') }}" alt="RabegNet" class="auth-hero-logo">
-            <div class="auth-hero-brand-text">
-                <h2>RabegNet</h2>
-                <span>ISP Platform</span>
-            </div>
-        </div>
-
-        <h1 class="auth-hero-title">
-            <span class="highlight">RabegNet</span><br>
-            ISP Platform
-        </h1>
-        <p class="auth-hero-desc">
-            Platform terintegrasi untuk mengelola pelanggan, jaringan fiber optik, billing, voucher hotspot, monitoring OLT, MikroTik, pembayaran, dan operasional ISP.
-        </p>
-
-        {{-- Metric Cards --}}
-        <div class="auth-metrics">
-            <div class="auth-metric auth-metric-blue">
-                <div class="auth-metric-icon"><i class="fa-solid fa-users"></i></div>
-                <strong>1,247</strong>
-                <span>Pelanggan Aktif</span>
-            </div>
-            <div class="auth-metric auth-metric-green">
-                <div class="auth-metric-icon"><i class="fa-solid fa-tower-broadcast"></i></div>
-                <strong>4</strong>
-                <span>OLT Online</span>
-            </div>
-            <div class="auth-metric auth-metric-purple">
-                <div class="auth-metric-icon"><i class="fa-solid fa-router"></i></div>
-                <strong>12</strong>
-                <span>Router Active</span>
-            </div>
-            <div class="auth-metric auth-metric-amber">
-                <div class="auth-metric-icon"><i class="fa-solid fa-chart-line"></i></div>
-                <strong>99.8%</strong>
-                <span>Network Uptime</span>
-            </div>
-            <div class="auth-metric auth-metric-cyan">
-                <div class="auth-metric-icon"><i class="fa-solid fa-gauge-high"></i></div>
-                <strong>2.4 Gbps</strong>
-                <span>Bandwidth Hari Ini</span>
-            </div>
-            <div class="auth-metric auth-metric-rose">
-                <div class="auth-metric-icon"><i class="fa-solid fa-id-card"></i></div>
-                <strong>892</strong>
-                <span>Voucher Aktif</span>
-            </div>
-        </div>
-
-        {{-- Network Visualization --}}
-        <div class="auth-network">
-            <div class="auth-network-title">Network Topology</div>
-            <div class="auth-network-flow">
-                <div class="auth-network-node">
-                    <i class="fa-solid fa-globe"></i>
-                    <span>Internet</span>
-                </div>
-                <div class="auth-network-arrow"><i class="fa-solid fa-chevron-right"></i></div>
-                <div class="auth-network-node">
-                    <i class="fa-solid fa-server"></i>
-                    <span>Core Router</span>
-                </div>
-                <div class="auth-network-arrow"><i class="fa-solid fa-chevron-right"></i></div>
-                <div class="auth-network-node">
-                    <i class="fa-solid fa-tower-cell"></i>
-                    <span>OLT</span>
-                </div>
-                <div class="auth-network-arrow"><i class="fa-solid fa-chevron-right"></i></div>
-                <div class="auth-network-node">
-                    <i class="fa-solid fa-diagram-project"></i>
-                    <span>ODC</span>
-                </div>
-                <div class="auth-network-arrow"><i class="fa-solid fa-chevron-right"></i></div>
-                <div class="auth-network-node">
-                    <i class="fa-solid fa-circle-nodes"></i>
-                    <span>ODP</span>
-                </div>
-                <div class="auth-network-arrow"><i class="fa-solid fa-chevron-right"></i></div>
-                <div class="auth-network-node">
-                    <i class="fa-solid fa-house-signal"></i>
-                    <span>Customer</span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    {{-- RIGHT: Form Panel --}}
-    <div class="auth-form-panel">
-        <div class="auth-form-glass">
             <div class="auth-form-header">
-                <h3>Masuk ke RabegNet</h3>
+                <h3>Masuk ke ALKONEKbill</h3>
                 <p>Akses panel billing, pelanggan, voucher, dan monitoring.</p>
             </div>
 
-            <form method="POST" action="{{ route('login') }}" id="loginForm">
+            <form method="POST" action="{{ route('login') }}" id="loginForm" style="text-align:left;">
                 @csrf
 
                 <div class="auth-field">
@@ -144,7 +86,7 @@
                             id="email"
                             class="auth-input @error('email') is-invalid @enderror"
                             value="{{ old('email') }}"
-                            placeholder="admin@rabegnet.id"
+                            placeholder="admin@alkonek.net"
                             required
                             autofocus
                             autocomplete="username"
@@ -191,33 +133,10 @@
                     <span class="btn-text">Masuk</span>
                 </button>
             </form>
-
-            <div class="auth-divider"><span>atau</span></div>
-
-            <div class="auth-social">
-                <a href="{{ route('auth.redirect', 'google') }}" class="auth-social-btn google">
-                    <i class="fa-brands fa-google"></i> Google
-                </a>
-                <a href="{{ route('auth.redirect', 'github') }}" class="auth-social-btn github">
-                    <i class="fa-brands fa-github"></i> GitHub
-                </a>
-            </div>
-
-            <div class="auth-footer-link">
-                Belum punya akun? <a href="{{ route('register') }}">Daftar</a>
-            </div>
         </div>
     </div>
 
-    {{-- Status Bar --}}
-    <div class="auth-status-bar">
-        <div class="auth-status-item"><div class="dot"></div> System Online</div>
-        <div class="auth-status-item">Laravel {{ app()->version() }}</div>
-        <div class="auth-status-item">PHP {{ phpversion() }}</div>
-        <div class="auth-status-item">MySQL</div>
-        <div class="auth-status-item">Fiber Network</div>
-    </div>
-    <div class="auth-copyright">&copy; 2026 RabegNet ISP Billing Platform &middot; Built with Laravel &middot; Powered by Rangga Dev access </div>
+    <div class="auth-copyright">&copy; 2026 PT. Alkonek Network Access. All rights reserved.</div>
 </div>
 @endsection
 

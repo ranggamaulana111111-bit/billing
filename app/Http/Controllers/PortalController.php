@@ -8,6 +8,7 @@ use App\Models\Incident;
 use App\Models\Invoice;
 use App\Models\Setting;
 use App\Models\User;
+use App\Services\FonnteService;
 use App\Services\Payment\PaymentService;
 use Illuminate\Http\Request;
 
@@ -34,16 +35,38 @@ class PortalController extends Controller
 
         $input = trim($request->input('phone'));
 
-        // Cari by ID Pelanggan (172...) atau nomor telepon
+        $customer = null;
+
+        // Cari by ID Pelanggan (172...) atau ID numeric
         if (preg_match('/^172\d{11}$/', $input)) {
             $customer = Customer::allTenants()->where('customer_code', $input)->first();
         } elseif (ctype_digit($input) && strlen($input) < 14) {
             $customer = Customer::allTenants()->find((int) $input);
-        } else {
-            $customer = Customer::allTenants()->where('phone', $input)->first();
+        }
+
+        // Fallback: cari by nomor telepon (normalisasi format 0xx / 62xx / 8xx)
+        if (! $customer) {
+            $canonical = FonnteService::cleanPhone($input);
+
+            if ($canonical !== '') {
+                $customer = Customer::allTenants()
+                    ->where(function ($q) use ($canonical) {
+                        $q->where('phone', $canonical)
+                            ->orWhere('phone', '0'.$canonical)
+                            ->orWhere('phone', '62'.$canonical);
+                    })
+                    ->first();
+            }
         }
 
         if (! $customer) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'found' => false,
+                    'message' => 'Nomor telepon tidak ditemukan.',
+                ], 404);
+            }
+
             return back()->with('error', 'Nomor telepon tidak ditemukan.')->withInput();
         }
 
@@ -66,6 +89,15 @@ class PortalController extends Controller
                 ->whereIn('status', ['open', 'investigating'])
                 ->orderBy('created_at', 'desc')
                 ->get();
+        }
+
+        if ($request->wantsJson()) {
+            $html = view('portal.partials.invoice-modal', compact('customer', 'invoices', 'company', 'midtransConfigured', 'incidents'))->render();
+
+            return response()->json([
+                'found' => true,
+                'html' => $html,
+            ]);
         }
 
         return view('portal.invoices', compact('customer', 'invoices', 'company', 'midtransConfigured', 'incidents'));
@@ -101,7 +133,7 @@ class PortalController extends Controller
         $invoice = Invoice::where('midtrans_order_id', $orderId)->first();
 
         if ($invoice && $invoice->payment_status === 'paid') {
-            return redirect()->route('portal.index')->with('success', 'Pembayaran berhasil! Terima kasih.');
+            return redirect()->route('portal.index')->with('success', 'Pembayaran berhasil! Terima kasih atas kepercayaan dan kesetiaan Anda bersama PT. Alkonek Network Access. Kenyamanan Anda adalah prioritas kami.');
         }
 
         return redirect()->route('portal.index')->with('info', 'Pembayaran sedang diproses.');
