@@ -17,7 +17,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html { font-size: 14px; }
+    html { font-size: 14px; scrollbar-width: none; -ms-overflow-style: none; }
+    html::-webkit-scrollbar { display: none; width: 0; height: 0; }
 
     :root {
         --p-navy: #060b18;
@@ -283,22 +284,19 @@
     .pi-pay-chip:hover { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.15); color: var(--p-text); }
 
     /* Contact */
-    .pi-contact { display: flex; flex-direction: column; gap: 8px; }
+    .pi-contact { display: flex; flex-direction: column; gap: 4px; }
     .pi-contact-row {
-        display: flex; align-items: center; gap: 8px; font-size: 0.68rem; color: var(--p-text-dim);
+        display: flex; flex-direction: column; gap: 1px;
+        background: rgba(255,255,255,0.04); border: 1px solid var(--p-border);
+        border-radius: 6px; padding: 4px 8px;
     }
-    .pi-contact-row i { width: 16px; text-align: center; color: #60a5fa; font-size: 0.72rem; flex-shrink: 0; }
-    .pi-contact-row span { color: rgba(255,255,255,0.65); font-weight: 600; flex-shrink: 0; }
-
-    /* Social */
-    .pi-social { display: flex; gap: 8px; margin-top: 10px; }
-    .pi-social a {
-        width: 30px; height: 30px; border-radius: 9px; display: flex;
-        align-items: center; justify-content: center; border: 1px solid var(--p-border);
-        background: rgba(255,255,255,0.03); color: var(--p-text-dim); font-size: 0.75rem;
-        transition: all 0.3s var(--ease); text-decoration: none;
+    .pi-contact-head {
+        display: flex; align-items: center; gap: 5px;
+        color: rgba(255,255,255,0.7); font-weight: 700; font-size: 0.58rem;
+        letter-spacing: 0.03em; text-transform: uppercase;
     }
-    .pi-social a:hover { background: rgba(37,99,235,0.15); border-color: rgba(37,99,235,0.3); color: #60a5fa; transform: translateY(-2px); }
+    .pi-contact-head i { width: 12px; text-align: center; color: #60a5fa; font-size: 0.64rem; flex-shrink: 0; }
+    .pi-contact-value { color: #fff; font-size: 0.66rem; line-height: 1.45; padding-left: 17px; word-break: break-word; }
 
     /* Divider */
     .pi-divider {
@@ -562,19 +560,19 @@
                 <div class="pi-section">
                     <div class="pi-section-title">Hubungi Kami</div>
                     <div class="pi-contact">
-                        <div class="pi-contact-row"><i class="fa-solid fa-location-dot"></i> <span>Alamat:</span> Kp. Malangnengah RT/RW 004/001 Desa Bendungan Kec. Banjarsari Kab. Lebak-Banten</div>
-                        <div class="pi-contact-row"><i class="fa-brands fa-whatsapp"></i> <span>No. WA:</span> 089531559066</div>
-                        <div class="pi-contact-row"><i class="fa-solid fa-envelope"></i> <span>email:</span> alkoneknetworkaccess@gmail.com</div>
+                        <div class="pi-contact-row">
+                            <div class="pi-contact-head"><i class="fa-solid fa-location-dot"></i> Alamat:</div>
+                            <div class="pi-contact-value">Kp. Malangnengah RT/RW 004/001 Desa Bendungan Kec. Banjarsari Kab. Lebak-Banten</div>
+                        </div>
+                        <div class="pi-contact-row">
+                            <div class="pi-contact-head"><i class="fa-brands fa-whatsapp"></i> No. WA:</div>
+                            <div class="pi-contact-value">089531559066</div>
+                        </div>
+                        <div class="pi-contact-row">
+                            <div class="pi-contact-head"><i class="fa-solid fa-envelope"></i> Email:</div>
+                            <div class="pi-contact-value">alkoneknetworkaccess@gmail.com</div>
+                        </div>
                     </div>
-                </div>
-
-                {{-- Social --}}
-                <div class="pi-social">
-                    <a href="#" title="Facebook"><i class="fa-brands fa-facebook-f"></i></a>
-                    <a href="#" title="Instagram"><i class="fa-brands fa-instagram"></i></a>
-                    <a href="#" title="TikTok"><i class="fa-brands fa-tiktok"></i></a>
-                    <a href="#" title="YouTube"><i class="fa-brands fa-youtube"></i></a>
-                    <a href="#" title="LinkedIn"><i class="fa-brands fa-linkedin-in"></i></a>
                 </div>
 
             </div>
