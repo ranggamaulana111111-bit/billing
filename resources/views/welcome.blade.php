@@ -109,6 +109,23 @@
     .landing-shell .feature-card h5 { font-size: 1.05rem; }
     .landing-shell .feature-card p { font-size: 0.8rem; line-height: 1.6; }
 
+    /* ── Full-screen: escape layout wrapper constraints ── */
+    #content:has(.landing-shell) {
+        padding: 0 !important;
+        max-width: none !important;
+        width: 100% !important;
+    }
+    .wrapper:has(.landing-shell) {
+        display: block !important;
+    }
+    body:has(.landing-shell) {
+        background: #07111f !important;
+    }
+    .landing-shell {
+        margin: 0 !important;
+        overflow-x: hidden;
+    }
+
     /* ── Package cards with layered background ── */
     .pkg-card { position: relative; overflow: hidden; border-radius: 20px; }
     .pkg-lite { background: linear-gradient(165deg, rgba(37,99,235,0.55) 0%, rgba(15,23,42,0.90) 55%, rgba(7,17,31,0.95) 100%); border-color: rgba(96,165,250,0.40); }

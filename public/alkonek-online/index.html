@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ALKONEK — PT. Alkonek Network Access</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+        body {
+            background: #050810;
+            color: #e2e8f0;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .scanlines::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(96,165,250,0.01) 2px, rgba(96,165,250,0.01) 4px);
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        .grid-bg {
+            background-image:
+                linear-gradient(rgba(96,165,250,0.025) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(96,165,250,0.025) 1px, transparent 1px);
+            background-size: 60px 60px;
+        }
+
+        .glow-border { box-shadow: 0 0 15px rgba(96,165,250,0.1), inset 0 0 15px rgba(96,165,250,0.03); }
+        .glow-border-strong { box-shadow: 0 0 25px rgba(96,165,250,0.18), inset 0 0 25px rgba(96,165,250,0.05); }
+        .glow-blue { text-shadow: 0 0 20px rgba(96,165,250,0.5), 0 0 40px rgba(96,165,250,0.15); }
+
+        .glass-card {
+            background: rgba(10,14,26,0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(96,165,250,0.1);
+            transition: all 0.4s cubic-bezier(0.4,0,0.2,1);
+        }
+        .glass-card:hover {
+            border-color: rgba(96,165,250,0.3);
+            box-shadow: 0 0 30px rgba(96,165,250,0.08), inset 0 0 30px rgba(96,165,250,0.02);
+            transform: translateY(-4px);
+        }
+
+        .cursor-blink::after {
+            content: '█';
+            animation: blink 1s step-end infinite;
+            color: #60a5fa;
+        }
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+        .data-stream {
+            position: absolute;
+            width: 1px;
+            height: 100%;
+            background: linear-gradient(to bottom, transparent, rgba(96,165,250,0.2), transparent);
+            animation: stream 4s linear infinite;
+        }
+        @keyframes stream { 0%{transform:translateY(-100%)} 100%{transform:translateY(100vh)} }
+
+        .fade-up { opacity:0; transform:translateY(30px); transition:all 0.8s cubic-bezier(0.4,0,0.2,1); }
+        .fade-up.visible { opacity:1; transform:translateY(0); }
+
+        .h-line { height:1px; background:linear-gradient(to right, transparent, rgba(96,165,250,0.3), transparent); }
+
+        .popular-badge { background:linear-gradient(135deg,#34d399,#10b981); color:#050810; }
+
+        .cta-btn {
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(135deg, rgba(96,165,250,0.1), rgba(96,165,250,0.03));
+            border: 1px solid rgba(96,165,250,0.3);
+            transition: all 0.3s ease;
+        }
+        .cta-btn::before {
+            content: '';
+            position: absolute;
+            top:0; left:-100%; width:100%; height:100%;
+            background: linear-gradient(90deg, transparent, rgba(96,165,250,0.1), transparent);
+            transition: left 0.5s ease;
+        }
+        .cta-btn:hover::before { left:100%; }
+        .cta-btn:hover { border-color:rgba(96,165,250,0.6); box-shadow:0 0 25px rgba(96,165,250,0.12); }
+
+        .cta-solid {
+            background: linear-gradient(135deg, #60a5fa, #3b82f6);
+            color: #050810;
+            font-weight: 700;
+            transition: all 0.3s ease;
+        }
+        .cta-solid:hover { box-shadow:0 0 35px rgba(96,165,250,0.35); transform:translateY(-2px); }
+
+        .cta-tagihan {
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(135deg, rgba(52,211,153,0.1), rgba(52,211,153,0.03));
+            border: 1px solid rgba(52,211,153,0.3);
+            transition: all 0.3s ease;
+        }
+        .cta-tagihan::before {
+            content: '';
+            position: absolute;
+            top:0; left:-100%; width:100%; height:100%;
+            background: linear-gradient(90deg, transparent, rgba(52,211,153,0.08), transparent);
+            transition: left 0.5s ease;
+        }
+        .cta-tagihan:hover::before { left:100%; }
+        .cta-tagihan:hover { border-color:rgba(52,211,153,0.6); box-shadow:0 0 25px rgba(52,211,153,0.1); }
+
+        .nav-link { position: relative; }
+        .nav-link::after {
+            content:''; position:absolute; bottom:-4px; left:0; right:0; height:1px;
+            background:#60a5fa; transform:scaleX(0); transition:transform 0.3s ease;
+        }
+        .nav-link:hover::after { transform:scaleX(1); }
+
+        #networkCanvas { position:absolute; top:0; left:0; width:100%; height:100%; }
+
+        .noise::before {
+            content:''; position:fixed; inset:0; opacity:0.03;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+            pointer-events:none; z-index:9998;
+        }
+
+        .speed-bar { background:linear-gradient(to right,#60a5fa,#34d399); border-radius:2px; height:4px; transition:width 1.5s cubic-bezier(0.4,0,0.2,1); }
+
+        @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+        .float-anim { animation:float 4s ease-in-out infinite; }
+
+        @keyframes slideIn { from{opacity:0;transform:translateX(-20px)} to{opacity:1;transform:translateX(0)} }
+
+        .counter { font-variant-numeric:tabular-nums; }
+
+        ::-webkit-scrollbar { width:6px; }
+        ::-webkit-scrollbar-track { background:#050810; }
+        ::-webkit-scrollbar-thumb { background:rgba(96,165,250,0.2); border-radius:3px; }
+        ::-webkit-scrollbar-thumb:hover { background:rgba(96,165,250,0.35); }
+
+        .pkg-blue { color: #60a5fa; }
+        .pkg-green { color: #34d399; }
+        .pkg-purple { color: #c084fc; }
+
+        @media (max-width: 640px) {
+            .glass-card:hover { transform: translateY(-2px); }
+        }
+    </style>
+</head>
+<body class="scanlines noise grid-bg">
+
+    <div class="data-stream hidden sm:block" style="left:10%;animation-delay:0s;animation-duration:4.5s;"></div>
+    <div class="data-stream hidden md:block" style="left:30%;animation-delay:1.5s;animation-duration:3.8s;"></div>
+    <div class="data-stream hidden md:block" style="left:70%;animation-delay:0.8s;animation-duration:5s;"></div>
+    <div class="data-stream hidden sm:block" style="left:90%;animation-delay:2.2s;animation-duration:4.2s;"></div>
+
+    <!-- Navigation -->
+    <nav id="navbar" class="fixed top-0 left-0 right-0 z-50 transition-[background-color] duration-300">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16 sm:h-20">
+                <a href="#" class="flex items-center gap-2.5 sm:gap-3 group flex-shrink-0">
+                    <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg border border-cyan-400/30 flex items-center justify-center bg-cyan-400/5 group-hover:border-cyan-400/60 group-hover:bg-cyan-400/10 transition-all duration-300 overflow-hidden">
+                        <img src="img/logo2.gif" alt="ALKONEK Logo" class="w-full h-full object-cover">
+                    </div>
+                    <div>
+                        <span class="text-base sm:text-lg font-bold tracking-wider text-white">ALKONEK</span>
+                        <span class="hidden sm:block text-[9px] font-mono text-blue-400/50 tracking-[0.2em] -mt-1">NETWORK ACCESS</span>
+                    </div>
+                </a>
+
+                <div class="hidden md:flex items-center gap-7 lg:gap-8">
+                    <a href="#layanan" class="nav-link text-sm text-slate-400 hover:text-blue-400 transition-colors">Layanan</a>
+                    <a href="#keunggulan" class="nav-link text-sm text-slate-400 hover:text-blue-400 transition-colors">Keunggulan</a>
+                    <a href="#paket" class="nav-link text-sm text-slate-400 hover:text-blue-400 transition-colors">Paket</a>
+                    <a href="#kontak" class="nav-link text-sm text-slate-400 hover:text-blue-400 transition-colors">Kontak</a>
+                </div>
+
+                <div class="flex items-center gap-2 sm:gap-3">
+                    <a href="https://billing.alkonek.online/portal" target="_blank" class="hidden sm:inline-flex cta-tagihan items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-medium text-emerald-400">
+                        <i data-lucide="receipt" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i>
+                        <span>Cek Tagihan</span>
+                    </a>
+                    <button id="mobileMenuBtn" class="md:hidden w-10 h-10 flex items-center justify-center rounded-lg border border-blue-400/20 text-blue-400">
+                        <i data-lucide="menu" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="mobileMenu" class="md:hidden hidden border-t border-blue-400/10" style="background:rgba(10,14,26,0.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);">
+            <div class="px-5 py-5 space-y-1">
+                <a href="#layanan" class="block text-sm text-slate-400 hover:text-blue-400 transition-colors py-2.5 px-2 rounded-lg hover:bg-white/5">Layanan</a>
+                <a href="#keunggulan" class="block text-sm text-slate-400 hover:text-blue-400 transition-colors py-2.5 px-2 rounded-lg hover:bg-white/5">Keunggulan</a>
+                <a href="#paket" class="block text-sm text-slate-400 hover:text-blue-400 transition-colors py-2.5 px-2 rounded-lg hover:bg-white/5">Paket</a>
+                <a href="#kontak" class="block text-sm text-slate-400 hover:text-blue-400 transition-colors py-2.5 px-2 rounded-lg hover:bg-white/5">Kontak</a>
+                <div class="pt-3 mt-2 border-t border-blue-400/10">
+                    <a href="https://billing.alkonek.online/portal" target="_blank" class="flex items-center gap-2 cta-tagihan px-4 py-2.5 rounded-lg text-sm font-medium text-emerald-400 w-fit">
+                        <i data-lucide="receipt" class="w-4 h-4"></i>
+                        Cek Tagihan Pelanggan
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero -->
+    <section class="relative min-h-screen flex items-center overflow-hidden">
+        <canvas id="networkCanvas"></canvas>
+        <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,#050810_70%)]"></div>
+        <div class="absolute top-1/4 left-1/4 w-64 sm:w-96 h-64 sm:h-96 bg-blue-400/5 rounded-full blur-[100px] sm:blur-[120px]"></div>
+        <div class="absolute bottom-1/4 right-1/4 w-48 sm:w-72 h-48 sm:h-72 bg-blue-600/5 rounded-full blur-[80px] sm:blur-[100px]"></div>
+
+        <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 sm:pt-32 pb-16 sm:pb-20 w-full">
+            <div class="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+                <div>
+                    <div class="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-full border border-blue-400/20 bg-blue-400/5 mb-6 sm:mb-8">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse flex-shrink-0"></span>
+                        <span class="text-[9px] sm:text-[10px] font-mono text-blue-400/80">SYSTEM ONLINE — ALL NODES ACTIVE</span>
+                    </div>
+
+                    <h1 class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-extrabold leading-[1.08] tracking-tight mb-5 sm:mb-6">
+                        <span class="text-white">Internet</span><br>
+                        <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-blue-300 to-blue-500 glow-blue">Tanpa Batas</span><br>
+                        <span class="text-white">Tanpa Kompromi</span>
+                    </h1>
+
+                    <div class="h-7 sm:h-8 mb-5 sm:mb-6">
+                        <p id="typingText" class="font-mono text-[11px] sm:text-sm text-slate-500 cursor-blink"></p>
+                    </div>
+
+                    <p class="text-sm sm:text-base lg:text-lg text-slate-400 leading-relaxed max-w-lg mb-8 sm:mb-10">
+                        Koneksi full fiber optik dengan jaminan keamanan dan kenyamanan. Dibangun untuk mereka yang membutuhkan koneksi yang <span class="text-blue-400">selalu on</span>.
+                    </p>
+
+                    <div class="flex flex-wrap gap-3 sm:gap-4">
+                        <a href="https://alkonek.online" target="_blank" class="cta-solid px-6 sm:px-8 py-3 sm:py-3.5 rounded-xl text-xs sm:text-sm tracking-wide inline-flex items-center gap-2">
+                            <i data-lucide="rocket" class="w-4 h-4"></i>
+                            Mulai Sekarang
+                        </a>
+                        <a href="#paket" class="cta-btn px-6 sm:px-8 py-3 sm:py-3.5 rounded-xl text-xs sm:text-sm text-blue-400 font-medium inline-flex items-center gap-2">
+                            <i data-lucide="package" class="w-4 h-4"></i>
+                            Lihat Paket
+                        </a>
+                    </div>
+
+                    <div class="flex gap-8 sm:gap-10 mt-10 sm:mt-12 pt-6 sm:pt-8 border-t border-blue-400/10">
+                        <div>
+                            <div class="text-xl sm:text-2xl font-bold text-white counter" data-target="99.9">0</div>
+                            <div class="text-[10px] sm:text-xs text-slate-500 font-mono mt-1">% UPTIME</div>
+                        </div>
+                        <div>
+                            <div class="text-xl sm:text-2xl font-bold text-white">24/7</div>
+                            <div class="text-[10px] sm:text-xs text-slate-500 font-mono mt-1">SUPPORT</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="hidden lg:block lg:-mt-32">
+                    <div class="glass-card rounded-2xl overflow-hidden glow-border float-anim">
+                        <div class="flex items-center gap-2 px-5 py-3 border-b border-blue-400/10 bg-blue-400/5">
+                            <div class="w-3 h-3 rounded-full bg-red-500/60"></div>
+                            <div class="w-3 h-3 rounded-full bg-yellow-500/60"></div>
+                            <div class="w-3 h-3 rounded-full bg-emerald-500/60"></div>
+                            <span class="ml-3 text-xs font-mono text-slate-500">alkonek@core-router ~ network_status</span>
+                        </div>
+                        <div class="p-5 font-mono text-xs leading-6 space-y-1" id="terminalBody"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="absolute bottom-6 sm:bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 animate-bounce">
+            <span class="text-[9px] sm:text-[10px] font-mono text-slate-600 tracking-widest">SCROLL</span>
+            <i data-lucide="chevron-down" class="w-4 h-4 text-blue-400/40"></i>
+        </div>
+    </section>
+
+    <div class="h-line max-w-4xl mx-auto"></div>
+
+    <!-- Layanan -->
+    <section id="layanan" class="py-16 sm:py-20 lg:py-32 relative">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12 sm:mb-16 fade-up">
+                <span class="text-[10px] sm:text-xs font-mono text-blue-400/60 tracking-[0.2em] sm:tracking-[0.3em] uppercase">// Services</span>
+                <h2 class="text-2xl sm:text-3xl lg:text-5xl font-bold text-white mt-3 tracking-tight">Infrastruktur <span class="text-blue-400">Yang Bicara</span></h2>
+                <p class="text-sm sm:text-base text-slate-500 mt-3 sm:mt-4 max-w-xl mx-auto px-4">Bukan sekadar koneksi internet. Ini adalah fondasi digital yang kami bangun dengan mengikuti Standar Nasional.</p>
+            </div>
+
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
+                <div class="glass-card rounded-xl sm:rounded-2xl p-4 sm:p-7 fade-up group" style="transition-delay:0.1s;">
+                    <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl border border-blue-400/20 flex items-center justify-center bg-blue-400/5 mb-3 sm:mb-5 group-hover:border-blue-400/50 group-hover:bg-blue-400/10 transition-all duration-300">
+                        <i data-lucide="cable" class="w-5 h-5 sm:w-6 sm:h-6 text-blue-400"></i>
+                    </div>
+                    <h3 class="text-white font-semibold text-sm sm:text-lg mb-1.5 sm:mb-2">Full Fiber Optik</h3>
+                    <p class="text-xs sm:text-sm text-slate-500 leading-relaxed">100% jaringan fiber optik dari backbone hingga ke rumah pelanggan.</p>
+                    <div class="mt-4 sm:mt-5 pt-3 sm:pt-4 border-t border-blue-400/5">
+                        <div class="flex items-center gap-2 text-[10px] sm:text-xs font-mono text-blue-400/50">
+                            <span class="w-1.5 h-1.5 rounded-full bg-blue-400/50 flex-shrink-0"></span>
+                            FTTH (Fiber to the Home)
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card rounded-xl sm:rounded-2xl p-4 sm:p-7 fade-up group" style="transition-delay:0.2s;">
+                    <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl border border-blue-400/20 flex items-center justify-center bg-blue-400/5 mb-3 sm:mb-5 group-hover:border-blue-400/50 group-hover:bg-blue-400/10 transition-all duration-300">
+                        <i data-lucide="shield-check" class="w-5 h-5 sm:w-6 sm:h-6 text-blue-400"></i>
+                    </div>
+                    <h3 class="text-white font-semibold text-sm sm:text-lg mb-1.5 sm:mb-2">Keamanan Jaringan</h3>
+                    <p class="text-xs sm:text-sm text-slate-500 leading-relaxed">Firewall termanaged, monitoring 24 jam, dan isolasi pelanggan.</p>
+                    <div class="mt-4 sm:mt-5 pt-3 sm:pt-4 border-t border-blue-400/5">
+                        <div class="flex items-center gap-2 text-[10px] sm:text-xs font-mono text-blue-400/50">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400/70 flex-shrink-0"></span>
+                            Threat Detection Active
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card rounded-xl sm:rounded-2xl p-4 sm:p-7 fade-up group" style="transition-delay:0.3s;">
+                    <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl border border-blue-400/20 flex items-center justify-center bg-blue-400/5 mb-3 sm:mb-5 group-hover:border-blue-400/50 group-hover:bg-blue-400/10 transition-all duration-300">
+                        <i data-lucide="gauge" class="w-5 h-5 sm:w-6 sm:h-6 text-blue-400"></i>
+                    </div>
+                    <h3 class="text-white font-semibold text-sm sm:text-lg mb-1.5 sm:mb-2">Stabil & Simetris</h3>
+                    <p class="text-xs sm:text-sm text-slate-500 leading-relaxed">Bandwidth simetris 1:1. Latensi rendah untuk gaming & video call.</p>
+                    <div class="mt-4 sm:mt-5 pt-3 sm:pt-4 border-t border-blue-400/5">
+                        <div class="flex items-center gap-2 text-[10px] sm:text-xs font-mono text-blue-400/50">
+                            <span class="w-1.5 h-1.5 rounded-full bg-blue-400/50 flex-shrink-0"></span>
+                            Latency &lt; 5ms
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card rounded-xl sm:rounded-2xl p-4 sm:p-7 fade-up group col-span-2 lg:col-span-1" style="transition-delay:0.4s;">
+                    <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl border border-blue-400/20 flex items-center justify-center bg-blue-400/5 mb-3 sm:mb-5 group-hover:border-blue-400/50 group-hover:bg-blue-400/10 transition-all duration-300">
+                        <i data-lucide="headset" class="w-5 h-5 sm:w-6 sm:h-6 text-blue-400"></i>
+                    </div>
+                    <h3 class="text-white font-semibold text-sm sm:text-lg mb-1.5 sm:mb-2">Support 24/7</h3>
+                    <p class="text-xs sm:text-sm text-slate-500 leading-relaxed">Tim teknis siaga sepanjang waktu. Respon cepat via WhatsApp & telepon.</p>
+                    <div class="mt-4 sm:mt-5 pt-3 sm:pt-4 border-t border-blue-400/5">
+                        <div class="flex items-center gap-2 text-[10px] sm:text-xs font-mono text-blue-400/50">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400/70 flex-shrink-0"></span>
+                            Avg Response: 15 min
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="h-line max-w-4xl mx-auto"></div>
+
+    <!-- Keunggulan -->
+    <section id="keunggulan" class="py-16 sm:py-20 lg:py-32 relative">
+        <div class="absolute top-0 right-0 w-60 sm:w-80 h-60 sm:h-80 bg-blue-400/3 rounded-full blur-[120px] sm:blur-[150px]"></div>
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+            <div class="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+                <div class="fade-up order-2 lg:order-1">
+                    <div class="glass-card rounded-2xl p-5 sm:p-8 glow-border">
+                        <div class="flex items-center justify-between mb-5 sm:mb-6">
+                            <span class="text-[10px] sm:text-xs font-mono text-slate-500">NETWORK BENCHMARK</span>
+                            <span class="text-[10px] sm:text-xs font-mono text-emerald-400 flex items-center gap-1">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                                LIVE
+                            </span>
+                        </div>
+                        <div class="space-y-5 sm:space-y-6">
+                            <div>
+                                <div class="flex justify-between mb-2">
+                                    <span class="text-xs sm:text-sm text-slate-400 flex items-center gap-2">
+                                        <i data-lucide="arrow-down" class="w-3.5 h-3.5 text-blue-400 flex-shrink-0"></i>Download
+                                    </span>
+                                    <span class="text-xs sm:text-sm font-mono text-white" id="dlSpeed">0 Mbps</span>
+                                </div>
+                                <div class="w-full h-1 bg-blue-400/10 rounded-full overflow-hidden">
+                                    <div class="speed-bar" id="dlBar" style="width:0%"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex justify-between mb-2">
+                                    <span class="text-xs sm:text-sm text-slate-400 flex items-center gap-2">
+                                        <i data-lucide="arrow-up" class="w-3.5 h-3.5 text-blue-400 flex-shrink-0"></i>Upload
+                                    </span>
+                                    <span class="text-xs sm:text-sm font-mono text-white" id="ulSpeed">0 Mbps</span>
+                                </div>
+                                <div class="w-full h-1 bg-blue-400/10 rounded-full overflow-hidden">
+                                    <div class="speed-bar" id="ulBar" style="width:0%"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex justify-between mb-2">
+                                    <span class="text-xs sm:text-sm text-slate-400 flex items-center gap-2">
+                                        <i data-lucide="activity" class="w-3.5 h-3.5 text-blue-400 flex-shrink-0"></i>Latency
+                                    </span>
+                                    <span class="text-xs sm:text-sm font-mono text-white" id="pingVal">0 ms</span>
+                                </div>
+                                <div class="w-full h-1 bg-blue-400/10 rounded-full overflow-hidden">
+                                    <div class="speed-bar" id="pingBar" style="width:0%"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex justify-between mb-2">
+                                    <span class="text-xs sm:text-sm text-slate-400 flex items-center gap-2">
+                                        <i data-lucide="waves" class="w-3.5 h-3.5 text-blue-400 flex-shrink-0"></i>Jitter
+                                    </span>
+                                    <span class="text-xs sm:text-sm font-mono text-white" id="jitterVal">0 ms</span>
+                                </div>
+                                <div class="w-full h-1 bg-blue-400/10 rounded-full overflow-hidden">
+                                    <div class="speed-bar" id="jitterBar" style="width:0%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-6 sm:mt-8 pt-5 sm:pt-6 border-t border-blue-400/10 grid grid-cols-3 gap-3 sm:gap-4">
+                            <div class="text-center">
+                                <div class="text-base sm:text-lg font-bold text-white font-mono">GPON</div>
+                                <div class="text-[8px] sm:text-[10px] text-slate-600 font-mono mt-1">TECHNOLOGY</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-base sm:text-lg font-bold text-white font-mono">1:1</div>
+                                <div class="text-[8px] sm:text-[10px] text-slate-600 font-mono mt-1">RATIO</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-base sm:text-lg font-bold text-white font-mono">OLT</div>
+                                <div class="text-[8px] sm:text-[10px] text-slate-600 font-mono mt-1">BACKBONE</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="order-1 lg:order-2 fade-up" style="transition-delay:0.2s;">
+                    <span class="text-[10px] sm:text-xs font-mono text-blue-400/60 tracking-[0.2em] sm:tracking-[0.3em] uppercase">// Why Alkonek</span>
+                    <h2 class="text-2xl sm:text-3xl lg:text-5xl font-bold text-white mt-3 tracking-tight mb-5 sm:mb-6">Bukan ISP Biasa</h2>
+                    <p class="text-sm sm:text-base text-slate-400 leading-relaxed mb-7 sm:mb-8">Kami membangun infrastruktur dengan standar telco. Setiap node dimonitor real-time, setiap koneksi dijaga ketat.</p>
+
+                    <div class="space-y-4 sm:space-y-5">
+                        <div class="flex gap-3 sm:gap-4 items-start">
+                            <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg border border-blue-400/20 flex items-center justify-center flex-shrink-0 mt-0.5 bg-blue-400/5">
+                                <i data-lucide="check" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-400"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-white font-medium text-sm sm:text-base mb-1">Monitoring Real-Time 24 Jam</h4>
+                                <p class="text-xs sm:text-sm text-slate-500">Sistem NOC memantau seluruh jaringan. Gangguan terdeteksi sebelum pelanggan merasakannya.</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-3 sm:gap-4 items-start">
+                            <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg border border-blue-400/20 flex items-center justify-center flex-shrink-0 mt-0.5 bg-blue-400/5">
+                                <i data-lucide="check" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-400"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-white font-medium text-sm sm:text-base mb-1">Billing System Terintegrasi</h4>
+                                <p class="text-xs sm:text-sm text-slate-500">Portal pelanggan mandiri untuk cek kuota, pembayaran otomatis, dan riwayat pemakaian.</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-3 sm:gap-4 items-start">
+                            <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg border border-blue-400/20 flex items-center justify-center flex-shrink-0 mt-0.5 bg-blue-400/5">
+                                <i data-lucide="check" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-400"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-white font-medium text-sm sm:text-base mb-1">Redundansi Multi-Path</h4>
+                                <p class="text-xs sm:text-sm text-slate-500">Jalur backup otomatis memastikan koneksi tetap hidup meski ada gangguan di satu jalur.</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-3 sm:gap-4 items-start">
+                            <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg border border-blue-400/20 flex items-center justify-center flex-shrink-0 mt-0.5 bg-blue-400/5">
+                                <i data-lucide="check" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-400"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-white font-medium text-sm sm:text-base mb-1">Instalasi Cepat & Rapi</h4>
+                                <p class="text-xs sm:text-sm text-slate-500">Teknisi berpengalaman dengan standar penarikan kabel yang rapi dan profesional.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="h-line max-w-4xl mx-auto"></div>
+
+    <!-- Paket -->
+    <section id="paket" class="py-16 sm:py-20 lg:py-32 relative">
+        <div class="absolute bottom-0 left-0 w-64 sm:w-96 h-64 sm:h-96 bg-purple-400/3 rounded-full blur-[120px] sm:blur-[150px]"></div>
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+            <div class="text-center mb-12 sm:mb-16 fade-up">
+                <span class="text-[10px] sm:text-xs font-mono text-blue-400/60 tracking-[0.2em] sm:tracking-[0.3em] uppercase">// Pricing Plans</span>
+                <h2 class="text-2xl sm:text-3xl lg:text-5xl font-bold text-white mt-3 tracking-tight">Nikmati <span class="text-blue-400">Akses Cepat</span> Tanpa Batas</h2>
+                <p class="text-sm sm:text-base text-slate-500 mt-3 sm:mt-4 max-w-xl mx-auto px-4">Pilih paket yang sesuai dengan kebutuhan internet Anda. Transparan, tanpa biaya tersembunyi.</p>
+            </div>
+
+            <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 max-w-5xl mx-auto">
+                <!-- 10 Mbps — Blue -->
+                <div class="glass-card rounded-xl sm:rounded-2xl p-5 sm:p-7 fade-up flex flex-col" style="transition-delay:0.1s;">
+                    <div class="mb-5 sm:mb-6">
+                        <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl border border-blue-400/15 flex items-center justify-center bg-blue-400/5 mb-4">
+                            <i data-lucide="wifi" class="w-6 h-6 sm:w-7 sm:h-7 pkg-blue"></i>
+                        </div>
+                        <span class="text-[10px] sm:text-xs font-mono text-slate-600 tracking-wider">LITE</span>
+                        <div class="flex items-baseline gap-1 mt-2">
+                            <span class="text-3xl sm:text-4xl font-bold text-white">10</span>
+                            <span class="text-xs sm:text-sm text-slate-500 font-mono">Mbps</span>
+                        </div>
+                        <div class="mt-3">
+                            <span class="text-xl sm:text-2xl font-bold text-white" style="letter-spacing:-0.04em;">Rp150.000</span>
+                            <span class="text-[10px] sm:text-xs text-slate-600 font-mono">/bulan</span>
+                        </div>
+                    </div>
+                    <div class="h-line mb-5 sm:mb-6"></div>
+                    <ul class="space-y-2.5 sm:space-y-3 flex-1">
+                        <li class="flex items-center gap-2 sm:gap-2.5 text-xs sm:text-sm text-slate-400">
+                            <i data-lucide="check-circle-2" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-400/60 flex-shrink-0"></i>
+                            Bandwidth simetris 1:1
+                        </li>
+                        <li class="flex items-center gap-2 sm:gap-2.5 text-xs sm:text-sm text-slate-400">
+                            <i data-lucide="check-circle-2" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-400/60 flex-shrink-0"></i>
+                            Full Fiber Optik
+                        </li>
+                        <li class="flex items-center gap-2 sm:gap-2.5 text-xs sm:text-sm text-slate-400">
+                            <i data-lucide="check-circle-2" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-400/60 flex-shrink-0"></i>
+                            Gratis ONT/Router
+                        </li>
+                        <li class="flex items-center gap-2 sm:gap-2.5 text-xs sm:text-sm text-slate-400">
+                            <i data-lucide="check-circle-2" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-400/60 flex-shrink-0"></i>
+                            Support 24/7
+                        </li>
+                        <li class="flex items-center gap-2 sm:gap-2.5 text-xs sm:text-sm text-slate-400">
+                            <i data-lucide="check-circle-2" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-400/60 flex-shrink-0"></i>
+                            Akses Portal Pelanggan
+                        </li>
+                    </ul>
+                    <a href="https://alkonek.online" target="_blank" class="cta-btn w-full mt-6 sm:mt-8 py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-medium text-blue-400 flex items-center justify-center gap-2">
+                        Berlangganan
+                        <i data-lucide="arrow-right" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i>
+                    </a>
+                </div>
+
+                <!-- 15 Mbps — Green — Popular -->
+                <div class="glass-card rounded-xl sm:rounded-2xl p-5 sm:p-7 fade-up flex flex-col relative glow-border-strong sm:col-span-2 lg:col-span-1" style="transition-delay:0.2s;">
+                    <div class="absolute -top-3 left-1/2 -translate-x-1/2 popular-badge px-3 sm:px-4 py-1 rounded-full text-[9px] sm:text-[10px] font-bold tracking-wider">
+                        POPULER
+                    </div>
+                    <div class="mb-5 sm:mb-6">
+                        <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl border border-emerald-400/15 flex items-center justify-center bg-emerald-400/5 mb-4">
+                            <i data-lucide="signal" class="w-6 h-6 sm:w-7 sm:h-7 pkg-green"></i>
+                        </div>
+                        <span class="text-[10px] sm:text-xs font-mono text-emerald-400/60 tracking-wider">PRO</span>
+                        <div class="flex items-baseline gap-1 mt-2">
+                            <span class="text-3xl sm:text-4xl font-bold text-white">15</span>
+                            <span class="text-xs sm:text-sm text-slate-500 font-mono">Mbps</span>
+                        </div>
+                        <div class="mt-3">
+                            <span class="text-xl sm:text-2xl font-bold text-white" style="letter-spacing:-0.04em;">Rp200.000</span>
+                            <span class="text-[10px] sm:text-xs text-slate-600 font-mono">/bulan</span>
+                        </div>
+                    </div>
+                    <div class="h-line mb-5 sm:mb-6"></div>
+                    <ul class="space-y-2.5 sm:space-y-3 flex-1">
+                        <li class="flex items-center gap-2 sm:gap-2.5 text-xs sm:text-sm text-slate-300">
+                            <i data-lucide="check-circle-2" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400 flex-shrink-0"></i>
+                            Bandwidth simetris 1:1
+                        </li>
+                        <li class="flex items-center gap-2 sm:gap-2.5 text-xs sm:text-sm text-slate-300">
+                            <i data-lucide="check-circle-2" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400 flex-shrink-0"></i>
+                            Full Fiber Optik
+                        </li>
+                        <li class="flex items-center gap-2 sm:gap-2.5 text-xs sm:text-sm text-slate-300">
+                            <i data-lucide="check-circle-2" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400 flex-shrink-0"></i>
+                            Gratis ONT/Router
+                        </li>
+                        <li class="flex items-center gap-2 sm:gap-2.5 text-xs sm:text-sm text-slate-300">
+                            <i data-lucide="check-circle-2" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400 flex-shrink-0"></i>
+                            Priority Support
+                        </li>
+                        <li class="flex items-center gap-2 sm:gap-2.5 text-xs sm:text-sm text-slate-300">
+                            <i data-lucide="check-circle-2" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400 flex-shrink-0"></i>
+                            Akses Portal Pelanggan
+                        </li>
+                    </ul>
+                    <a href="https://alkonek.online" target="_blank" class="cta-solid w-full mt-6 sm:mt-8 py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2">
+                        Berlangganan
+                        <i data-lucide="arrow-right" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i>
+                    </a>
+                </div>
+
+                <!-- 20 Mbps — Purple -->
+                <div class="glass-card rounded-xl sm:rounded-2xl p-5 sm:p-7 fade-up flex flex-col sm:col-span-2 lg:col-span-1" style="transition-delay:0.3s;">
+                    <div class="mb-5 sm:mb-6">
+                        <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl border border-purple-400/15 flex items-center justify-center bg-purple-400/5 mb-4">
+                            <i data-lucide="radio-tower" class="w-6 h-6 sm:w-7 sm:h-7 pkg-purple"></i>
+                        </div>
+                        <span class="text-[10px] sm:text-xs font-mono text-purple-400/60 tracking-wider">VIP</span>
+                        <div class="flex items-baseline gap-1 mt-2">
+                            <span class="text-3xl sm:text-4xl font-bold text-white">20</span>
+                            <span class="text-xs sm:text-sm text-slate-500 font-mono">Mbps</span>
+                        </div>
+                        <div class="mt-3">
+                            <span class="text-xl sm:text-2xl font-bold text-white" style="letter-spacing:-0.04em;">Rp250.000</span>
+                            <span class="text-[10px] sm:text-xs text-slate-600 font-mono">/bulan</span>
+                        </div>
+                    </div>
+                    <div class="h-line mb-5 sm:mb-6"></div>
+                    <ul class="space-y-2.5 sm:space-y-3 flex-1">
+                        <li class="flex items-center gap-2 sm:gap-2.5 text-xs sm:text-sm text-slate-400">
+                            <i data-lucide="check-circle-2" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-400/60 flex-shrink-0"></i>
+                            Bandwidth simetris 1:1
+                        </li>
+                        <li class="flex items-center gap-2 sm:gap-2.5 text-xs sm:text-sm text-slate-400">
+                            <i data-lucide="check-circle-2" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-400/60 flex-shrink-0"></i>
+                            Full Fiber Optik
+                        </li>
+                        <li class="flex items-center gap-2 sm:gap-2.5 text-xs sm:text-sm text-slate-400">
+                            <i data-lucide="check-circle-2" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-400/60 flex-shrink-0"></i>
+                            Gratis ONT/Router WiFi 6
+                        </li>
+                        <li class="flex items-center gap-2 sm:gap-2.5 text-xs sm:text-sm text-slate-400">
+                            <i data-lucide="check-circle-2" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-400/60 flex-shrink-0"></i>
+                            Dedicated Support Line
+                        </li>
+                        <li class="flex items-center gap-2 sm:gap-2.5 text-xs sm:text-sm text-slate-400">
+                            <i data-lucide="check-circle-2" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-400/60 flex-shrink-0"></i>
+                            Akses Portal Pelanggan
+                        </li>
+                    </ul>
+                    <a href="https://alkonek.online" target="_blank" class="w-full mt-6 sm:mt-8 py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-medium text-purple-400 flex items-center justify-center gap-2" style="position:relative;overflow:hidden;background:linear-gradient(135deg,rgba(192,132,252,0.1),rgba(192,132,252,0.03));border:1px solid rgba(192,132,252,0.3);transition:all 0.3s ease;">
+                        Berlangganan
+                        <i data-lucide="arrow-right" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i>
+                    </a>
+                </div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mt-8 sm:mt-10">
+                <p class="text-[10px] sm:text-xs text-slate-600 font-mono">* Harga dapat berubah sewaktu-waktu. Hubungi kami untuk penawaran khusus.</p>
+                <a href="https://billing.alkonek.online/portal" target="_blank" class="cta-tagihan inline-flex items-center gap-2 px-5 py-2 rounded-lg text-xs sm:text-sm font-medium text-emerald-400">
+                    <i data-lucide="receipt" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i>
+                    Cek Tagihan Anda
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <div class="h-line max-w-4xl mx-auto"></div>
+
+    <!-- CTA / Kontak -->
+    <section id="kontak" class="py-16 sm:py-20 lg:py-32 relative">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center fade-up">
+            <div class="glass-card rounded-2xl sm:rounded-3xl p-7 sm:p-10 lg:p-16 glow-border relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-12 sm:w-20 h-12 sm:h-20 border-t border-l border-blue-400/20 rounded-tl-2xl sm:rounded-tl-3xl"></div>
+                <div class="absolute top-0 right-0 w-12 sm:w-20 h-12 sm:h-20 border-t border-r border-blue-400/20 rounded-tr-2xl sm:rounded-tr-3xl"></div>
+                <div class="absolute bottom-0 left-0 w-12 sm:w-20 h-12 sm:h-20 border-b border-l border-blue-400/20 rounded-bl-2xl sm:rounded-bl-3xl"></div>
+                <div class="absolute bottom-0 right-0 w-12 sm:w-20 h-12 sm:h-20 border-b border-r border-blue-400/20 rounded-br-2xl sm:rounded-br-3xl"></div>
+
+                <span class="text-[10px] sm:text-xs font-mono text-blue-400/60 tracking-[0.2em] sm:tracking-[0.3em] uppercase">// Get Connected</span>
+                <h2 class="text-2xl sm:text-3xl lg:text-5xl font-bold text-white mt-3 sm:mt-4 tracking-tight mb-3 sm:mb-4">Siap Terhubung?</h2>
+                <p class="text-sm sm:text-base text-slate-400 max-w-lg mx-auto mb-8 sm:mb-10 px-2">Daftar sekarang melalui portal pelanggan kami atau hubungi tim sales untuk konsultasi gratis.</p>
+
+                <div class="flex flex-col sm:flex-row flex-wrap justify-center gap-3 sm:gap-4 mb-10 sm:mb-12">
+                    <a href="https://alkonek.online" target="_blank" class="cta-solid px-7 sm:px-10 py-3 sm:py-4 rounded-xl text-xs sm:text-sm tracking-wide inline-flex items-center justify-center gap-2 sm:gap-2.5">
+                        <i data-lucide="external-link" class="w-4 h-4"></i>
+                        Buka Portal alkonek.online
+                    </a>
+                    <a href="https://billing.alkonek.online/portal" target="_blank" class="cta-tagihan px-7 sm:px-10 py-3 sm:py-4 rounded-xl text-xs sm:text-sm font-medium text-emerald-400 inline-flex items-center justify-center gap-2 sm:gap-2.5">
+                        <i data-lucide="receipt" class="w-4 h-4"></i>
+                        Cek Tagihan Pelanggan
+                    </a>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-5 sm:gap-6 pt-6 sm:pt-8 border-t border-blue-400/10">
+                    <div class="flex flex-col items-center gap-1.5 sm:gap-2">
+                        <i data-lucide="message-circle" class="w-4 h-4 sm:w-5 sm:h-5 text-blue-400/60"></i>
+                        <span class="text-xs sm:text-sm text-slate-400">WhatsApp</span>
+                        <span class="text-[10px] sm:text-xs font-mono text-white">Hubungi Kami</span>
+                    </div>
+                    <div class="flex flex-col items-center gap-1.5 sm:gap-2">
+                        <i data-lucide="mail" class="w-4 h-4 sm:w-5 sm:h-5 text-blue-400/60"></i>
+                        <span class="text-xs sm:text-sm text-slate-400">Email</span>
+                        <span class="text-[10px] sm:text-xs font-mono text-white break-all">info@alkonek.online</span>
+                    </div>
+                    <div class="flex flex-col items-center gap-1.5 sm:gap-2">
+                        <i data-lucide="map-pin" class="w-4 h-4 sm:w-5 sm:h-5 text-blue-400/60"></i>
+                        <span class="text-xs sm:text-sm text-slate-400">Coverage</span>
+                        <span class="text-[10px] sm:text-xs font-mono text-white">Area Jangkauan Kami</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="border-t border-blue-400/10 py-6 sm:py-10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-6">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg border border-cyan-400/20 flex items-center justify-center bg-cyan-400/5 overflow-hidden">
+                        <img src="img/logo2.gif" alt="ALKONEK Logo" class="w-full h-full object-cover">
+                    </div>
+                    <div>
+                        <span class="text-xs sm:text-sm font-bold tracking-wider text-white">ALKONEK</span>
+                        <span class="text-[7px] sm:text-[8px] font-mono text-slate-600 ml-1.5 sm:ml-2 tracking-wider hidden xs:inline">PT. ALKONEK NETWORK ACCESS</span>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4 sm:gap-6">
+                    <a href="https://alkonek.online" target="_blank" class="text-[10px] sm:text-xs font-mono text-slate-500 hover:text-blue-400 transition-colors">Portal</a>
+                    <a href="#layanan" class="text-[10px] sm:text-xs font-mono text-slate-500 hover:text-blue-400 transition-colors">Layanan</a>
+                    <a href="#paket" class="text-[10px] sm:text-xs font-mono text-slate-500 hover:text-blue-400 transition-colors">Paket</a>
+                    <a href="#kontak" class="text-[10px] sm:text-xs font-mono text-slate-500 hover:text-blue-400 transition-colors">Kontak</a>
+                </div>
+                <div class="text-[9px] sm:text-[10px] font-mono text-slate-700">
+                    &copy; <span id="yearSpan"></span> ALKONEK. All rights reserved.
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        lucide.createIcons();
+        document.getElementById('yearSpan').textContent = new Date().getFullYear();
+
+        const navbar = document.getElementById('navbar');
+        let navScrolled = false;
+        function handleNavScroll() {
+            const scrolled = window.scrollY > 80;
+            if (scrolled === navScrolled) return;
+            navScrolled = scrolled;
+            if (scrolled) {
+                navbar.style.background = 'rgba(5,8,16,0.88)';
+                navbar.style.backdropFilter = 'blur(20px)';
+                navbar.style.webkitBackdropFilter = 'blur(20px)';
+                navbar.style.boxShadow = '0 1px 0 rgba(96,165,250,0.08)';
+            } else {
+                navbar.style.background = 'transparent';
+                navbar.style.backdropFilter = 'none';
+                navbar.style.webkitBackdropFilter = 'none';
+                navbar.style.boxShadow = 'none';
+            }
+        }
+        window.addEventListener('scroll', handleNavScroll, { passive: true });
+
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        const mobileMenu = document.getElementById('mobileMenu');
+        let menuOpen = false;
+        mobileMenuBtn.addEventListener('click', () => {
+            menuOpen = !menuOpen;
+            mobileMenu.classList.toggle('hidden');
+        });
+        mobileMenu.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', () => { mobileMenu.classList.add('hidden'); menuOpen = false; });
+        });
+        document.addEventListener('click', (e) => {
+            if (menuOpen && !mobileMenu.contains(e.target) && !mobileMenuBtn.contains(e.target)) {
+                mobileMenu.classList.add('hidden'); menuOpen = false;
+            }
+        });
+
+        const canvas = document.getElementById('networkCanvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [], mouse = { x: null, y: null }, canvasW, canvasH;
+
+        function resizeCanvas() {
+            const p = canvas.parentElement;
+            canvasW = p.offsetWidth; canvasH = p.offsetHeight;
+            canvas.width = canvasW; canvas.height = canvasH;
+        }
+        resizeCanvas();
+
+        let resizeTimer;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => { resizeCanvas(); initParticles(); }, 200);
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            const r = canvas.getBoundingClientRect();
+            mouse.x = e.clientX - r.left; mouse.y = e.clientY - r.top;
+        });
+        canvas.addEventListener('mouseleave', () => { mouse.x = null; mouse.y = null; });
+        canvas.addEventListener('touchmove', (e) => {
+            if (e.touches.length > 0) {
+                const r = canvas.getBoundingClientRect();
+                mouse.x = e.touches[0].clientX - r.left; mouse.y = e.touches[0].clientY - r.top;
+            }
+        }, { passive: true });
+        canvas.addEventListener('touchend', () => { mouse.x = null; mouse.y = null; });
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * canvasW; this.y = Math.random() * canvasH;
+                this.vx = (Math.random() - 0.5) * 0.35; this.vy = (Math.random() - 0.5) * 0.35;
+                this.radius = Math.max(0.5, Math.random() * 1.5 + 0.5);
+                this.opacity = Math.random() * 0.5 + 0.15;
+            }
+            update() {
+                this.x += this.vx; this.y += this.vy;
+                if (this.x < 0 || this.x > canvasW) this.vx *= -1;
+                if (this.y < 0 || this.y > canvasH) this.vy *= -1;
+                this.x = Math.max(0, Math.min(canvasW, this.x));
+                this.y = Math.max(0, Math.min(canvasH, this.y));
+                if (mouse.x !== null) {
+                    const dx = this.x - mouse.x, dy = this.y - mouse.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < 120) {
+                        const f = (120 - dist) / 120;
+                        this.x += dx * f * 0.008; this.y += dy * f * 0.008;
+                    }
+                }
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(96,165,250,' + this.opacity + ')';
+                ctx.fill();
+            }
+        }
+
+        function initParticles() {
+            particles = [];
+            const m = canvasW < 768;
+            const c = Math.min(Math.floor((canvasW * canvasH) / (m ? 25000 : 12000)), m ? 50 : 120);
+            for (let i = 0; i < c; i++) particles.push(new Particle());
+        }
+        initParticles();
+
+        function drawLines() {
+            const md = canvasW < 768 ? 100 : 140, mm = canvasW < 768 ? 150 : 200;
+            for (let i = 0; i < particles.length; i++) {
+                for (let j = i + 1; j < particles.length; j++) {
+                    const dx = particles[i].x - particles[j].x, dy = particles[i].y - particles[j].y;
+                    const d = Math.sqrt(dx * dx + dy * dy);
+                    if (d < md) {
+                        ctx.beginPath(); ctx.moveTo(particles[i].x, particles[i].y);
+                        ctx.lineTo(particles[j].x, particles[j].y);
+                        ctx.strokeStyle = 'rgba(96,165,250,' + ((1 - d / md) * 0.12) + ')';
+                        ctx.lineWidth = 0.5; ctx.stroke();
+                    }
+                }
+                if (mouse.x !== null) {
+                    const dx = particles[i].x - mouse.x, dy = particles[i].y - mouse.y;
+                    const d = Math.sqrt(dx * dx + dy * dy);
+                    if (d < mm) {
+                        ctx.beginPath(); ctx.moveTo(particles[i].x, particles[i].y);
+                        ctx.lineTo(mouse.x, mouse.y);
+                        ctx.strokeStyle = 'rgba(96,165,250,' + ((1 - d / mm) * 0.25) + ')';
+                        ctx.lineWidth = 0.7; ctx.stroke();
+                    }
+                }
+            }
+        }
+
+        function animateCanvas() {
+            ctx.clearRect(0, 0, canvasW, canvasH);
+            for (let i = 0; i < particles.length; i++) { particles[i].update(); particles[i].draw(); }
+            drawLines(); requestAnimationFrame(animateCanvas);
+        }
+        animateCanvas();
+
+        const typingTexts = [
+            'init network_core --mode=fiber --redundancy=multi',
+            'status: all_nodes_online [OK]',
+            'bandwidth_check --ratio=1:1 --latency=<5ms',
+            'security_scan --firewall=active --isolated=true',
+            'alkonek.online — Your gateway to connectivity'
+        ];
+        let textIdx = 0, charIdx = 0, isDeleting = false;
+        const typingEl = document.getElementById('typingText');
+        function typeEffect() {
+            const cur = typingTexts[textIdx];
+            if (!isDeleting) {
+                typingEl.textContent = cur.substring(0, charIdx + 1); charIdx++;
+                if (charIdx === cur.length) { isDeleting = true; setTimeout(typeEffect, 2000); return; }
+                setTimeout(typeEffect, 35 + Math.random() * 35);
+            } else {
+                typingEl.textContent = cur.substring(0, charIdx - 1); charIdx--;
+                if (charIdx === 0) { isDeleting = false; textIdx = (textIdx + 1) % typingTexts.length; setTimeout(typeEffect, 400); return; }
+                setTimeout(typeEffect, 18);
+            }
+        }
+        typeEffect();
+
+        const terminalLines = [
+            { text: '$ alkonek-cli network status', color: 'text-blue-400', delay: 300 },
+            { text: 'Connecting to core router...', color: 'text-slate-500', delay: 900 },
+            { text: '[OK] Connection established', color: 'text-emerald-400', delay: 1500 },
+            { text: '', color: '', delay: 1800 },
+            { text: '┌─ FIBER OPTIC BACKBONE ─────────────┐', color: 'text-blue-400/60', delay: 2000 },
+            { text: '│  OLT-01    ● ACTIVE   Uptime: 342d  │', color: 'text-slate-400', delay: 2300 },
+            { text: '│  OLT-02    ● ACTIVE   Uptime: 289d  │', color: 'text-slate-400', delay: 2600 },
+            { text: '│  OLT-03    ● ACTIVE   Uptime: 156d  │', color: 'text-slate-400', delay: 2900 },
+            { text: '└─────────────────────────────────────┘', color: 'text-blue-400/60', delay: 3200 },
+            { text: '', color: '', delay: 3400 },
+            { text: 'Total Active Users: 512', color: 'text-white', delay: 3600 },
+            { text: 'Avg Throughput: 14.3 Mbps', color: 'text-white', delay: 3900 },
+            { text: 'Packet Loss: 0.00%', color: 'text-emerald-400', delay: 4200 },
+            { text: '', color: '', delay: 4400 },
+            { text: '$ _', color: 'text-blue-400 cursor-blink', delay: 4600 },
+        ];
+        const terminalBody = document.getElementById('terminalBody');
+        terminalLines.forEach(line => {
+            setTimeout(() => {
+                const div = document.createElement('div');
+                div.className = line.color;
+                div.textContent = line.text || '\u00A0';
+                div.style.animation = 'slideIn 0.3s ease forwards';
+                terminalBody.appendChild(div);
+                terminalBody.scrollTop = terminalBody.scrollHeight;
+            }, line.delay);
+        });
+
+        const fadeEls = document.querySelectorAll('.fade-up');
+        const fadeObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('visible'); });
+        }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+        fadeEls.forEach(el => fadeObserver.observe(el));
+
+        const counters = document.querySelectorAll('.counter[data-target]');
+        const counterObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const el = entry.target, target = parseFloat(el.dataset.target);
+                    const isD = target % 1 !== 0, dur = 2000, st = performance.now();
+                    function update(now) {
+                        const p = Math.min((now - st) / dur, 1), e = 1 - Math.pow(1 - p, 3);
+                        el.textContent = isD ? (e * target).toFixed(1) : Math.floor(e * target);
+                        if (p < 1) requestAnimationFrame(update);
+                    }
+                    requestAnimationFrame(update); counterObserver.unobserve(el);
+                }
+            });
+        }, { threshold: 0.5 });
+        counters.forEach(c => counterObserver.observe(c));
+
+        const speedData = [
+            { bar: 'dlBar', text: 'dlSpeed', value: 18.5, unit: ' Mbps', pct: 92 },
+            { bar: 'ulBar', text: 'ulSpeed', value: 17.8, unit: ' Mbps', pct: 89 },
+            { bar: 'pingBar', text: 'pingVal', value: 3.2, unit: ' ms', pct: 3 },
+            { bar: 'jitterBar', text: 'jitterVal', value: 0.8, unit: ' ms', pct: 8 },
+        ];
+        const speedObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    speedData.forEach((s, i) => {
+                        setTimeout(() => {
+                            document.getElementById(s.bar).style.width = s.pct + '%';
+                            const el = document.getElementById(s.text), st = performance.now();
+                            function anim(now) {
+                                const p = Math.min((now - st) / 1500, 1);
+                                el.textContent = ((1 - Math.pow(1 - p, 3)) * s.value).toFixed(1) + s.unit;
+                                if (p < 1) requestAnimationFrame(anim);
+                            }
+                            requestAnimationFrame(anim);
+                        }, i * 200);
+                    });
+                    speedObserver.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.2 });
+        speedObserver.observe(document.getElementById('dlBar').closest('.glass-card'));
+    </script>
+</body>
+</html>

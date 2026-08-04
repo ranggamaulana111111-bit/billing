@@ -5,7 +5,7 @@
 @push('styles')
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
     .auth-hero-brand-text h2.auth-brand-name {
@@ -24,9 +24,13 @@
         font-family: 'Space Grotesk', 'Inter', sans-serif;
         font-size: 0.72rem;
         font-weight: 500;
-        letter-spacing: 0.24em;
+        letter-spacing: 0.5em;
         text-transform: uppercase;
         color: rgba(255, 255, 255, 0.45);
+    }
+    .auth-form-header h3 {
+        font-weight: 100;
+        font-size: 1.2rem;
     }
     .auth-copyright {
         position: fixed;
@@ -69,7 +73,7 @@
             </div>
 
             <div class="auth-form-header">
-                <h3>Masuk ke ALKONEKbill</h3>
+                <h3>Silahkan Login Ke ALKONEKbill</h3>
                 <p>Akses panel billing, pelanggan, voucher, dan monitoring.</p>
             </div>
 
@@ -143,6 +147,28 @@
 @push('scripts')
 <script>
 (function() {
+    // Align "ISP Billing Platform" subtitle to the width of "ALKONEKbill"
+    (function alignBrandTag() {
+        var title = document.querySelector('.auth-brand-name');
+        var tag = document.querySelector('.auth-brand-tag');
+        if (!title || !tag) return;
+        function apply() {
+            var target = title.getBoundingClientRect().width;
+            if (!target) return;
+            tag.style.letterSpacing = '0px';
+            var base = tag.getBoundingClientRect().width;
+            var gaps = tag.textContent.trim().length - 1;
+            if (gaps > 0 && base < target) {
+                tag.style.letterSpacing = ((target - base) / gaps) + 'px';
+            }
+        }
+        if (document.fonts && document.fonts.ready) {
+            document.fonts.ready.then(apply);
+        } else {
+            window.addEventListener('load', apply);
+        }
+    })();
+
     // Show/Hide Password
     const toggleBtn = document.getElementById('togglePassword');
     const pwInput = document.getElementById('password');
