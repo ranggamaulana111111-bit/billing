@@ -78,7 +78,7 @@ class PingMonitorService
             }
         }
 
-        if (preg_match('/(?:rtt|round-trip)\s*(?:min|avg|max)\s*[/=]\s*(\d+(?:\.\d+)?)\s*/(\d+(?:\.\d+)?)\s*/(\d+(?:\.\d+)?)/i', $output, $avgMatch)) {
+        if (preg_match('#(?:rtt|round-trip)\s*(?:min|avg|max)\s*[/=]\s*(\d+(?:\.\d+)?)\s*/\s*(\d+(?:\.\d+)?)\s*/\s*(\d+(?:\.\d+)?)#i', $output, $avgMatch)) {
             $result['latency_ms'] = (float) $avgMatch[2];
         }
 

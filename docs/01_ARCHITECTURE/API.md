@@ -1,4 +1,4 @@
-# API — RabegNet ISP Billing System
+# API — ALKONEK ISP Billing System
 
 ---
 
@@ -10,22 +10,37 @@
 |--------|----------|------------|--------|
 | GET | `/api/v1/odp/{odp}/ports` | `PortController@odpPorts` | Data realtime port ODP |
 | GET | `/api/v1/odc/{odc}/ports` | `PortController@odcPorts` | Data realtime port ODC |
-| POST | `/api/v1/mikrotik/hotspot-login` | `MikrotikHotspotController@hotspotLogin` | Callback voucher login dari MikroTik hotspot |
+| POST | `/api/v1/mikrotik/hotspot-login` | `Api\MikrotikHotspotController@hotspotLogin` | Callback voucher login dari MikroTik hotspot |
+
+### Webhook & Trigger (via `routes/web.php`)
+
+| Method | Endpoint | Controller | Fungsi |
+|--------|----------|------------|--------|
+| POST | `/midtrans/notification` | `MidtransController@notification` | Webhook Midtrans (payment status) |
+| POST | `/xendit/notification` | `XenditController@notification` | Webhook Xendit (payment status) |
+| GET | `/api/cron/run?token=xxx` | `CronController@run` | Trigger scheduler jarak jauh (Vercel — no cron server) |
 
 ### Public Routes (no auth)
 
 | Method | Endpoint | Fungsi |
 |--------|----------|--------|
 | GET/POST | `/hotspot/templates/{template}/{path?}` | Serve file hotspot template (MikroTik hotspot pages) |
+| GET | `/portal`, `/portal/bayar/{invoice}` | Portal pelanggan (lookup + bayar invoice) |
 
-### Internal AJAX API (via `routes/web.php`)
+### Internal AJAX API (via `routes/web.php`, auth)
 
 | Method | Endpoint | Controller | Fungsi |
 |--------|----------|------------|--------|
 | GET | `/api/odp-routes` | `OdpruteController@routes` | Data route untuk Leaflet map |
 | GET | `/api/odp-points` | `OdpruteController@points` | Data point untuk Leaflet map |
-| GET | `/olts/{olt}/live` | `OltController@live` | Live data OLT |
-| GET | `/mikrotik/live` | `MikrotikController@liveData` | Live data MikroTik |
+| GET | `/api/customers/search` | `CustomerController@searchApi` | Search customer (select2) |
+| GET | `/monitoring/live` | `MonitoringController@liveData` | Live data monitoring |
+| GET | `/settings/integrations/olt/{olt}/live` | `IntegrationController@liveOlt` | Live OLT di halaman integrasi |
+| GET | `/settings/integrations/mikrotik/{router}/live` | `IntegrationController@liveMikrotik` | Live MikroTik di halaman integrasi |
+| GET | `/olts/{olt}/live` | `OltController@liveData` | Live data OLT ⚠️ **dikomentari** di web.php |
+| GET | `/mikrotik/live` | `MikrotikController@liveData` | Live data MikroTik ⚠️ **dikomentari** di web.php |
+
+> Catatan: route NOC (`/api/noc/*/live`) dan legacy `olt.live`/`mikrotik.live` masih banyak yang **dikomentari** di `routes/web.php` — aktifkan bertahap saat modul NOC dihidupkan.
 
 ---
 
@@ -148,3 +163,11 @@ Event-driven callback dari MikroTik hotspot saat user login.
   "message": "Voucher tidak ditemukan atau sudah digunakan"
 }
 ```
+
+### POST /xendit/notification
+
+Webhook callback Xendit untuk status pembayaran invoice (`PaymentService` memvalidasi signature, lalu update payment + invoice). Endpoint Midtrans (`POST /midtrans/notification`) serupa — keduanya dipakai oleh `PaymentGatewayInterface` (MidtransGateway / XenditGateway), sedangkan legacy `MidtransService` masih aktif di sebagian path.
+
+### GET /api/cron/run
+
+Trigger scheduler dari luar (Vercel tidak punya cron server). Validasi token via query `?token=` (dibandingkan dengan `config('services.cron_token')`), lalu menjalankan `artisan schedule:run`. Abort 401 jika token salah.

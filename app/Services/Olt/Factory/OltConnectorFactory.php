@@ -7,9 +7,13 @@ use App\Models\Setting;
 use App\Services\Olt\Contracts\OltConnector;
 use App\Services\Olt\Drivers\CDataConnector;
 use App\Services\Olt\Drivers\FiberHomeConnector;
+use App\Services\Olt\Drivers\GlobalConnector;
+use App\Services\Olt\Drivers\HiosoConnector;
+use App\Services\Olt\Drivers\HsgqConnector;
 use App\Services\Olt\Drivers\HuaweiConnector;
 use App\Services\Olt\Drivers\JumpHostConnector;
 use App\Services\Olt\Drivers\MikrotikSshProxyConnector;
+use App\Services\Olt\Drivers\VsolConnector;
 use App\Services\Olt\Drivers\ZteConnector;
 use InvalidArgumentException;
 
@@ -52,6 +56,10 @@ class OltConnectorFactory
             'zte' => new ZteConnector,
             'fiberhome' => new FiberHomeConnector,
             'cdata' => new CDataConnector,
+            'vsol' => new VsolConnector,
+            'hioso' => new HiosoConnector,
+            'hsgq' => new HsgqConnector,
+            'global' => new GlobalConnector,
             default => throw new InvalidArgumentException("Unsupported OLT brand: {$brand}"),
         };
     }

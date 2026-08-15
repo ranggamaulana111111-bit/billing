@@ -1,7 +1,7 @@
-# PRD.md — RabegNet ISP Billing System
+# PRD.md — ALKONEK ISP Billing System
 
 > **Product Requirement Document**
-> Versi: 1.1 | Status: Production Active
+> Versi: 1.2 | Status: Deployed to production (belum di-benchmark / security-audit)
 
 ---
 
@@ -9,7 +9,9 @@
 
 **Latar Belakang**
 
-ISP skala kecil-menengah di Indonesia umumnya masih mengelola operasional secara semi-manual: catatan pelanggan di spreadsheet, tagihan dibuat satu per satu, pembayaran dicatat manual, monitoring jaringan terbatas, dan data infrastruktur tidak terdokumentasi dengan baik. RabegNet hadir untuk menjawab kebutuhan tersebut.
+ISP skala kecil-menengah di Indonesia umumnya masih mengelola operasional secara semi-manual: catatan pelanggan di spreadsheet, tagihan dibuat satu per satu, pembayaran dicatat manual, monitoring jaringan terbatas, dan data infrastruktur tidak terdokumentasi dengan baik. ALKONEK (PT Alkonek Network Access) hadir untuk menjawab kebutuhan tersebut.
+
+> **Catatan Status:** Klaim "production" berarti aplikasi sudah di-deploy dan dipakai nyata, bukan hasil pengukuran formal. Kapasitas (tenant/pelanggan/ONU maksimal, concurrent user, throughput) **belum di-load-test**. Beberapa NFR keamanan (NFR-01) masih **belum terpenuhi** — lihat §8.
 
 **Masalah yang Diselesaikan**
 
@@ -46,6 +48,7 @@ Menjadi sistem billing ISP open-source yang paling mudah diadopsi untuk ISP keci
 - Mengotomatiskan seluruh operasional billing ISP
 - Mendukung multi-brand perangkat jaringan (OLT, MikroTik)
 - Menyediakan self-service portal untuk pelanggan
+- Menyajikan topologi jaringan (OLT→ODC→ODP→ONU) yang sinkron dengan data distribusi
 - Open-source dan mudah dikustomisasi
 - Dibangun dengan teknologi yang familiar (Laravel, Bootstrap)
 
@@ -77,26 +80,28 @@ Menjadi sistem billing ISP open-source yang paling mudah diadopsi untuk ISP keci
 
 | Modul | Prioritas | Status |
 |-------|-----------|--------|
-| Customer Management | P0 | ✅ Selesai |
-| Package Management | P0 | ✅ Selesai |
-| Billing (Invoice) | P0 | ✅ Selesai |
-| Payment | P0 | ✅ Selesai |
-| Portal Publik | P0 | ✅ Selesai |
-| MikroTik Management | P0 | ✅ Selesai |
-| OLT Management | P0 | ✅ Selesai |
-| Distribution (ODC/ODP) | P1 | ✅ Selesai |
-| Voucher WiFi | P1 | ✅ Selesai |
-| Reporting | P1 | ✅ Selesai |
+| Customer Management | P0 | ✅ Diimplementasikan |
+| Package Management | P0 | ✅ Diimplementasikan |
+| Billing (Invoice) | P0 | ✅ Diimplementasikan |
+| Payment | P0 | ✅ Diimplementasikan |
+| Portal Publik | P0 | ✅ Diimplementasikan |
+| MikroTik Management | P0 | ✅ Diimplementasikan |
+| OLT Management | P0 | ✅ Diimplementasikan |
+| Distribution (ODC/ODP) | P1 | ✅ Diimplementasikan |
+| Voucher WiFi | P1 | ✅ Diimplementasikan |
+| Reporting | P1 | ✅ Diimplementasikan |
+| Live Network Topology | P1 | ✅ Diimplementasikan (v1.2) |
+| Monitoring Real-Time (WAN-ISP) | P1 | ✅ Diimplementasikan (v1.2) |
 
 ### Supporting Module
 
 | Modul | Prioritas | Status |
 |-------|-----------|--------|
-| Authentication & RBAC | P0 | ✅ Selesai |
-| User Management | P0 | ✅ Selesai |
-| Settings | P0 | ✅ Selesai |
-| Activity Log | P1 | ✅ Selesai |
-| Backup & Export | P1 | ✅ Selesai |
+| Authentication & RBAC | P0 | ✅ Diimplementasikan |
+| User Management | P0 | ✅ Diimplementasikan |
+| Settings | P0 | ✅ Diimplementasikan |
+| Activity Log | P1 | ✅ Diimplementasikan |
+| Backup & Export | P1 | ⚠️ Sebagian (belum enkripsi) |
 
 ---
 
@@ -107,7 +112,7 @@ Menjadi sistem billing ISP open-source yang paling mudah diadopsi untuk ISP keci
 | 1 | Pengelolaan pelanggan masih tersebar (spreadsheet, catatan manual) | Data tidak akurat, sulit tracking riwayat pelanggan | Customer |
 | 2 | Billing dilakukan manual per pelanggan setiap bulan | Memakan waktu, rawan human error, keterlambatan tagihan | Invoice |
 | 3 | Pembayaran tidak terintegrasi dengan payment gateway | Pelanggan harus transfer manual, admin harus cek mutasi | Payment, Midtrans |
-| 4 | Tidak ada sistem reminder tagihan otomatis | Banyak pelanggan lupa bayar, piutang membengkak | Invoice, Fonnte |
+| 4 | Tidak ada sistem reminder tagihan otomatis | Banyak pelanggan lupa bayar, piutang membengkak | Invoice |
 | 5 | Monitoring jaringan OLT tidak terpusat | Teknisi harus SSH satu per satu ke OLT | OLT |
 | 6 | Data infrastruktur fiber tidak terdokumentasi | Sulit tracking port yang terpakai, trouble investigation lambat | Distribution |
 | 7 | Penanganan pelanggan telat bayar masih manual | Perlu cek satu per satu, suspend/isolir tidak konsisten | Isolir |
@@ -186,19 +191,18 @@ Menjadi sistem billing ISP open-source yang paling mudah diadopsi untuk ISP keci
 | Aspek | Detail |
 |-------|--------|
 | **Tujuan** | Mengelola tagihan pelanggan secara otomatis dan terstruktur |
-| **Deskripsi** | CRUD invoice, auto-generate via scheduler, mark paid, print, PDF, reminder WA/email, filter by status/date |
+| **Deskripsi** | CRUD invoice, auto-generate via scheduler, mark paid, print, PDF, reminder email, filter by status/date |
 | **Prioritas** | P0 |
 | **Modul Terkait** | Customer, Payment, Package |
-| **Kriteria Keberhasilan** | Invoice auto-generate setiap bulan jam 08:00; WA reminder otomatis; print & PDF berfungsi; filter & search akurat |
+| **Kriteria Keberhasilan** | Invoice auto-generate setiap bulan jam 08:00; reminder otomatis (via aplikasi pelanggan Android in-development); print & PDF berfungsi; filter & search akurat |
 
 **Alur Billing Otomatis:**
 1. Scheduler `billing:process` jalan setiap hari jam 08:00
 2. Untuk setiap customer aktif per tenant:
    - Cek apakah invoice bulan ini sudah ada
    - Jika belum: create invoice (amount = package.price)
-   - Dispatch WA notification job
 
-**Format kode invoice:** `INV/{tenant}/{month}/{year}/{customer_id}` — sequential
+**Format kode invoice:** `INV-{YYYYMM}-{kode}` — sequential per periode (e.g. `INV-202607-000001`)
 
 ---
 
@@ -207,12 +211,12 @@ Menjadi sistem billing ISP open-source yang paling mudah diadopsi untuk ISP keci
 | Aspek | Detail |
 |-------|--------|
 | **Tujuan** | Mencatat pembayaran dari pelanggan |
-| **Deskripsi** | Catat pembayaran manual (cash/transfer/QRIS), integrasi Midtrans (QRIS/VA), history, auto-update invoice status |
+| **Deskripsi** | Catat pembayaran manual (cash/transfer/QRIS), integrasi Midtrans (QRIS/VA) + Xendit (VA/e-Wallet/QRIS), history, auto-update invoice status |
 | **Prioritas** | P0 |
-| **Modul Terkait** | Invoice, Midtrans, Isolir |
-| **Kriteria Keberhasilan** | Pembayaran tercatat dan otomatis update status invoice; jika customer sedang isolir, auto-activate setelah bayar; Midtrans callback real-time |
+| **Modul Terkait** | Invoice, Midtrans, Xendit, Isolir |
+| **Kriteria Keberhasilan** | Pembayaran tercatat dan otomatis update status invoice; jika customer sedang isolir, auto-activate setelah bayar; Midtrans/Xendit callback real-time |
 
-**Metode pembayaran:** cash, transfer, qris, midtrans
+**Metode pembayaran:** cash, transfer, qris, midtrans, xendit
 
 ---
 
@@ -266,9 +270,10 @@ Menjadi sistem billing ISP open-source yang paling mudah diadopsi untuk ISP keci
 - Huawei (CLI: `system-view` → `display ont info`)
 - ZTE (CLI: `enable` → `configure terminal` → `show onu unquiet`)
 - FiberHome (CLI: `show ont list slot/port`)
-- C-Data (CLI: `enable` → `config` → `show ont info slot/port`)
+- CData (CLI: `enable` → `config` → `show ont info slot/port`)
+- ChineseOlt, Global, Hioso, Hsgq, Vsol
 
-**Decorator pattern:** JumpHost SSH tunnel + MikroTik SSH Proxy
+**Decorator pattern:** JumpHost SSH tunnel + MikrotikSshProxy (MikroTik SSH Proxy)
 
 ---
 
@@ -317,20 +322,36 @@ ODC → ODC Port (inlet/outlet, connected_to_odp_id)
 
 ---
 
+### FR-011: Live Network Topology
+
+| Aspek | Detail |
+|-------|--------|
+| **Tujuan** | Visualisasi infrastruktur fiber end-to-end (Internet → Core Router → OLT → ODC → ODP → PON → ONU → Pelanggan) dalam satu peta hierarki |
+| **Deskripsi** | Menyusun node & edge topologi dari data nyata: ODC/ODP diambil dari entitas `Odc`/`Odp` (via `odc_id`), edge `OLT→ODC→ODP→ONU` dibentuk dari `Odc.odps()` dan `OdpPort.customer_id`. Layout compact agar skalabel saat node bertambah |
+| **Prioritas** | P1 |
+| **Modul Terkait** | Distribution (sumber data), OLT (sumber ONU), OnuHealth (FiberTopologyService) |
+| **Kriteria Keberhasilan** | Topologi mencerminkan data Distribution secara real-time (tambah ODC/ODP otomatis muncul); status node (online/offline/warning) sesuai kondisi; ONU terhubung ke ODP tempat pelanggan terdaftar |
+
+**Catatan:** Sebelumnya topologi mengandalkan `OdcPort.connected_to_odp_id` yang tidak diisi UI Distribution, sehingga ODC/ODP tidak muncul. Sejak v1.2 topologi dibangun langsung dari entitas Distribution.
+
+---
+
 ## 8. Non-Functional Requirements
 
-| # | Aspek | Requirement | Prioritas |
-|---|-------|-------------|-----------|
-| NFR-01 | **Security** | Password MikroTik harus di-encrypt di database; SSL verification untuk koneksi REST API; proteksi script destruktif; tidak ada credentials di file publik | P0 |
-| NFR-02 | **Performance** | Halaman dashboard & list harus load < 3 detik; query database dioptimasi dengan index; polling OLT menggunakan queue agar tidak blocking | P1 |
-| NFR-03 | **Scalability** | Mendukung multi-tenant dengan data terisolasi; database queue untuk job processing | P1 |
-| NFR-04 | **Availability** | Sistem bisa di-deploy di Vercel + Railway (backup); scheduler bisa di-trigger via HTTP untuk lingkungan serverless | P0 |
-| NFR-05 | **Maintainability** | Kode mengikuti PSR-4; Laravel Pint untuk formatting; testing dengan PHPUnit; dokumentasi di DESCRIPTION.md | P1 |
-| NFR-06 | **Reliability** | Error handling di semua service layer; try-catch di koneksi eksternal (OLT, MikroTik, Midtrans); logging error ke Laravel log | P0 |
-| NFR-07 | **Backup** | Backup database bisa di-download via admin panel | P1 |
-| NFR-08 | **Logging** | Semua operasi CRUD penting tercatat di activity log; login/logout tercatat | P0 |
-| NFR-09 | **Audit Trail** | Activity log mencatat user, action, detail, timestamp; filterable | P1 |
-| NFR-10 | **Compatibility** | Browser modern (Chrome, Firefox, Edge, Safari); mobile-responsive via Bootstrap 5.3 | P1 |
+| # | Aspek | Requirement | Prioritas | Status |
+|---|-------|-------------|-----------|--------|
+| NFR-01 | **Security** | Password MikroTik di-encrypt; SSL verification REST API; proteksi script destruktif; tidak ada credentials di file publik | P0 | ⚠️ **Belum terpenuhi** — password MikroTik masih plaintext, SSL verify disabled, `reset_data.php` tanpa proteksi, secret masih di git |
+| NFR-02 | **Performance** | Dashboard & list load cepat; query terindex; polling OLT via queue non-blocking | P1 | ⚠️ Dioptimasi (CDN, caching) tapi **belum di-load-test** (< 3 detik belum terverifikasi) |
+| NFR-03 | **Scalability** | Multi-tenant terisolasi; database queue untuk job | P1 | ⚠️ `OdcPort`/`OdpPort` belum punya tenant scope |
+| NFR-04 | **Availability** | Deploy Vercel + Railway (backup); scheduler via HTTP | P0 | ✅ Diimplementasikan |
+| NFR-05 | **Maintainability** | PSR-4; Laravel Pint; PHPUnit; dokumentasi | P1 | ✅ Diimplementasikan |
+| NFR-06 | **Reliability** | Error handling service layer; try-catch eksternal; logging | P0 | ⚠️ Best-effort; belum ada error architecture terpusat (circuit breaker, fallback, compensation) |
+| NFR-07 | **Backup** | Backup DB download via admin | P1 | ⚠️ Ada, tapi belum terenkripsi |
+| NFR-08 | **Logging** | CRUD penting tercatat di activity log; login/logout tercatat | P0 | ✅ Diimplementasikan |
+| NFR-09 | **Audit Trail** | Activity log: user, action, detail, timestamp; filterable | P1 | ✅ Diimplementasikan |
+| NFR-10 | **Compatibility** | Browser modern; mobile-responsive Bootstrap 5.3 | P1 | ✅ Diimplementasikan |
+
+> **Gap keamanan tambahan (belum di dokumen awal):** API publik `POST /api/v1/mikrotik/hotspot-login` belum punya auth/throttling; audit log belum append-only; secrets masih di `.env` plaintext; belum ada rate limiting eksplisit.
 
 ---
 
@@ -339,7 +360,7 @@ ODC → ODC Port (inlet/outlet, connected_to_odp_id)
 ### Customer Journey
 
 ```
-1. Menerima tagihan (WA/email notifikasi)
+1. Menerima tagihan (email / notifikasi aplikasi Android)
 2. Buka portal /portal
 3. Input nomor telepon
 4. Lihat daftar tagihan (unpaid)
@@ -410,6 +431,8 @@ ODC → ODC Port (inlet/outlet, connected_to_odp_id)
 
 ## 11. Success Metrics
 
+> Target di bawah adalah **asal-usul produk**, bukan hasil ukur. Sistem belum melalui load test / benchmark, sehingga angka "100%" bersifat aspirasional.
+
 | # | Metrik | Target | Cara Ukur |
 |---|--------|--------|-----------|
 | 1 | Seluruh pelanggan tercatat dalam sistem | 100% | Count customer vs data operasional |
@@ -426,12 +449,20 @@ ODC → ODC Port (inlet/outlet, connected_to_odp_id)
 ## 12. Product Roadmap Summary
 
 ```
-v1.x ─── Stabilization & Security
+v1.2 (DONE — Deployed to production)
+   ├── Rebranding ALKONEK (PT Alkonek Network Access)
+   ├── Live Network Topology sinkron Distribution (ODC→ODP→ONU)
+   ├── Monitoring Real-Time trafik WAN-ISP (rate delta 1s)
+   ├── Optimasi performa: Bootstrap/Chart/Leaflet via CDN (JS 504KB→122KB), caching DashboardController
+   └── Penyatuan desain tabel .mon-table/.mon-thead + pembersihan bug Blade
+
+v1.3 ─── Stabilization & Security (P1)
    ├── Encrypt password MikroTik
-   ├── SSL verification enable (configurable)
    ├── BelongsToTenant ke OdcPort & OdpPort
+   ├── Hapus sensitive credentials dari git history
+   ├── Enable SSL verification (configurable)
    ├── Proteksi reset_data.php
-   └── Hapus sensitive credentials dari git history
+   └── API auth + rate limiting (/api/v1/mikrotik/hotspot-login)
 
 v2.0 ─── Architecture Refactoring
    ├── API publik untuk integrasi pihak ketiga

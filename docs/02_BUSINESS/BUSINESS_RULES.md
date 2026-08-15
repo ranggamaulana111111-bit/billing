@@ -1,4 +1,4 @@
-# Business Rules — RabegNet ISP Billing System
+# Business Rules — ALKONEK ISP Billing System
 
 ---
 
@@ -19,8 +19,11 @@
 | BR-13 | **Voucher expired otomatis** | Voucher yang lewat `expires_at` auto-status 'expired' | `Voucher::where('expires_at','<',now())->update(['status'=>'expired'])` |
 | BR-14 | **Voucher push ke MikroTik** | Setiap generate voucher, langsung push hotspot user ke MikroTik | `generateAndPush()` → `MikrotikService::addHotspotUser()` |
 | BR-15 | **Multi-tenant data isolation** | Setiap tenant hanya bisa melihat data sendiri | Global scope `BelongsToTenant::addGlobalScope()` |
-| BR-16 | **Role-based access** | Admin bisa semua. Teknisi read-only untuk beberapa modul | Middleware `IsAdmin` + `IsTeknisiOrAdmin` |
+| BR-16 | **Role-based access** | Admin bisa semua. Teknisi read-only untuk beberapa modul. NOC punya area operasional jaringan | Middleware `IsAdmin` + `IsNoc` + `IsTeknisiOrAdmin` |
 | BR-17 | **Denda keterlambatan** | Jika setting late_fee diaktifkan, invoice lewat due_date + grace_days akan kena denda | Setting key: `late_fee_amount`, `grace_days` |
 | BR-18 | **Proteksi delete** | Paket dengan customer tidak bisa dihapus. ODC dengan ODP tidak bisa dihapus. Route dengan point tidak bisa dihapus | Validasi count related records di controller |
 | BR-19 | **OLT password encrypted** | Password OLT di-encrypt di database (berbeda dengan MikroTik) | `protected $casts = ['password' => 'encrypted']` |
 | BR-20 | **Paket non-aktif** | Paket dengan `is_active = false` tidak muncul di dropdown customer | Scope `where('is_active', true)` di form |
+| BR-21 | **Pembayaran multi-gateway** | Pembayaran online bisa lewat Midtrans (QRIS/VA/Convenience Store) atau Xendit (QRIS/VA/e-Wallet) | `app/Services/Payment/` — `MidtransGateway`, `XenditGateway`, `PaymentService` |
+| BR-22 | **SLA incident** | Incident yang lewat SLA memicu notifikasi; riwayat di-purge berkala | `incident:check-sla` + `IncidentNotificationService` + `incidents:purge` |
+| BR-23 | **Stok inventory tercatat** | Setiap pergerakan stok (masuk/keluar) dicatat dan mengupdate stok item | `InventoryController` + model `InventoryTransaction` |

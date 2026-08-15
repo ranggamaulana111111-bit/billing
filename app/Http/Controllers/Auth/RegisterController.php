@@ -28,13 +28,18 @@ class RegisterController extends Controller
             'name' => $data['name'],
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
+            'password_plain' => $data['password'],
         ]);
 
         Auth::login($user->fresh());
 
         ActivityLog::log('Register', 'User '.$user->email.' terdaftar dan masuk');
 
-        $dashboard = auth()->user()->role === 'teknisi' ? '/teknisi/dashboard' : '/dashboard';
+        $dashboard = match (auth()->user()->role) {
+            'teknisi' => '/teknisi/dashboard',
+            'noc' => '/noc/dashboard',
+            default => '/dashboard',
+        };
 
         return redirect($dashboard);
     }

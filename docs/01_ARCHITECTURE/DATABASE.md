@@ -1,6 +1,6 @@
-# Database — RabegNet ISP Billing System
+# Database — ALKONEK ISP Billing System
 
-> 28 Tables | 46 Migrations | MySQL (Prod) / SQLite (Test)
+> 39 model tables + 8 framework tables | 98 Migrations | MySQL (Prod/Local) / SQLite (Test)
 
 ---
 
@@ -17,6 +17,9 @@ tenants
               │              └── voucher_templates
               ├── settings
               ├── activity_logs
+              ├── incidents ──── incident_notifications
+              ├── network_metrics
+              ├── inventory_items ── inventory_transactions
               ├── olts ──────── olt_ports ──── onus
               ├── odcs ──────── odp_routes ──── odp_points
               └── odcs ──────── odps ────────── odp_ports ──── customers
@@ -31,11 +34,14 @@ tenants
 | Tabel | Kolom Utama | Catatan |
 |-------|-------------|---------|
 | `tenants` | id, name, domain | Root multi-tenancy |
-| `users` | id, tenant_id, name, email, password, role | role: admin / teknisi |
-| `settings` | id, tenant_id, key, value | Key-value store per tenant |
-| `sessions` | — | Database session driver |
-| `jobs` | — | Database queue driver |
-| `cache` | — | Database cache driver |
+| `users` | id, tenant_id, name, email, password, role | role: admin / teknisi / noc |
+| `settings` | id, tenant_id, key, value | Key-value store per tenant (termasuk konfigurasi notifikasi `wa_*` / `telegram_*`) |
+| `sessions` | — | Session driver: database (prod) / file (local) |
+| `jobs`, `job_batches` | — | Database queue driver |
+| `cache`, `cache_locks` | — | Cache driver: database (prod) / file (local) |
+| `failed_jobs` | — | Failed queue jobs |
+| `password_reset_tokens` | — | Password reset |
+| `migrations` | — | Migrasi Laravel |
 
 ### Billing
 
@@ -44,13 +50,13 @@ tenants
 | `customers` | id, tenant_id, name, phone, email, package_id, odp_id, odp_port_id, pppoe_username, status, due_date | status: active/suspended/inactive |
 | `packages` | id, tenant_id, name, speed, price, billing_cycle, is_active | |
 | `invoices` | id, tenant_id, customer_id, invoice_code, amount, payment_status, paid_at, due_date | payment_status: unpaid/paid/cancelled |
-| `payments` | id, tenant_id, invoice_id, amount, payment_method, payment_date | method: cash/transfer/qris/midtrans |
+| `payments` | id, tenant_id, invoice_id, amount, payment_method, payment_date | method: cash/transfer/qris/midtrans/xendit |
 
 ### Infrastructure
 
 | Tabel | Kolom Utama | Catatan |
 |-------|-------------|---------|
-| `olts` | id, tenant_id, name, brand, ip_address, username, password (encrypted) | brand: huawei/zte/fiberhome/cdata |
+| `olts` | id, tenant_id, name, brand, ip_address, username, password (encrypted) | brand: huawei/zte/fiberhome/cdata/chineseolt/global/hioso/hsgq/vsol |
 | `olt_ports` | id, tenant_id, olt_id, slot_number, port_number | |
 | `onus` | id, tenant_id, olt_port_id, customer_id, onu_id, sn, status, rx_power | |
 | `odcs` | id, tenant_id, nama_odc, koordinat, kapasitas_port | koordinat: "lat,lng" |
@@ -74,6 +80,38 @@ tenants
 | Tabel | Kolom Utama |
 |-------|-------------|
 | `activity_logs` | id, tenant_id, user_id, action, description, data (JSON) |
+
+### Incident & SLA
+
+| Tabel | Kolom Utama | Catatan |
+|-------|-------------|---------|
+| `incidents` | id, tenant_id, title, type, severity, status, started_at, resolved_at, sla_* | status: open/investigating/resolved/closed |
+| `incident_notifications` | id, incident_id, channel, sent_at, status | ⚠️ Tidak ada tenant scope |
+
+### Monitoring & NOC
+
+| Tabel | Kolom Utama | Catatan |
+|-------|-------------|---------|
+| `network_metrics` | id, tenant_id, device_type, device_id, metric, value, collected_at | Data collect `network:data-collect` |
+| `interface_change_logs` | id, router_id, interface, event, detail | ⚠️ Tanpa tenant scope |
+| `mikrotik_interface_metadata` | id, router_id, interface, data (JSON) | ⚠️ Tanpa tenant scope |
+| `onu_monitoring_history` | id, olt_port_id, onu_id, rx_power, tx_power, temperature, status | ⚠️ Tanpa tenant scope |
+| `ping_results` | id, device_id, type, latency, packet_loss, checked_at | ⚠️ Tanpa tenant scope |
+
+### Automation & QoS
+
+| Tabel | Kolom Utama | Catatan |
+|-------|-------------|---------|
+| `automation_jobs` | id, tenant_id, name, trigger, config (JSON), status | Engine `automation:*` |
+| `automation_job_logs` | id, automation_job_id, status, result (JSON), ran_at | Log eksekusi |
+| `qos_profiles` / config QoS | id, tenant_id, ... | `qos:setup` / `qos:optimize` |
+
+### Inventory
+
+| Tabel | Kolom Utama | Catatan |
+|-------|-------------|---------|
+| `inventory_items` | id, tenant_id, name, category, sku, quantity, price | `/inventory/*` |
+| `inventory_transactions` | id, tenant_id, inventory_item_id, type, quantity, note | type: in/out/adjust |
 
 ---
 
@@ -107,10 +145,11 @@ olts
 
 ## Catatan Penting
 
-1. **`OdcPort` & `OdpPort`** — TIDAK menggunakan `BelongsToTenant` (potensi data leak antar tenant)
+1. **`OdcPort` & `OdpPort`** — TIDAK menggunakan `BelongsToTenant` (potensi data leak antar tenant). Model monitor (`IncidentNotification`, `InterfaceChangeLog`, `MikrotikInterfaceMetadata`, `OnuMonitoringHistory`, `PingResult`) juga tanpa tenant scope.
 2. **`mikrotik_routers.password`** — disimpan plaintext (tidak di-encrypt)
 3. **`olts.password`** — di-encrypt (menggunakan `encrypted` cast Laravel)
 4. **`BelongsToUser` trait** — masih ada tapi dead code, sudah digantikan `BelongsToTenant`
 5. **`odp_points`** — legacy table, data sudah dimigrasi ke `odps`
 6. **`kondisi_jalur`** di `odps` — string biasa (`UP`/`DOWN_LINK_FAILURE`), bukan enum
-7. **Database driver session/cache/queue** — semuanya menggunakan database, bukan file/redis
+7. **Database driver** — queue selalu `database`; session/cache `database` di produksi, `file` di lokal
+8. **⚠️ Known issue** — migrasi `2026_06_22_000004_add_tenant_id_to_business_tables.php` memakai `DROP CONSTRAINT IF EXISTS` (sintaks MySQL/Postgres) yang gagal di SQLite → suite test RED (68 failed / 74 passed)

@@ -1,6 +1,6 @@
-# Controllers — RabegNet ISP Billing System
+# Controllers — ALKONEK ISP Billing System
 
-> 36 Controllers | 170+ Methods | `App\Http\Controllers\` namespace
+> 59 Controllers | 39 Root + 3 API + 3 Auth + 14 Noc | `App\Http\Controllers\` namespace
 
 ---
 
@@ -93,7 +93,6 @@
 | `print` | GET /invoices/{invoice}/print | Load view printable |
 | `pdf` | GET /invoices/{invoice}/pdf | Generate PDF via DomPDF |
 | `sendEmail` | POST /invoices/{invoice}/send-email | Kirim email reminder via Mail facade |
-| `sendWhatsApp` | POST /invoices/{invoice}/send-wa | Kirim WA reminder via Fonnte API |
 | `bulkCreate` | POST /invoices/bulk | Generate invoice massal untuk semua customer aktif |
 | `getCustomerInvoices` | GET /invoices/by-customer/{customer} | Ajax: return invoices for customer |
 
@@ -261,13 +260,6 @@
 | `detail` | GET /voucher/{voucher} | Detail voucher publik |
 | `buy` | POST /voucher/buy | Pembelian voucher |
 
-### IsolirController (2 methods)
-
-| Method | Route | Flow |
-|--------|-------|------|
-| `byIp` | GET /isolir | Auto-detect IP, cari customer |
-| `show` | GET /isolir/{customer} | Info pembayaran + link bayar |
-
 ### SettingController (3 methods)
 
 | Method | Route | Flow |
@@ -352,8 +344,164 @@
 | `finish` | GET /midtrans/finish | Redirect setelah bayar |
 | `unfinish` | GET /midtrans/unfinish | Redirect jika batal |
 
+### XenditController (5 methods)
+
+| Method | Route | Flow |
+|--------|-------|------|
+| `pay` | GET/POST /xendit/pay/{invoice} | Initiate invoice Xendit |
+| `notification` | POST /xendit/notification | Handle callback Xendit → update invoice + Payment.create |
+| `finish` | GET /xendit/finish | Redirect setelah bayar |
+| `settings` | GET /xendit/settings | Form konfigurasi API key |
+| `updateSettings` | PUT /xendit/settings | Simpan API key |
+
+### IncidentController (11 methods)
+
+| Method | Route | Flow |
+|--------|-------|------|
+| `index` | GET /incidents | List + filter incident |
+| `create` | GET /incidents/create | Form baru |
+| `store` | POST /incidents | Validasi, create |
+| `show` | GET /incidents/{incident} | Detail + timeline + notifikasi |
+| `update` | PUT /incidents/{incident} | Validasi, update |
+| `investigating` | POST /incidents/{incident}/investigating | Set status investigating |
+| `resolve` | POST /incidents/{incident}/resolve | Set status resolved + hitung SLA |
+| `close` | POST /incidents/{incident}/close | Tutup incident |
+| `settings` | GET /incidents/settings | Konfigurasi SLA |
+| `updateSettings` | PUT /incidents/settings | Simpan SLA |
+| `purge` | POST /incidents/purge | Hapus riwayat |
+
+### InventoryController (9 methods)
+
+| Method | Route | Flow |
+|--------|-------|------|
+| `items` | GET /inventory/items | List + filter item |
+| `storeItem` | POST /inventory/items | Tambah item |
+| `updateItem` | PUT /inventory/items/{item} | Update item |
+| `destroyItem` | DELETE /inventory/items/{item} | Hapus item |
+| `masuk` | GET /inventory/masuk | Transaksi barang masuk |
+| `storeMasuk` | POST /inventory/masuk | Catat barang masuk |
+| `keluar` | GET /inventory/keluar | Transaksi barang keluar |
+| `storeKeluar` | POST /inventory/keluar | Catat barang keluar |
+| `laporanAset` | GET /inventory/laporan-aset | Laporan aset |
+
+### IntegrationController (11 methods)
+
+| Method | Route | Flow |
+|--------|-------|------|
+| `index` | GET /integration | Dashboard integrasi |
+| `storeMikrotik` / `updateMikrotik` / `destroyMikrotik` | POST/PUT/DELETE /integration/mikrotik | CRUD MikrotikRouter |
+| `testMikrotik` | POST /integration/mikrotik/{router}/test | Test REST API |
+| `liveMikrotik` | POST /integration/mikrotik/{router}/live | Data live |
+| `storeOlt` / `updateOlt` / `destroyOlt` | POST/PUT/DELETE /integration/olt | CRUD OLT |
+| `testOlt` | POST /integration/olt/{olt}/test | Test SSH |
+| `liveOlt` | POST /integration/olt/{olt}/live | Data live |
+
+### MonitoringController (2 methods)
+
+| Method | Route | Flow |
+|--------|-------|------|
+| `index` | GET /monitoring | Dashboard monitoring multi-router |
+| `liveData` | GET /monitoring/live | Ajax: live metrics |
+
+### HotspotCustomerController (4 methods)
+
+| Method | Route | Flow |
+|--------|-------|------|
+| `index` | GET /hotspot-customers | List pelanggan hotspot |
+| `scan` | POST /hotspot-customers/scan/{olt} | Scan ONU dari OLT |
+| `create` | GET /hotspot-customers/create | Form |
+| `store` | POST /hotspot-customers | Simpan |
+
+### OnuHealthController (10 methods)
+
+| Method | Route | Flow |
+|--------|-------|------|
+| `dashboard` | GET /onu-health | Dashboard kesehatan ONU |
+| `detail` | GET /onu-health/onu/{onu} | Detail ONU |
+| `topology` | GET /onu-health/topology | Graf topology |
+| `pingMonitor` | GET /onu-health/ping-monitor | Monitoring ping |
+| `pingExecute` | POST /onu-health/ping-execute | Jalankan ping |
+| `speedTest` | GET /onu-health/speedtest | Speed test |
+| `diagnosis` | GET /onu-health/diagnosis/{onu} | Diagnosa ONU |
+| `liveDashboardData` | GET /onu-health/live | Ajax live data |
+| `recordSnapshot` | POST /onu-health/snapshot/{onu} | Simpan snapshot |
+
+### OnuHotspotController (6 methods)
+
+| Method | Route | Flow |
+|--------|-------|------|
+| `index` | GET /onu-hotspot | List ONU hotspot |
+| `show` | GET /onu-hotspot/{onu} | Detail |
+| `update` | PUT /onu-hotspot/{onu} | Update |
+| `unlink` | DELETE /onu-hotspot/{onu}/unlink | Lepas dari customer |
+| `linkCustomer` | POST /onu-hotspot/{onu}/link | Tautkan ke customer |
+| `syncFromOlt` | POST /onu-hotspot/sync | Sync dari OLT |
+
+### QosHealthController (4 methods)
+
+| Method | Route | Flow |
+|--------|-------|------|
+| `index` | GET /qos-health | Dashboard health QoS |
+| `jsonHealth` | GET /qos-health/json | Ajax JSON health |
+| `syncAll` | POST /qos-health/sync | Sync semua queue |
+| `optimizeNow` | POST /qos-health/optimize | Optimasi sekarang |
+
+### VoucherPrintTemplateController (8 methods)
+
+| Method | Route | Flow |
+|--------|-------|------|
+| `index` | GET /voucher-print-templates | List template cetak |
+| `create` / `store` | GET/POST /voucher-print-templates/create | Tambah |
+| `edit` / `update` | GET/PUT /voucher-print-templates/{template} | Edit |
+| `destroy` | DELETE /voucher-print-templates/{template} | Hapus |
+| `activate` | POST /voucher-print-templates/{template}/activate | Set default |
+| `preview` | GET /voucher-print-templates/preview | Preview cetak |
+
+### NocController (15 methods)
+
+| Method | Route | Flow |
+|--------|-------|------|
+| `trafficAnalyzer` | GET /noc/traffic | Analisis traffic |
+| `linuxServer` | GET /noc/linux | Monitoring server Linux |
+| `dns` | GET /noc/dns | Manajemen DNS |
+| `vpn` | GET /noc/vpn | Manajemen VPN |
+| `speedtest` | GET /noc/speedtest | Speed test |
+| `automation` | GET /noc/automation | Engine automation |
+| `configuration` | GET /noc/configuration | Konfigurasi |
+| `scripts` | GET /noc/scripts | Manajemen script |
+| `massDeployment` | GET /noc/mass-deployment | Deploy massal |
+| `aiAssistant` | GET /noc/ai | AI assistant |
+| `capacityPlanning` | GET /noc/capacity | Perencanaan kapasitas |
+| `audit` | GET /noc/audit | Audit trail |
+| `knowledgeBase` | GET /noc/knowledge-base | Knowledge base |
+| `ponManager` | GET /noc/pon | Manajemen PON |
+| `nocSettings` | GET /noc/settings | Setting NOC |
+
 ### CronController (1 method)
 
 | Method | Route | Flow |
 |--------|-------|------|
 | `run` | GET /cron/{token} | Manual trigger scheduler via HTTP |
+
+---
+
+## Noc Controllers (14 controllers, `App\Http\Controllers\Noc` namespace)
+
+Controller khusus operasional NOC, routes di bawah `/noc/*`.
+
+| Controller | Fungsi |
+|------------|--------|
+| `DashboardController` | Dashboard ringkasan NOC |
+| `GenieacsController` | Antarmuka TR-069 GenieACS (device, presets, tasks, faults) |
+| `AutomationController` | CRUD AutomationJob/Trigger + manual run |
+| `MikrotikDashboardController` | Dashboard MikroTik multi-router |
+| `MikrotikDeviceController` | Manajemen device MikroTik |
+| `InterfaceCenterController` | Monitoring interface + metadata |
+| `InternetServiceController` | Manajemen layanan internet (PPPoE/hotspot) |
+| `NetworkConfigController` | Konfigurasi jaringan + audit log |
+| `ConfigRepositoryController` | Repository config + versioning |
+| `ConfigModuleController` | Module config MikroTik |
+| `SecurityPolicyManager` | Security policy |
+| `SyncDashboardController` | Dashboard sync config RouterOS |
+| `TrafficEngineeringController` | Manajemen traffic engineering |
+| `FeaturesController` | Feature flags NOC |

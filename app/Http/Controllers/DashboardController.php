@@ -11,18 +11,20 @@ use App\Models\Odp;
 use App\Models\OdpPort;
 use App\Models\OdpRoute;
 use App\Models\Package;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 
 class DashboardController extends Controller
 {
     public function index()
     {
+        $tenantKey = (string) (Auth::user()?->tenant_id ?? 'global');
         $activeIncidents = Incident::active()
             ->with('odp')
             ->latest('detected_at')
             ->take(5)
             ->get();
-        $totals = Cache::remember('dashboard_totals', 90, function () {
+        $totals = Cache::remember('dashboard_totals_'.$tenantKey, 90, function () {
             return [
                 'totalCustomers' => Customer::count(),
                 'activeCustomers' => Customer::where('status', 'active')->count(),
@@ -48,7 +50,7 @@ class DashboardController extends Controller
         ];
 
         $sixMonthsAgo = now()->subMonths(5)->startOfMonth();
-        $revenues = Cache::remember('dashboard_revenue_'.$sixMonthsAgo->format('Y-m'), 300, function () use ($sixMonthsAgo) {
+        $revenues = Cache::remember('dashboard_revenue_'.$sixMonthsAgo->format('Y-m').'_'.$tenantKey, 300, function () use ($sixMonthsAgo) {
             return Invoice::where('payment_status', 'paid')
                 ->where('billing_period', '>=', $sixMonthsAgo->format('Y-m'))
                 ->selectRaw('billing_period, sum(amount) as total')
@@ -64,7 +66,7 @@ class DashboardController extends Controller
             $monthlyRevenue->push((int) ($revenues[$period] ?? 0));
         }
 
-        $rates = Cache::remember('dashboard_rates', 120, function () {
+        $rates = Cache::remember('dashboard_rates_'.$tenantKey, 120, function () {
             $totalInvoices = Invoice::count();
             $paidCount = Invoice::where('payment_status', 'paid')->count();
             $unpaidCount = Invoice::where('payment_status', 'unpaid')->count();
@@ -79,7 +81,7 @@ class DashboardController extends Controller
         });
         extract($rates);
 
-        $paymentMethods = Cache::remember('dashboard_paymethods_'.now()->format('Ym'), 300, function () {
+        $paymentMethods = Cache::remember('dashboard_paymethods_'.now()->format('Ym').'_'.$tenantKey, 300, function () {
             return Invoice::where('payment_status', 'paid')
                 ->whereMonth('paid_at', now()->month)
                 ->whereYear('paid_at', now()->year)
@@ -94,7 +96,7 @@ class DashboardController extends Controller
         $activePackageCount = Package::where('is_active', true)->count();
         $inactivePackageCount = Package::where('is_active', false)->count();
 
-        $overdue = Cache::remember('dashboard_overdue', 120, function () {
+        $overdue = Cache::remember('dashboard_overdue_'.$tenantKey, 120, function () {
             $overdueCount = Invoice::where('payment_status', 'unpaid')
                 ->whereHas('customer', fn ($q) => $q->whereNotNull('due_date')->whereDate('due_date', '<', now()))
                 ->count();
@@ -107,7 +109,7 @@ class DashboardController extends Controller
         extract($overdue);
 
         $packages = Package::withCount('customers')->orderBy('price')->get();
-        $odps = Cache::remember('dashboard_odps', 120, function () {
+        $odps = Cache::remember('dashboard_odps_'.$tenantKey, 120, function () {
             return Odp::with('ports', 'customers', 'odc')->get()->map(function ($odp) {
                 $capacity = (int) $odp->kapasitas_port;
                 $used = $odp->ports->where('status', 'used')->count();
@@ -134,7 +136,7 @@ class DashboardController extends Controller
             ->get();
         $activityLogs = ActivityLog::latest()->take(5)->get();
 
-        $routerStatus = Cache::remember('dashboard_router_status', 60, function () {
+        $routerStatus = Cache::remember('dashboard_router_status_'.$tenantKey, 60, function () {
             $router = MikrotikRouter::where('is_active', true)
                 ->orderByDesc('last_seen')
                 ->first();

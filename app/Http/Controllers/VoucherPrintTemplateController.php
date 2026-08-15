@@ -142,7 +142,7 @@ class VoucherPrintTemplateController extends Controller
     private function sampleData(): array
     {
         return [
-            'company' => 'ALKONEK',
+            'company' => 'ALKONEKbill',
             'username' => 'ALK12345',
             'password' => 'pass123',
             'duration' => '7 Hari',

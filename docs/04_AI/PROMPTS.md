@@ -1,6 +1,6 @@
-# Prompts — AI Agent Guide for RabegNet
+# Prompts — AI Agent Guide for ALKONEK
 
-> Kumpulan prompt template untuk AI Agent mengerjakan task di RabegNet.
+> Kumpulan prompt template untuk AI Agent mengerjakan task di ALKONEK.
 
 ---
 
@@ -8,7 +8,7 @@
 
 ```
 Baca dan pahami struktur folder docs/00_PROJECT/DESCRIPTION.md untuk 
-memahami gambaran umum proyek RabegNet.
+memahami gambaran umum proyek ALKONEK.
 Gunakan docs/01_ARCHITECTURE/*.md untuk memahami arsitektur.
 Gunakan docs/02_BUSINESS/*.md untuk memahami business rules.
 ```
@@ -18,7 +18,7 @@ Gunakan docs/02_BUSINESS/*.md untuk memahami business rules.
 ## Menambahkan Fitur Baru
 
 ```
-Saya ingin menambahkan fitur [nama fitur] ke RabegNet.
+Saya ingin menambahkan fitur [nama fitur] ke ALKONEK.
 Tujuan: [deskripsi singkat]
 
 Langkah:

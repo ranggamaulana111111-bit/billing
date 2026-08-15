@@ -12,7 +12,7 @@
         font-family: 'Space Grotesk', 'Inter', sans-serif;
         font-size: 2rem;
         font-weight: 700;
-        letter-spacing: -0.02em;
+        letter-spacing: 0.25em;
         line-height: 1.05;
         background: linear-gradient(135deg, #ffffff 20%, #93c5fd 90%);
         -webkit-background-clip: text;
@@ -30,7 +30,7 @@
     }
     .auth-form-header h3 {
         font-weight: 100;
-        font-size: 1.2rem;
+        font-size: 1rem;
     }
     .auth-copyright {
         position: fixed;
@@ -67,14 +67,14 @@
                     <img src="{{ asset('images/logo-alkonek.gif') }}" alt="ALKONEK">
                 </span>
                 <div class="auth-hero-brand-text" style="text-align:left;">
-                    <h2 class="auth-brand-name">ALKONEKbill</h2>
-                    <span class="auth-brand-tag">ISP Billing Platform</span>
+                    <h2 class="auth-brand-name">ALKONEK</h2>
+                    <span class="auth-brand-tag">PROVISION AND BILL SYSTEM</span>
                 </div>
             </div>
 
             <div class="auth-form-header">
-                <h3>Silahkan Login Ke ALKONEKbill</h3>
-                <p>Akses panel billing, pelanggan, voucher, dan monitoring.</p>
+                <h3>Silahkan Login Menggunakan Akun Yang Anda Miliki</h3>
+                <p>Akses Panel for ALKONEK Group</p>
             </div>
 
             <form method="POST" action="{{ route('login') }}" id="loginForm" style="text-align:left;">

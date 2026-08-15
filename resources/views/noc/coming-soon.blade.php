@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', $moduleName . ' — ALKONEK NOC')
+@section('title', $moduleName . ' — PROVISION NOC')
 
 @section('content')
 <div class="container-fluid py-4 px-4">

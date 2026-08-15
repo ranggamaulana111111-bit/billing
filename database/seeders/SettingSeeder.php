@@ -11,6 +11,7 @@ class SettingSeeder extends Seeder
     {
         $defaults = [
             'company_name' => 'ALKONEKbill',
+            'company_short_name' => 'ALKONEKbill',
             'company_address' => 'Jl. Raya Rabeg No. 1',
             'company_phone' => '08123456789',
             'bank_name' => 'Bank BCA',

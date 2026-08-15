@@ -193,9 +193,11 @@
                                                 @if(\App\Models\Setting::get('midtrans_server_key'))
                                                     <li><a class="dropdown-item" href="{{ route('midtrans.pay', $inv->id) }}"><i class="fa-solid fa-credit-card me-2 text-warning"></i>Bayar via Midtrans</a></li>
                                                 @endif
+                                                @if(\App\Models\Setting::get('xendit_secret_key'))
+                                                    <li><a class="dropdown-item" href="{{ route('xendit.pay', $inv->id) }}"><i class="fa-solid fa-wallet me-2" style="color:#6366f1;"></i>Bayar via Xendit</a></li>
+                                                @endif
                                                 <li><a class="dropdown-item" href="{{ route('invoice.edit', $inv->id) }}"><i class="fa-solid fa-pen me-2 text-primary"></i>Edit</a></li>
                                                 <li><hr class="dropdown-divider"></li>
-                                                <li><a class="dropdown-item" href="{{ route('invoice.reminder', $inv->id) }}" onclick="return confirm('Kirim reminder WA?')"><i class="fa-brands fa-whatsapp me-2 text-success"></i>WA Reminder</a></li>
                                                 @if($inv->customer?->email)
                                                     <li><a class="dropdown-item" href="{{ route('invoice.email-reminder', $inv->id) }}" onclick="return confirm('Kirim email reminder?')"><i class="fa-solid fa-envelope me-2 text-primary"></i>Email Reminder</a></li>
                                                 @endif

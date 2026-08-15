@@ -11,7 +11,7 @@ trait BelongsToTenant
     public static function bootBelongsToTenant(): void
     {
         static::addGlobalScope('tenant_id', function (Builder $builder) {
-            if (Auth::hasUser()) {
+            if (Auth::hasUser() && Auth::user()->tenant_id) {
                 $builder->where($builder->getModel()->getTable().'.tenant_id', Auth::user()->tenant_id);
             }
         });

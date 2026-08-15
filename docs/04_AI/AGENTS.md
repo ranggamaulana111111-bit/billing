@@ -1,126 +1,119 @@
-# AGENTS.md — e-billing (RabegNet ISP Billing System v1.2)
+# AGENTS.md — ALKONEK / PT Alkonek Network Access — ISP Billing System v1.2
 
 ## Stack
 
-- **Framework:** Laravel 12 (PHP ^8.2)
-- **Database:** MySQL via Laragon (local `.env` uses `DB_CONNECTION=mysql`), Aiven MySQL (Vercel prod)
-- **Frontend:** Bootstrap 5.3 + custom CSS (~2064 baris `resources/css/app.css`) + Tailwind CSS v4 (import saja, tidak aktif) + Vite via `laravel-vite-plugin`
-- **CSS Framework Utama:** **Bootstrap 5.3** (bukan Tailwind) — custom design system dengan CSS custom properties, gradient, glassmorphism. Tailwind di-import tapi tidak digunakan.
-- **Asset JS:** Chart.js (via NPM + Vite), Leaflet 1.9.4 + MarkerCluster, Alpine.js, Bootstrap JS
+- **Framework:** Laravel 12 (PHP ^8.2, installed v12.61)
+- **Database:** MySQL locally (`.env` `DB_CONNECTION=mysql`, db `e_billing`); Aiven MySQL in prod (Vercel)
+- **CSS Framework:** **Bootstrap 5.3 via npm + Vite** (not CDN, not Tailwind). `resources/js/app.js` imports `bootstrap` + `bootstrap/dist/css/bootstrap.min.css`. **Tailwind tidak terpasang di source** (hanya artefak compiled di `public/hotspot/templates/*/assets/style.css`) — jangan pakai class Tailwind. Custom design system di `resources/css/app.css` (~5.3k baris). Font Awesome 6.4 via cdnjs CDN di layout; Chart.js/Leaflet juga via CDN per-halaman (walaupun ada di `package.json`). **Kecuali halaman portal** (`portal/index`, `portal/invoices`, `portal/pay`) **& `customer/print-a4`** yang load Bootstrap 5.3.0 CDN langsung (di luar layout app).
+- **Per-page JS:** halaman yang butuh Chart.js/Leaflet load sendiri (CDN, `defer`) + `@push('scripts')` → `@stack('scripts')` di `layouts/app.blade.php`. **Jangan tambah ke bundle global** — Vite hanya entry `resources/css/app.css` + `resources/js/app.js`.
 - **QR Code:** `simplesoftwareio/simple-qrcode` v4.2 (inline SVG, no external API)
+- **Notifikasi pelanggan:** direncanakan via aplikasi Android pelanggan (in-development) — **Fonnte/WhatsApp sudah dihapus dari codebase**, jangan dihidupkan kembali
 - **Code style:** Laravel Pint (default rules, no local `pint.json`)
-- **Testing:** PHPUnit 11 + Mockery — SQLite `:memory:` in tests (see `phpunit.xml`)
+- **Testing:** PHPUnit 11 + Mockery — SQLite `:memory:` (see `phpunit.xml`)
 - **Deployment:** Vercel (`vercel-php@0.9.0`, `api/index.php`) + Railway.app backup
-- **No CI setup** (no `.github/`)
+- **CI:** `.github/workflows/deploy.yml` — `npm ci && npm run build` lalu `vercel deploy --prebuilt --prod` on push ke `main`/`master`
 
-## PHP CLI note
+## PHP CLI (Windows)
 
-PHP CLI default (`php`) = 8.1.10 (tidak cukup untuk Laravel 12).
-Gunakan path lengkap ke Laragon's PHP 8.3:
+`php` **tidak ada di PATH**. Selalu gunakan path lengkap ke Laragon's PHP 8.3:
 ```
-C:\laragon\bin\php\php-8.3.31-Win32-vs16-x64 (1)\php.exe artisan {command}
+"C:\laragon\bin\php\php-8.3.31-Win32-vs16-x64 (1)\php.exe" artisan {command}
 ```
-
-> **Catatan:** Folder PHP 8.3 di Laragon Anda bernama `php-8.3.31-Win32-vs16-x64 (1)` — gunakan path tersebut.
+> Folder PHP 8.3 bernama persis `php-8.3.31-Win32-vs16-x64 (1)` (termasuk spasi & kurung) — jangan hapus tanda kutip.
 
 ## Commands
 
 | Command | Runs |
 |---|---|
-| `composer setup` | `composer install`, copies `.env`, `key:generate`, `migrate --force`, `npm install && npm run build` |
-| `composer dev` | concurrently: `artisan serve`, `queue:listen`, `pail`, `npm run dev` |
+| `composer setup` | `composer install`, copy `.env`, `key:generate`, `migrate --force`, `npm install && npm run build` |
+| `composer dev` | concurrently: `artisan serve`, `queue:listen --tries=1`, `pail`, `npm run dev` |
 | `composer test` | `artisan config:clear --ansi && artisan test` |
-| `npm run build` | `vite build` |
-| `npm run dev` | `vite` (dev server) |
-| `./vendor/bin/pint` | Auto-format code (default Laravel rules) |
-| `php artisan migrate` | Run pending migrations |
-| **Test via CLI** | `C:\laragon\bin\php\php-8.3.31-Win32-vs16-x64 (1)\php.exe vendor/bin/phpunit` |
-| **Artisan via CLI** | `C:\laragon\bin\php\php-8.3.31-Win32-vs16-x64 (1)\php.exe artisan {command}` |
+| `npm run build` / `npm run dev` | `vite build` / `vite` dev server |
+| `./vendor/bin/pint` | Auto-format (Laravel default rules) |
+| **Artisan/Test via CLI** | `"C:\laragon\bin\php\php-8.3.31-Win32-vs16-x64 (1)\php.exe" artisan {cmd}` / `vendor/bin/phpunit` |
 
-## Artisan Commands
+## Scheduled Commands (`routes/console.php`, 17 schedules)
 
 | Command | Schedule | Fungsi |
 |---|---|---|
-| `billing:process` | `dailyAt('08:00')` | Generate invoice bulanan + WA reminder |
+| `billing:process` | `dailyAt('08:00')` | Generate invoice bulanan |
+| `invoices:purge-paid` | `dailyAt('08:30')` | Purge invoice lunas |
 | `olt:poll` | `hourly()` | Poll OLT via SSH, update ONU status |
 | `customers:onu-sync` | `hourly()` | Sync ONU dari data PPPoE MikroTik |
-| `customer:auto-isolir` | `dailyAt('00:30')` | Auto-suspend pelanggan overdue, set PPP Profile isolir, add IP ke address-list |
-| `customer:sync-isolir-ips` | `everyFiveMinutes()` | Sync IP pelanggan suspended ke firewall address-list |
-| `hotspot:import` | Manual | Import file HTML hotspot ke database VoucherTemplate |
-| `mikrotik:setup-isolir` | Manual | Setup PPP Profile-Isolir, DST-NAT redirect, DROP rules di MikroTik |
-| `voucher:sync-mikrotik` | Manual (dulu automated, sekarang non-aktif) | Sync status voucher dengan MikroTik (digantikan event-driven API) |
+| `network:data-collect` | `everyFiveMinutes()` | Collect metrics; `--aggregate` hourly, `--prune` 6h |
+| `qos:optimize` | `everyFiveMinutes()` | Optimasi QoS |
+| `customer:auto-isolir` | `dailyAt('00:30')` | Auto-suspend overdue + PPP Profile isolir + address-list |
+| `customer:sync-isolir-ips` | `everyFiveMinutes()` | Sync IP suspended ke firewall address-list |
+| `routeros:sync-config` | `everyFifteenMinutes()` | Sync config MikroTik ke DB |
+| `customers:backup` | `dailyAt('03:00')` | Backup pelanggan PPPoE/Hotspot ke JSON |
+| `incident:check-sla` | `hourly()` | Cek SLA incident |
+| `incidents:purge` / `incidents:purge-auto` | monthly / everyMinute | Purge riwayat incident |
+| `automation:scheduler` / `automation:worker --once` | everyMinute | Engine automation |
+
+Manual / legacy: `hotspot:import`, `mikrotik:setup-isolir`, `olt:batch-link`, `qos:setup`, `qos:sync`, `qos:health`, `voucher:sync-mikrotik` (non-aktif — digantikan event-driven API).
 
 ## Testing
 
-- **55 test methods** across 8 files (7 Feature + 1 Unit)
-- **5 feature test classes** use `RefreshDatabase`: Auth, Customer, Distribution, Invoice, Package
-- SQLite `:memory:` — no external DB needed
-- Two suites: `tests/Unit` (plain PHPUnit) and `tests/Feature` (Laravel HTTP tests)
-- Run focused: `php artisan test --filter=ExampleTest`
+- **142 test methods** across **17 files** (7 Feature + 10 Unit) — incl. Unit untuk `Services/Billing`, `Services/Payment` (Midtrans + Xendit), `Services/GenieACS`, `Services/Olt`
+- SQLite `:memory:` — no external DB needed (see `phpunit.xml`)
+- Run focused: `php artisan test --filter=CustomerTest`
 - Run single suite: `php artisan test --testsuite=Unit`
-- Coverage: Auth (login/register/logout/dashboard), Customer (CRUD/suspend/activate), Invoice (CRUD/paid/print), Package (CRUD/destroy protection), Distribution (ODC/Route/Point CRUD + cascade protection), Sitemap
+- `RefreshDatabase` dipakai **eksplisit** per class — bukan default
+- **⚠️ KNOWN ISSUE: suite saat ini RED (142 tests → 88 errors + 3 failures).** Jangan panik & jangan salahkan kode yang sedang dikerjakan:
+  - Penyebab utama: migrasi `2026_06_22_000004_add_tenant_id_to_business_tables.php` memakai `DROP CONSTRAINT IF EXISTS` (sintaks MySQL/Postgres) yang **gagal di SQLite** → semua test `RefreshDatabase` error `near "CONSTRAINT"`.
+  - Beberapa Unit test yang menyentuh DB tanpa `RefreshDatabase` (`MidtransGatewayTest`, `PaymentServiceTest`, `XenditGatewayTest`) → error `no such table`.
+  - `InvoiceGeneratorTest::test_uses_current_date_when_no_period_given` expect format `INV-YYYYMM-` padahal `InvoiceGenerator::generate()` menghasilkan `INV-YYYYMMDD-` (pakai `now()->format('Ymd')`).
 
 ## Architecture
 
-**RabegNet** adalah sistem billing ISP lengkap dengan ~85 file PHP di `app/`, 54 migrations, 28 tabel database, dan ~170 route.
+Monolith Laravel besar: 22 commands, 59 controllers (39 root + 3 Api + 3 Auth + 14 Noc), 40 models + 2 traits, 100 migrations, 172 views, ~546 routes (web.php).
 
 ### Multi-Tenancy
-- **`BelongsToTenant` trait** (bukan `BelongsToUser`) — global scope `tenant_id` pada semua model utama
-- `Tenant` model sebagai root, `User` belongsTo `Tenant`
-- `BelongsToUser` trait masih ada tapi **sudah tidak dipakai** (dead code)
+- **`BelongsToTenant` trait** (`app/Models/Traits/`) — global scope `tenant_id` pada 31 model; `Tenant` sebagai root, `User` belongsTo `Tenant`
+- `BelongsToUser` trait masih ada tapi **dead code**
+- **Gotcha:** `OdcPort`, `OdpPort`, `IncidentNotification`, `InterfaceChangeLog`, `MikrotikInterfaceMetadata`, `OnuMonitoringHistory`, `PingResult` TIDAK punya tenant scope — potensi data leak (cek filter manual bila perlu)
 
 ### Key Patterns
-- Monolithic dengan Controller → Service → Model
-- **Driver Pattern** untuk OLT multi-brand (Huawei, ZTE, FiberHome, C-Data)
-- Decorator Pattern untuk Jump Host SSH tunnel & MikroTik SSH Proxy
-- **SSH Fallback Pattern** — `MikrotikService` auto-fallback dari REST API ke SSH (`phpseclib3`) jika REST gagal
-- Event-driven API untuk sinkronasi voucher MikroTik (`POST /api/v1/mikrotik/hotspot-login`)
-- Isolir subsystem: auto-suspend + firewall integration MikroTik
+- Monolithic Controller → Service → Model
+- **Driver Pattern** OLT multi-brand (`app/Services/Olt/Drivers/`: Zte, Huawei, FiberHome, CData + JumpHost/Mikrotik SSH tunnel; factory)
+- MikroTik: REST API dengan **SSH fallback** (`phpseclib3`) + connection pool (`app/Services/Mikrotik/`: `RouterConnectionPool`, `RouterConnectionManager`, dll)
+- RouterOS config sync: `routeros:sync-config` → `app/Services/Mikrotik/Sync/`
+- Event-driven voucher sync: `POST /api/v1/mikrotik/hotspot-login` (pengganti `voucher:sync-mikrotik`)
+- **Topology:** `app/Services/Monitoring/FiberTopologyService::getTopologyData()` bangun graf OLT→ODC→ODP→ONU dari entitas Distribution (`Odc`, `Odp`, `OdpPort.customer_id`) — **bukan** `OdcPort.connected_to_odp_id`. Route `/onu-health/topology/graph`.
 
-### Isolir Subsystem (tidak ada di DOCS versi lama)
-Tiga command + satu controller untuk auto-isolasi pelanggan telat bayar:
-- `customer:auto-isolir` — suspend otomatis, set PPP Profile ke "Isolir", tambah IP ke address-list
-- `customer:sync-isolir-ips` — sinkronasi IP suspended ke firewall address-list tiap 5 menit
-- `mikrotik:setup-isolir` — setup awal aturan firewall di MikroTik
-- `IsolirController` — halaman publik untuk pelanggan yang di-isolir (redirect DNS)
-- `GET /isolir/{customer}` — tampilkan info pembayaran ke pelanggan yang kena isolir
+### Modul Baru (tidak ada di docs lama)
+- **Noc controllers:** 14 controller di `app/Http/Controllers/Noc/` (namespace `Noc\`) — GenieACS, Automation, MikrotikDashboard, TrafficEngineering, dll; routes di bawah `/noc/*`
+- **GenieACS (TR-069):** `app/Modules/GenieACS/` (Contracts, Exceptions, Repositories, Services, Support — termasuk `Support/GenieacsServiceProvider`) + `Noc\GenieacsController` — routes di bawah `/noc/genieacs`
+- **Incidents & SLA:** `Incident`, `IncidentNotification`, `IncidentNotificationService`, `incident:check-sla`
+- **Automation engine:** `AutomationJob/Trigger/Log` + `app/Services/Automation/` (scheduler + worker + trigger)
+- **Network metrics & QoS:** `NetworkMetric`, `app/Services/SmartQos/SmartQosService.php`, `qos:*`, `app/Services/Monitoring/` (HealthScore, PingMonitor, Diagnosis, SpeedTest, FiberTopology)
+- **Payment abstraction:** `app/Services/Payment/` (`PaymentGatewayInterface`, `MidtransGateway`, `XenditGateway`, `PaymentService`) + `XenditController` — legacy `MidtransService` juga masih dipakai
+
+### Notifikasi Pelanggan (Android app — in-development)
+- **Fonnte/WhatsApp dihapus total** dari codebase (`FonnteService`, `SendWhatsAppNotification`, config `services.fonnte`, `fonnte_token` di settings). Referensi WA yang tersisa hanya **link kontak/chat** (mis. tombol WA di map NOC & "No. WA:" di portal) — bukan gateway.
+- **`IncidentNotification`** masih dibuat (status `'pending'`) sebagai data untuk aplikasi Android pelanggan nanti — jangan hapus.
+- Rencana: aplikasi Android pelanggan akan menerima notifikasi pengingat pembayaran/isolir langsung di app, bukan via WhatsApp.
+
+### Isolir Subsystem
+- `customer:auto-isolir` — suspend otomatis, set PPP Profile "Isolir", tambah IP ke address-list
+- `customer:sync-isolir-ips` — sync IP suspended ke firewall address-list tiap 5 menit
+- `mikrotik:setup-isolir` — setup awal firewall di MikroTik (manual)
+- **Tidak ada halaman publik `/isolir/{customer}` lagi** — semua aksi isolir lewat command + status `suspended` di `CustomerController`
 
 ## Conventions
 
-- PSR-4: `App\` → `app/`, `Database\Factories\` → `database/factories/`, `Database\Seeders\` → `database/seeders/`, `Tests\` → `tests/`
-- `RefreshDatabase` is **not** used by default — 5 test classes use it explicitly
-- `.env` is gitignored — copy `.env.example` and set `APP_KEY` on fresh clone. **Note:** `.env` uses MySQL locally (`DB_CONNECTION=mysql`, database `e_billing`)
-- Key `.env` variance from default: `SESSION_DRIVER=database`, `CACHE_STORE=database`, `QUEUE_CONNECTION=database`, `DB_CONNECTION=mysql`
+- PSR-4: `App\` → `app/`, `Database\Factories\`, `Database\Seeders\`, `Tests\`; **modul tambahan di `app/Modules/`** (mis. GenieACS)
+- `.env` gitignored — copy `.env.example` + `key:generate` pada fresh clone
+- Local `.env` variance dari default: `QUEUE_CONNECTION=database`, `DB_CONNECTION=mysql` (session/cache pakai `file`)
+- **Docs:** `docs/` (lihat `docs/INDEX.md`) punya detail arsitektur, tapi **angka & tabelnya ketinggalan zaman** (contoh: `docs/03_DEVELOPMENT/TESTING.md` masih pakai count 55 test methods & path PHP 8.2; `docs/04_AI/AGENTS.md` sudah disinkronkan dengan file ini) — percaya kode & root `AGENTS.md` ini di atas angka di docs.
 
 ## Security Notes
 
-- **JANGAN commit `.env` atau `vercel.json`** — berisi produksi credentials (DB password, APP_KEY, Midtrans server key, Fonnte token)
-- **reset_data.php** adalah destructive script — HAPUS file ini sebelum production atau beri proteksi
-- `checker.md` juga mengandung sensitive tokens — jangan commit ke public repo
-- Password MikroTik router **tidak di-encrypt** (beda dengan OLT yang pakai `encrypted` cast)
-- `OdcPort` dan `OdpPort` model **tidak punya** `BelongsToTenant` scope — potensi data leak
-- SSL verification disabled untuk koneksi MikroTik REST API (`withoutVerifying()`)
+- **JANGAN commit** `.env`, `vercel.json`, `checker.md`, `_check*.php` — semua sudah gitignored. `vercel.json` berisi **plaintext prod credentials** (Aiven DB password, APP_KEY).
+- Password MikroTik router **tidak di-encrypt** (beda OLT yang pakai `encrypted` cast)
+- MikroTik REST API pakai `withoutVerifying()` (SSL verification disabled)
 
-## File Structure (key files only)
-
-```
-app/
-├── Console/Commands/       # 8 commands (billing, olt, voucher, isolir, dll)
-├── Http/
-│   ├── Controllers/        # 34 files (Auth, API, Backup, Customer, Dashboard, dll)
-│   ├── Controllers/Api/    # OdpruteController, MikrotikHotspotController
-│   └── Middleware/          # IsAdmin, IsTeknisiOrAdmin
-├── Jobs/                   # PollOltJob, SendWhatsAppNotification
-├── Mail/                   # InvoiceReminder, PaymentConfirmation
-├── Models/                 # 19 models + 2 traits (BelongsToTenant, BelongsToUser legacy)
-└── Services/               # MidtransService, MikrotikService, MikrotikSshService, Olt/ (drivers, factory, SSH tunnel)
-database/
-├── migrations/             # 54 files (28 tables)
-├── factories/              # 5 factories
-└── seeders/                # 5 seeders (DatabaseSeeder, BillingSeeder, SettingSeeder, dll)
-resources/views/            # 62 blade files + hotspot templates
-routes/
-├── web.php                 # ~170 routes
-├── api.php                 # POST /api/v1/mikrotik/hotspot-login
-└── console.php             # 5 scheduled commands
-```
+## MikroTik Tunnel Connection
+- Host router MikroTik dikonfigurasi via **Setting DB** (`mikrotik_host`) — bisa diganti runtime tanpa deploy; **tidak ada default hardcoded di code/seeders** (nilai saat ini di DB: tunnel `cloud10.tunnel.id:3069`)
+- cURL error 6/7/28 = tunnel client di MikroTik offline → restart MikroTik onsite
+- Jika tunnel mati, `mikrotik_host` bisa diganti sementara ke IP langsung MikroTik

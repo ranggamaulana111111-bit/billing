@@ -1,7 +1,7 @@
 <div class="pm-head">
     <div class="pm-brand">
         <span class="logo-chip" style="width:40px;height:40px;border-radius:10px;">
-            <img src="{{ asset('images/logo-alkonek.gif') }}" alt="Logo ALKONEK">
+            <img src="{{ asset('images/logo-alkonek.gif') }}" alt="Logo ALKONEKbill">
         </span>
         <div>
             <div class="pm-brand-name">{{ $company['name'] }}</div>
@@ -108,6 +108,11 @@
                                     @if($midtransConfigured)
                                         <a href="{{ route('portal.bayar', $inv->id) }}" class="pm-pay-btn">
                                             <i class="fa-solid fa-credit-card"></i> Bayar
+                                        </a>
+                                    @endif
+                                    @if($xenditConfigured)
+                                        <a href="{{ route('portal.bayar-xendit', $inv->id) }}" class="pm-pay-btn" style="background:#6366f1;">
+                                            <i class="fa-solid fa-wallet"></i> Xendit
                                         </a>
                                     @endif
                                 @endif

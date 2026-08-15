@@ -6,6 +6,7 @@ use App\Models\MikrotikRouter;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Client\Response;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -37,6 +38,12 @@ class RouterOSApiService
 
     private RouterConnectionManager $connectionManager;
 
+    private ?string $activeHost = null;
+
+    private ?int $localPort = null;
+
+    private bool $localMode = false;
+
     /**
      * @param  MikrotikRouter  $router  The router model with connection credentials
      * @param  RouterRetryPolicy|null  $retryPolicy  Retry policy (default: RouterRetryPolicy::default())
@@ -51,6 +58,48 @@ class RouterOSApiService
         $this->errorHandler = new RouterErrorHandler;
         $this->retryPolicy = $retryPolicy ?? RouterRetryPolicy::default();
         $this->connectionManager = $connectionManager ?? new RouterConnectionManager($router);
+        $this->localPort = $router->local_port ? (int) $router->local_port : null;
+        $this->localMode = ($router->connection_mode ?? 'tunnel') === 'local_ip';
+    }
+
+    /**
+     * TTL cache "active host = local" agar percobaan host utama yang mati
+     * tidak diulang pada tiap request (menghemat ~2-3 detik per call).
+     */
+    private const LOCAL_HOST_CACHE_TTL = 600;
+
+    private function localHostCacheKey(): string
+    {
+        return "mikrotik:active_local:{$this->router->id}";
+    }
+
+    private function cachedLocalActive(): bool
+    {
+        return (bool) Cache::get($this->localHostCacheKey(), false);
+    }
+
+    private function usingCachedLocal(): bool
+    {
+        return $this->activeHost === null && ! $this->localMode && $this->cachedLocalActive();
+    }
+
+    private function isUsingLocalIp(): bool
+    {
+        return $this->localMode || $this->activeHost === $this->router->local_ip || $this->usingCachedLocal();
+    }
+
+    private function rememberWorkingHost(): void
+    {
+        if ($this->isUsingLocalIp()) {
+            Cache::put($this->localHostCacheKey(), true, now()->addSeconds(self::LOCAL_HOST_CACHE_TTL));
+        } else {
+            Cache::forget($this->localHostCacheKey());
+        }
+    }
+
+    private function clearLocalHostCache(): void
+    {
+        Cache::forget($this->localHostCacheKey());
     }
 
     /**
@@ -74,10 +123,46 @@ class RouterOSApiService
      */
     public function restUrl(string $path): string
     {
-        $port = $this->router->api_ssl_port ?? $this->router->port;
-        $scheme = ($port == 443 || $this->router->connection_type === 'api_ssl') ? 'https' : 'http';
+        $isLocal = $this->localMode || $this->activeHost !== null || $this->usingCachedLocal();
+        $defaultPort = $this->router->api_ssl_port ?? $this->router->port;
+        $port = $isLocal ? ($this->localPort ?? 80) : $defaultPort;
+        $scheme = $isLocal
+            ? ($port == 443 ? 'https' : 'http')
+            : (($port == 443 || $this->router->connection_type === 'api_ssl') ? 'https' : 'http');
+        $host = $this->activeHost ?? ($this->usingCachedLocal() ? $this->router->local_ip : $this->router->host);
 
-        return "{$scheme}://{$this->router->host}:{$port}/rest{$path}";
+        return "{$scheme}://{$host}:{$port}/rest{$path}";
+    }
+
+    /**
+     * Pindahkan koneksi ke IP lokal jika host utama tidak reachable.
+     */
+    public function switchToLocalIp(): bool
+    {
+        if (! $this->router->hasLocalIpFallback() || $this->activeHost === $this->router->local_ip) {
+            return false;
+        }
+
+        $this->activeHost = $this->router->local_ip;
+        Cache::put($this->localHostCacheKey(), true, now()->addSeconds(self::LOCAL_HOST_CACHE_TTL));
+        Log::channel('mikrotik')->warning('RouterOS fallback ke IP lokal', [
+            'router_id' => $this->router->id,
+            'router_host' => $this->router->host,
+            'local_ip' => $this->router->local_ip,
+        ]);
+
+        return true;
+    }
+
+    private function isConnectionError(string $errorType): bool
+    {
+        return in_array($errorType, [
+            RouterErrorHandler::DNS_ERROR,
+            RouterErrorHandler::CONNECTION_REFUSED,
+            RouterErrorHandler::TIMEOUT,
+            RouterErrorHandler::CONNECTION_RESET,
+            RouterErrorHandler::CONNECTION_CLOSED,
+        ], true);
     }
 
     // ═══════════════════════════════════════════
@@ -160,11 +245,40 @@ class RouterOSApiService
                 ['latency_ms' => $latencyMs],
             );
         } catch (\Exception $e) {
+            if ($this->isConnectionError($this->errorHandler->classify($e)) && $this->switchToLocalIp()) {
+                return $this->testConnectionViaLocalIp();
+            }
+
             return $this->errorHandler->handle(
                 $e,
                 'testConnection',
                 $this->router->id,
                 $this->router->host,
+            );
+        }
+    }
+
+    private function testConnectionViaLocalIp(): RouterResult
+    {
+        $start = microtime(true);
+
+        try {
+            $res = $this->client()->get($this->restUrl('/system/resource'))->json();
+            $latencyMs = round((microtime(true) - $start) * 1000, 1);
+
+            $this->errorHandler->logConnectionSuccess('testConnection (IP lokal)', $this->router->id, $this->router->local_ip, $latencyMs);
+
+            return RouterResult::ok(
+                'Terhubung ke '.($res['board-name'] ?? 'MikroTik').' (via IP lokal)',
+                $res,
+                ['latency_ms' => $latencyMs, 'via_local_ip' => true],
+            );
+        } catch (\Exception $e) {
+            return $this->errorHandler->handle(
+                $e,
+                'testConnection (IP lokal)',
+                $this->router->id,
+                $this->router->local_ip,
             );
         }
     }
@@ -183,12 +297,37 @@ class RouterOSApiService
 
             return round((microtime(true) - $start) * 1000, 1);
         } catch (\Exception $e) {
+            if ($this->isConnectionError($this->errorHandler->classify($e)) && $this->switchToLocalIp()) {
+                return $this->getLatencyViaLocalIp();
+            }
+
             $this->errorHandler->logError(
                 $e,
                 'getLatency',
                 $this->errorHandler->classify($e),
                 $this->router->id,
                 $this->router->host,
+            );
+
+            return null;
+        }
+    }
+
+    private function getLatencyViaLocalIp(): ?float
+    {
+        $start = microtime(true);
+
+        try {
+            $this->client()->get($this->restUrl('/system/resource'));
+
+            return round((microtime(true) - $start) * 1000, 1);
+        } catch (\Exception $e) {
+            $this->errorHandler->logError(
+                $e,
+                'getLatency (IP lokal)',
+                $this->errorHandler->classify($e),
+                $this->router->id,
+                $this->router->local_ip,
             );
 
             return null;
@@ -267,6 +406,7 @@ class RouterOSApiService
 
                 // Touch connection manager on success
                 $this->connectionManager->touch();
+                $this->rememberWorkingHost();
 
                 return RouterResult::ok('', $data, [
                     'latency_ms' => $latencyMs,
@@ -276,6 +416,21 @@ class RouterOSApiService
             } catch (RequestException $e) {
                 $lastException = $e;
                 $errorType = $this->errorHandler->classify($e);
+
+                if ($this->isConnectionError($errorType)) {
+                    if ($this->usingCachedLocal()) {
+                        $this->clearLocalHostCache();
+                        Log::debug("RouterOS {$operation} gagal via IP lokal ({$errorType}), retry via host utama...");
+
+                        continue;
+                    }
+
+                    if ($this->switchToLocalIp()) {
+                        Log::debug("RouterOS {$operation} gagal di host utama ({$errorType}), retry via IP lokal...");
+
+                        continue;
+                    }
+                }
 
                 if ($this->retryPolicy->shouldRetry($errorType, $attempt)) {
                     Log::debug("RouterOS {$operation} attempt {$attempt} failed ({$errorType}), retrying...");
@@ -287,6 +442,21 @@ class RouterOSApiService
             } catch (\Exception $e) {
                 $lastException = $e;
                 $errorType = $this->errorHandler->classify($e);
+
+                if ($this->isConnectionError($errorType)) {
+                    if ($this->usingCachedLocal()) {
+                        $this->clearLocalHostCache();
+                        Log::debug("RouterOS {$operation} gagal via IP lokal ({$errorType}), retry via host utama...");
+
+                        continue;
+                    }
+
+                    if ($this->switchToLocalIp()) {
+                        Log::debug("RouterOS {$operation} gagal di host utama ({$errorType}), retry via IP lokal...");
+
+                        continue;
+                    }
+                }
 
                 if ($this->retryPolicy->shouldRetry($errorType, $attempt)) {
                     Log::debug("RouterOS {$operation} attempt {$attempt} failed ({$errorType}), retrying...");

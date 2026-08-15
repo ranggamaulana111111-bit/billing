@@ -6,7 +6,7 @@
 <div class="page-header d-flex flex-wrap justify-content-between align-items-center mb-4">
     <div>
         <h2 class="mb-0"><i class="fa-solid fa-gears me-2" style="color:var(--primary);"></i>Automation Engine</h2>
-        <p class="section-subtitle mb-0 mt-1">Pusat otomasi ALKONEK NOC Control Center</p>
+        <p class="section-subtitle mb-0 mt-1">Pusat otomasi PROVISION NOC Control Center</p>
     </div>
     <div class="page-actions mt-2 mt-md-0 d-flex gap-2">
         <form method="POST" action="{{ route('noc.automation.trigger-scheduler') }}" class="d-inline">

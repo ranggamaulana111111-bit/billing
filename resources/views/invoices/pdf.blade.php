@@ -34,7 +34,7 @@
             @if(!empty($settings['company_logo']))
                 <img src="{{ storage_path('app/public/' . $settings['company_logo']) }}" alt="Logo" style="height:76px;width:auto;border-radius:30px;margin-bottom:8px;"><br>
             @endif
-            <h1>{{ $settings['company_name'] ?? 'ALKONEK' }}</h1>
+            <h1>{{ $settings['company_name'] ?? 'ALKONEKbill' }}</h1>
             <small>{{ $settings['company_address'] ?? '' }}</small><br>
             <small>Telp: {{ $settings['company_phone'] ?? '' }}</small>
         </div>

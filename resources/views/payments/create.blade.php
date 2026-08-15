@@ -37,6 +37,7 @@
                             <option value="transfer" {{ old('payment_method') === 'transfer' ? 'selected' : '' }}>Transfer Bank</option>
                             <option value="qris" {{ old('payment_method') === 'qris' ? 'selected' : '' }}>QRIS</option>
                             <option value="midtrans" {{ old('payment_method') === 'midtrans' ? 'selected' : '' }}>Midtrans</option>
+                            <option value="xendit" {{ old('payment_method') === 'xendit' ? 'selected' : '' }}>Xendit</option>
                         </select>
                         @error('payment_method') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>

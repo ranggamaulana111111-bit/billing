@@ -46,11 +46,11 @@ ALKONEK (PT Alkonek Network Access) adalah sistem billing berbasis web untuk pen
 ## 4. Permasalahan yang Diselesaikan
 
 1. **Penagihan manual** → Auto-generate invoice bulanan via scheduler
-2. **Pembayaran offline** → Integrasi Midtrans untuk pembayaran online (QRIS, VA, dll)
+2. **Pembayaran offline** → Integrasi Midtrans + Xendit untuk pembayaran online (QRIS, VA, dll) via payment gateway abstraction
 3. **Monitoring OLT terbatas** → SSH multi-brand (Huawei, ZTE, FiberHome, C-Data) dengan polling otomatis
 4. **Manajemen ODP tidak terstruktur** → Peta interaktif Leaflet dengan ODC/Route/Point
 5. **Voucher manual** → Generate, print, push ke MikroTik otomatis
-6. **Pengingat tagihan** → WA reminder otomatis via Fonnte
+6. **Pengingat tagihan** → reminder otomatis via aplikasi pelanggan Android (in-development)
 7. **Multi-tenant** → Setiap tenant (ISP) memiliki data terpisah, admin/teknisi dalam satu tenant berbagi data
 
 ---
@@ -70,6 +70,7 @@ ALKONEK (PT Alkonek Network Access) adalah sistem billing berbasis web untuk pen
 | Laravel Socialite | ^5.27 | OAuth Google Login |
 | DomPDF (barryvdh) | ^3.1 | Generate PDF invoice |
 | RouterOS API | ^1.7 | REST API MikroTik |
+| simple-qrcode | ^4.2 | QR code voucher (inline SVG) |
 
 ### Frontend
 | Teknologi | Versi | Fungsi |
@@ -79,18 +80,18 @@ ALKONEK (PT Alkonek Network Access) adalah sistem billing berbasis web untuk pen
 | Leaflet | 1.9.4 | Peta interaktif ODP/OLT (CDN defer, hanya di halaman perlu) |
 | Chart.js | 4.5.1 | Grafik dashboard (CDN defer, hanya di halaman perlu) |
 | Alpine.js | — | Interaktivitas ringan |
-| Tailwind CSS | v4 | CSS utility (via `@import 'tailwindcss'`, tidak aktif dipakai) |
 | Vite | 7.x | Asset bundler (hanya `app.css` + `app.js`) |
 
-> **Optimasi (v1.2):** Bootstrap CSS, Chart.js, Leaflet di-load dari CDN sehingga build Vite hanya ~103KB CSS + ~122KB JS (gzip ≈ 19KB + 41KB). Font Awesome & Google Fonts non-render-blocking. DashboardController di-cache (`Cache::remember` 90–300s).
+> **Optimasi (v1.2):** Bootstrap 5.3 di-bundle via npm + Vite (`resources/js/app.js`). Chart.js & Leaflet di-load via CDN `defer` hanya di halaman yang membutuhkan (`@push('scripts')`). Font Awesome & Google Fonts non-render-blocking. DashboardController di-cache (`Cache::remember` 90–300s). **Tailwind tidak terpasang di source** — artefak `style.css` di `public/hotspot/templates/*/assets/` hanya hasil import dari editor.
 
 ### Integrasi Pihak Ketiga
 | Layanan | API | Fungsi |
 |---------|-----|--------|
 | Midtrans | Snap API | Pembayaran QRIS, VA, dll |
+| Xendit | Invoice API | Pembayaran alternatif (payment gateway abstraction) |
 | Google | Socialite OAuth 2.0 | Login dengan Google |
-| Fonnte | REST API | Notifikasi WhatsApp |
-| MikroTik | REST API | Manajemen hotspot, PPP, queue |
+| MikroTik | REST API + SSH fallback | Manajemen hotspot, PPP, queue |
+| GenieACS | TR-069 | Manajemen perangkat CPE (di `app/Modules/GenieACS`) |
 
 ---
 
@@ -98,12 +99,13 @@ ALKONEK (PT Alkonek Network Access) adalah sistem billing berbasis web untuk pen
 
 ### Pola Arsitektur
 - **Monolithic** dengan pemisahan Controller → Service → Model
-- **Multi-tenant ringan** via Global Scope (`BelongsToTenant` trait)
-- **Driver Pattern** untuk OLT multi-brand (Huawei, ZTE, FiberHome, C-Data)
+- **Multi-tenant ringan** via Global Scope (`BelongsToTenant` trait) — 30 model memakainya
+- **Driver Pattern** untuk OLT multi-brand (Huawei, ZTE, FiberHome, C-Data, + 5 driver tambahan)
 - **Decorator Pattern** untuk Jump Host SSH tunnel & MikroTik SSH Proxy
-- **Scheduled Tasks** untuk billing, polling OLT, auto-isolir
+- **Payment Gateway Abstraction** (`app/Services/Payment/`: interface + Midtrans & Xendit gateway)
+- **Scheduled Tasks** untuk billing, polling OLT, auto-isolir, QoS, automation
 - **Event-driven API** untuk sinkronasi voucher MikroTik
-- **Job Queue** untuk polling OLT perangkat + WA notification
+- **Job Queue** untuk polling OLT perangkat & job async (queue database)
 
 ### Alur Request
 ```
@@ -120,12 +122,11 @@ User (Tenant) → Browser → Vite (dev) / public/build (prod)
 ```
 Tenant → User (admin/teknisi)
  ├── Membuat Pelanggan (Customer) → auto-create Invoice
- ├── Pelanggan bayar → Payment → Invoice status paid
+ ├── Pelanggan bayar → Payment (Midtrans/Xendit/offline) → Invoice status paid
  ├── Generate Voucher → push ke MikroTik → event-driven callback via API
  ├── Scan/ Poll OLT → update ONU status → RCA cable cut detection
  ├── Buat ODC → ODP Route → ODP Point / Odp → assign ke Customer
- ├── Isolir: overdue → auto-suspend → set PPP Profile → add IP ke address-list
- └── Customer akses halaman isolir → bayar → auto-activate
+ └── Isolir: overdue → auto-suspend → set PPP Profile → add IP ke address-list → bayar → activate
 ```
 
 ### Alur Navigasi Pengguna
@@ -150,11 +151,13 @@ Tenant → User (admin/teknisi)
   │    ├── /voucher-templates (admin only)
   │    ├── /odc/{odc} (admin only — detail ODC)
   │    └── /odp/{odp} (admin only — detail ODP)
-  ├── /portal (public — cek tagihan & bayar)
+  ├── /portal (public — cek tagihan & bayar via Midtrans/Xendit)
   ├── /vouchers/public (public — beli voucher)
   ├── /vouchers/check (public — cek status voucher)
   ├── /hotspot/{page} (public — halaman hotspot MikroTik)
-  ├── /isolir/{customer} (public — info bayar pelanggan kena suspen)
+  ├── /noc/* (NOC dashboard, features/map, linux-server, dns, vpn, speedtest, automation, dll)
+  ├── /inventory/* (items, masuk, keluar, laporan-aset)
+  ├── /onu-hotspot & /hotspot-customers (teknisi)
   └── /api/v1/mikrotik/hotspot-login (public — event-driven voucher login)
 ```
 
@@ -179,72 +182,85 @@ e-billing/
 │
 ├── app/
 │   ├── Console/
-│   │   └── Commands/
-│   │       ├── AutoIsolir.php               # customer:auto-isolir
-│   │       ├── BillingProcess.php           # billing:process
-│   │       ├── ImportHotspotFiles.php       # hotspot:import
-│   │       ├── MikrotikSetupIsolir.php      # mikrotik:setup-isolir
-│   │       ├── PollOlt.php                  # olt:poll
-│   │       ├── SyncCustomerOnu.php          # customers:onu-sync
-│   │       ├── SyncIsolirIps.php            # customer:sync-isolir-ips
-│   │       └── SyncVoucherMikrotik.php      # voucher:sync-mikrotik (non-aktif)
+│   │   └── Commands/                       # 22 commands (billing, polling, isolir, QoS, automation, dll)
 │   │
 │   ├── Http/
 │   │   ├── Controllers/
-│   │   │   ├── Api/
-│   │   │   │   ├── MikrotikHotspotController.php
-│   │   │   │   └── OdpruteController.php
-│   │   │   ├── Auth/
-│   │   │   │   ├── LoginController.php
-│   │   │   │   ├── RegisterController.php
-│   │   │   │   └── SocialiteController.php
+│   │   │   ├── Api/                        # 3 (MikrotikHotspot, Odprute, + 1)
+│   │   │   ├── Auth/                       # 3 (Login, Register, Socialite)
+│   │   │   ├── Noc/                        # 14 controller NOC (GenieACS, Automation, TrafficEngineering, dll)
 │   │   │   ├── BackupController.php
 │   │   │   ├── CronController.php
 │   │   │   ├── CustomerController.php
 │   │   │   ├── DashboardController.php
 │   │   │   ├── DistributionController.php
 │   │   │   ├── ExportController.php
+│   │   │   ├── HotspotCustomerController.php
+│   │   │   ├── IncidentController.php
+│   │   │   ├── IntegrationController.php
+│   │   │   ├── InventoryController.php
 │   │   │   ├── InvoiceController.php
-│   │   │   ├── IsolirController.php
 │   │   │   ├── LogController.php
 │   │   │   ├── MidtransController.php
 │   │   │   ├── MikrotikController.php
 │   │   │   ├── MikrotikRouterController.php
+│   │   │   ├── MonitoringController.php
+│   │   │   ├── NocController.php
 │   │   │   ├── OdcController.php
 │   │   │   ├── OdpController.php
 │   │   │   ├── OltController.php
+│   │   │   ├── OnuHealthController.php
+│   │   │   ├── OnuHotspotController.php
 │   │   │   ├── PackageController.php
 │   │   │   ├── PaymentController.php
 │   │   │   ├── PortalController.php
 │   │   │   ├── PublicVoucherController.php
+│   │   │   ├── QosHealthController.php
 │   │   │   ├── ReportController.php
 │   │   │   ├── SettingController.php
 │   │   │   ├── SitemapController.php
+│   │   │   ├── TeknisiController.php
+│   │   │   ├── UserController.php
 │   │   │   ├── VoucherController.php
+│   │   │   ├── VoucherPrintTemplateController.php
 │   │   │   ├── VoucherProfileController.php
 │   │   │   ├── VoucherReportController.php
-│   │   │   └── VoucherTemplateController.php
+│   │   │   ├── VoucherTemplateController.php
+│   │   │   └── XenditController.php
 │   │   │
 │   │   └── Middleware/
 │   │       ├── IsAdmin.php
+│   │       ├── IsNoc.php
 │   │       └── IsTeknisiOrAdmin.php
 │   │
 │   ├── Jobs/
-│   │   ├── PollOltJob.php                  # Job polling OLT (timeout=60s, tries=3)
-│   │   └── SendWhatsAppNotification.php    # Job WA via Fonnte (timeout=30s, tries=3)
+│   │   └── PollOltJob.php                  # Job polling OLT (timeout=60s, tries=3)
 │   │
 │   ├── Mail/
 │   │   ├── InvoiceReminder.php
 │   │   └── PaymentConfirmation.php
 │   │
-│   ├── Models/
+│   ├── Models/                             # 39 model + 2 traits
 │   │   ├── Traits/
-│   │   │   ├── BelongsToTenant.php         # Aktif — global scope tenant_id
+│   │   │   ├── BelongsToTenant.php         # Aktif — global scope tenant_id (30 model)
 │   │   │   └── BelongsToUser.php           # LEGACY — dead code (tidak dipakai)
 │   │   ├── ActivityLog.php
+│   │   ├── AutomationJob.php
+│   │   ├── AutomationJobLog.php
+│   │   ├── AutomationTrigger.php
+│   │   ├── ConfigVersion.php
 │   │   ├── Customer.php
+│   │   ├── Incident.php
+│   │   ├── IncidentNotification.php
+│   │   ├── InterfaceChangeLog.php
+│   │   ├── InventoryItem.php
+│   │   ├── InventoryTransaction.php
 │   │   ├── Invoice.php
+│   │   ├── MikrotikInterfaceMetadata.php
 │   │   ├── MikrotikRouter.php
+│   │   ├── NetworkConfigAuditLog.php
+│   │   ├── NetworkMetric.php
+│   │   ├── NetworkMetricAggregated.php
 │   │   ├── Odc.php
 │   │   ├── OdcPort.php                     # ⚠️ TIDAK punya BelongsToTenant — potensi data leak
 │   │   ├── Odp.php                         # Model ODP baru (nama Indonesia)
@@ -254,34 +270,44 @@ e-billing/
 │   │   ├── Olt.php
 │   │   ├── OltPort.php
 │   │   ├── Onu.php
+│   │   ├── OnuMonitoringHistory.php
 │   │   ├── Package.php
 │   │   ├── Payment.php
+│   │   ├── PingResult.php
+│   │   ├── RouterosSyncedConfig.php
+│   │   ├── RouterosSyncLog.php
 │   │   ├── Setting.php
 │   │   ├── Tenant.php                      # Root multi-tenancy
 │   │   ├── User.php
 │   │   ├── Voucher.php
+│   │   ├── VoucherPrintTemplate.php
 │   │   ├── VoucherProfile.php
 │   │   └── VoucherTemplate.php
 │   │
-│   ├── Providers/
-│   │   └── AppServiceProvider.php          # Bootstrap 5 pagination
+│   ├── Modules/
+│   │   └── GenieACS/                       # Modul TR-069 (Contracts, DTO, Repositories, Services, Support)
 │   │
-│   └── Services/
+│   ├── Providers/
+│   │   ├── AppServiceProvider.php          # Bootstrap 5 pagination
+│   │   └── BillingServiceProvider.php
+│   │
+│   └── Services/                           # 55 file service
+│       ├── IncidentNotificationService.php
+│       ├── InterfaceCenterService.php
 │       ├── MidtransService.php
-│       ├── MikrotikService.php             # 784 baris — REST API wrapper
-│       └── Olt/
-│           ├── Contracts/
-│           │   └── OltConnector.php          # Interface (10 methods)
-│           ├── Drivers/
-│           │   ├── CDataConnector.php
-│           │   ├── FiberHomeConnector.php
-│           │   ├── HuaweiConnector.php
-│           │   ├── JumpHostConnector.php     # SSH tunnel decorator
-│           │   ├── MikrotikSshProxyConnector.php
-│           │   └── ZteConnector.php
-│           ├── Factory/
-│           │   └── OltConnectorFactory.php
-│           └── SshTunnel.php
+│       ├── MikrotikService.php             # REST API wrapper + SSH fallback
+│       ├── MikrotikSshService.php
+│       ├── Automation/                     # AutomationScheduler, Worker, Trigger, JobService
+│       ├── Billing/                        # BillingService, InvoiceGenerator, CustomerCodeGenerator
+│       ├── Mikrotik/                       # RouterConnectionPool/Manager, RouterOSApiService, Config/, Internet/, Security/, Sync/, TrafficEngineering/
+│       ├── Monitoring/                     # FiberTopology, HealthScore, PingMonitor, Diagnosis, SpeedTest
+│       ├── Olt/
+│       │   ├── Contracts/OltConnector.php
+│       │   ├── Drivers/                    # Zte, Huawei, FiberHome, CData, ChineseOlt, Global, Hioso, Hsgq, Vsol + JumpHost, MikrotikSshProxy
+│       │   ├── Factory/OltConnectorFactory.php
+│       │   └── SshTunnel.php
+│       ├── Payment/                        # PaymentGatewayInterface, MidtransGateway, XenditGateway, PaymentService
+│       └── SmartQos/SmartQosService.php
 │
 ├── bootstrap/                       # Laravel bootstrap
 ├── config/                          # Konfigurasi Laravel
@@ -293,7 +319,7 @@ e-billing/
 │   │   ├── PackageFactory.php
 │   │   ├── UserFactory.php
 │   │   └── VoucherFactory.php
-│   ├── migrations/                  # 46 file migrasi (28 tabel)
+│   ├── migrations/                  # 98 file migrasi
 │   └── seeders/
 │       ├── DatabaseSeeder.php
 │       ├── BillingSeeder.php
@@ -308,7 +334,7 @@ e-billing/
 │
 ├── resources/
 │   ├── css/
-│   │   └── app.css                  # 1570 baris custom CSS
+│   │   └── app.css                  # ~5.000 baris custom CSS
 │   ├── js/
 │   │   ├── app.js
 │   │   └── bootstrap.js
@@ -319,7 +345,6 @@ e-billing/
 │       ├── distribution/
 │       ├── emails/                  # invoice-reminder, payment-confirmation
 │       ├── invoices/                # create, edit, index, pdf, print
-│       ├── isolir/                  # index, unknown (redirect pelanggan kena suspen)
 │       ├── layouts/
 │       ├── logs/
 │       ├── midtrans/
@@ -344,12 +369,12 @@ e-billing/
 ├── routes/
 │   ├── web.php                      # Semua route aplikasi
 │   ├── api.php                      # Route API (POST /api/v1/mikrotik/hotspot-login)
-│   └── console.php                  # Schedule definitions
+│   └── console.php                  # Schedule definitions (17 schedules)
 │
 ├── storage/                         # Log, cache, backups
 │
 └── tests/
-    ├── Feature/
+    ├── Feature/                     # 7 file — 54 test methods
     │   ├── AuthTest.php
     │   ├── CustomerTest.php
     │   ├── DistributionTest.php
@@ -357,15 +382,16 @@ e-billing/
     │   ├── InvoiceTest.php
     │   ├── PackageTest.php
     │   └── SitemapTest.php
-    └── Unit/
-        └── ExampleTest.php
+    └── Unit/                        # 10 file — 88 test methods (Services/Billing, Payment, GenieACS, Olt)
+        ├── ExampleTest.php
+        └── Services/
 ```
 
 ---
 
 ## 8. Database dan Relasi Data
 
-### 46 Migrations (28 Tabel) — Relasi Antar Tabel
+### 98 Migrations — Relasi Antar Tabel
 
 ```
 tenants ── users ──┬── customers ───────┬── invoices ───┬── payments
@@ -413,6 +439,18 @@ tenants ── users ──┬── customers ───────┬── in
 | VoucherTemplate | voucher_templates | BelongsToTenant | hasMany: Voucher |
 | Setting | settings | BelongsToTenant | — |
 | ActivityLog | activity_logs | BelongsToTenant | belongsTo: User |
+| Incident | incidents | BelongsToTenant | belongsTo: Olt, Customer |
+| IncidentNotification | incident_notifications | — | belongsTo: Incident (tidak ada tenant scope) |
+| NetworkMetric | network_metrics | BelongsToTenant | morphs: subject (OLT/router) |
+| NetworkMetricAggregated | network_metric_aggregated | BelongsToTenant | — |
+| PingResult | ping_results | — | belongsTo: NetworkMetric target |
+| AutomationJob / AutomationTrigger / AutomationJobLog | automation_jobs / automation_triggers / automation_job_logs | BelongsToTenant | trigger → job → log |
+| ConfigVersion / NetworkConfigAuditLog | config_versions / network_config_audit_logs | BelongsToTenant | history config RouterOS |
+| RouterosSyncedConfig / RouterosSyncLog | routeros_synced_configs / routeros_sync_logs | BelongsToTenant | snapshot config sync |
+| InterfaceChangeLog / MikrotikInterfaceMetadata | interface_change_logs / mikrotik_interface_metadata | — | metadata interface |
+| OnuMonitoringHistory | onu_monitoring_history | — | history sinyal ONU |
+| InventoryItem / InventoryTransaction | inventory_items / inventory_transactions | BelongsToTenant | item ↔ transaksi stok |
+| VoucherPrintTemplate | voucher_print_templates | BelongsToTenant | layout print voucher |
 
 ---
 
@@ -466,10 +504,9 @@ tenants ── users ──┬── customers ───────┬── in
   - `POST /invoices` — Store
   - `PUT /invoice/{id}` — Update
   - `DELETE /invoice/{id}` — Delete
-  - `GET /invoice/paid/{id}` — Mark as paid (auto WA notif)
+  - `GET /invoice/paid/{id}` — Mark as paid
   - `GET /invoice/print/{id}` — Print view
   - `GET /invoice/pdf/{id}` — Download PDF (DomPDF)
-  - `GET /invoice/reminder/{id}` — Kirim WA reminder (Fonnte)
   - `GET /invoice/email-reminder/{id}` — Kirim email reminder
   - `GET /invoice/email-payment/{id}` — Kirim email konfirmasi pembayaran
 - **Field:** invoice_code, customer_id, amount, payment_status, paid_at, payment_method, midtrans_order_id
@@ -694,7 +731,84 @@ tenants ── users ──┬── customers ───────┬── in
   - `GET /settings` — Form settings
   - `POST /settings` — Update settings
   - `GET /settings/test-mikrotik` — Test MikroTik connection
-- **Setting Keys:** company_name, company_address, company_phone, bank_name, bank_account, bank_holder, invoice_footer, mikrotik_host/port/user/password/hotspot_server, fonnte_token, midtrans_server/client_key, midtrans_is_production, voucher_username/password_length, late_fee_amount/grace_days, default_due_date
+- **Setting Keys:** company_name, company_address, company_phone, bank_name, bank_account, bank_holder, invoice_footer, mikrotik_host/port/user/password/hotspot_server, midtrans_server/client_key, midtrans_is_production, voucher_username/password_length, late_fee_amount/grace_days, default_due_date, wa_enabled/wa_api_url/wa_api_key/wa_sender/wa_recipient, telegram_enabled/telegram_bot_token/telegram_chat_id
+
+### 9.23 Xendit Payment Gateway
+- **Controller:** `XenditController`
+- **Service:** `XenditGateway` (implement `PaymentGatewayInterface` di `app/Services/Payment/`)
+- **Routes:**
+  - `GET /xendit/pay/{invoice}` — Redirect pembayaran
+  - `POST /xendit/notification` — Webhook notification (public)
+  - `GET /xendit/finish` — Halaman finish
+  - `GET /xendit/gateway` — Form settings gateway
+  - `GET /portal/bayar-xendit/{invoice}` — Bayar via portal
+- **Fitur:** Payment gateway alternatif selain Midtrans via abstraction `PaymentService`
+
+### 9.24 Integrasi Perangkat (Settings → Integrations)
+- **Controller:** `IntegrationController`
+- **Routes:**
+  - `GET /settings/integrations` — Dashboard integrasi MikroTik/OLT
+  - CRUD + test + live untuk MikroTik router dan OLT
+- **Fitur:** Kelola koneksi perangkat runtime tanpa deploy, live data per perangkat
+
+### 9.25 Manajemen Inventory
+- **Controller:** `InventoryController`
+- **Model:** `InventoryItem`, `InventoryTransaction`
+- **Routes:**
+  - `GET /inventory/items` — CRUD item aset
+  - `GET /inventory/masuk` — Transaksi barang masuk
+  - `GET /inventory/keluar` — Transaksi barang keluar
+  - `GET /inventory/laporan-aset` — Laporan aset
+
+### 9.26 NOC (Network Operation Center) — 14 controller di `app/Http/Controllers/Noc/`
+- **Dashboard:** `Noc\DashboardController` → `GET /noc/dashboard`
+- **Map Features:** `Noc\FeaturesController` → `/noc/features/map/*` (mikrotik/olt/genieacs CRUD + connect + sync)
+- **Traffic Engineering:** `Noc\TrafficEngineeringController`
+- **Network Config:** `Noc\NetworkConfigController`, `ConfigModuleController`, `ConfigRepositoryController`
+- **Security Policy:** `Noc\SecurityPolicyController`
+- **Sync Dashboard:** `Noc\SyncDashboardController`
+- **Internet Service:** `Noc\InternetServiceController`
+- **MikroTik Dashboard:** `Noc\MikrotikDashboardController`, `MikrotikDeviceController`
+- **Interface Center:** `Noc\InterfaceCenterController`
+- **Automation:** `Noc\AutomationController`
+- **GenieACS:** `Noc\GenieacsController`
+- Banyak route di bawah `/noc/*` masih commented-out (menunggu implementasi penuh); lihat `routes/web.php`
+
+### 9.27 GenieACS (TR-069)
+- **Modul:** `app/Modules/GenieACS/` (Contracts, DTO, Exceptions, Repositories, Services, Support)
+- **Controller:** `Noc\GenieacsController` (route di-comment saat ini)
+- **Fitur:** Manajemen CPE via TR-069 — discovery, presets, faults, reboot, factory reset, refresh object
+- **Test:** `GenieACSClientTest`, `GenieacsDTOTest`, `GenieacsRepositoryTest`
+
+### 9.28 Automation Engine
+- **Model:** `AutomationJob`, `AutomationTrigger`, `AutomationJobLog`
+- **Services:** `app/Services/Automation/` (Scheduler, Worker, Trigger, JobService)
+- **Commands:** `automation:scheduler` + `automation:worker --once` (everyMinute)
+- **Fitur:** Trigger-based job automation (scheduler + worker + trigger engine)
+
+### 9.29 Incidents & SLA
+- **Model:** `Incident`, `IncidentNotification`
+- **Services:** `IncidentNotificationService`
+- **Command:** `incident:check-sla` (hourly), `incidents:purge` (monthly), `incidents:purge-auto` (everyMinute)
+- **Fitur:** Pencatatan incident jaringan, notifikasi SLA via WA, purge otomatis riwayat
+
+### 9.30 Monitoring, QoS & SmartQoS
+- **Model:** `NetworkMetric`, `NetworkMetricAggregated`, `PingResult`, `OnuMonitoringHistory`
+- **Services:** `app/Services/Monitoring/` (HealthScore, PingMonitor, Diagnosis, SpeedTest, FiberTopology) + `app/Services/SmartQos/SmartQosService.php`
+- **Commands:** `network:data-collect` (5min + aggregate hourly + prune 6h), `qos:optimize`, `qos:setup`, `qos:sync`, `qos:health`
+- **Fitur:** Collect metrics trafik, skor kesehatan jaringan, diagnosis, ping monitor, speedtest, optimasi QoS otomatis, topology fiber OLT→ODC→ODP→ONU
+
+### 9.31 RouterOS Config Sync
+- **Model:** `RouterosSyncedConfig`, `RouterosSyncLog`, `ConfigVersion`, `NetworkConfigAuditLog`
+- **Service:** `app/Services/Mikrotik/Sync/RouterosConfigSyncService.php` + `Config/`
+- **Command:** `routeros:sync-config` (everyFifteenMinutes)
+- **Fitur:** Sinkronisasi config MikroTik ke DB, versioning config, audit log
+
+### 9.32 Multi-Tenancy & Roles
+- **Model:** `Tenant` (root), `User` (belongsTo Tenant)
+- **Trait:** `BelongsToTenant` — global scope `tenant_id` pada 30 model
+- **Middleware:** `IsAdmin` (admin), `IsTeknisiOrAdmin` (teknisi), `IsNoc` (noc)
+- **⚠️ Catatan:** `OdcPort` & `OdpPort` tidak punya tenant scope (potensi data leak)
 
 ---
 
@@ -708,14 +822,12 @@ tenants ── users ──┬── customers ───────┬── in
 | `/register` | auth.register | Form register |
 | `/portal` | portal.index | Cek tagihan pelanggan |
 | `/portal/bayar/{invoice}` | portal.pay | Bayar via Midtrans |
+| `/portal/bayar-xendit/{invoice}` | portal.pay | Bayar via Xendit |
 | `/portal/finish` | — | Redirect after payment |
 | `/vouchers/public` | vouchers.public | Beli voucher publik |
 | `/vouchers/check` | vouchers.check | Cek status voucher |
 | `/hotspot/{page}` | hotspot/*.html | Halaman hotspot MikroTik |
 | `/sitemap.xml` | sitemap | XML sitemap |
-| `/isolir` | isolir.landing | Landing isolir (auto-detect IP) |
-| `/isolir/by-ip` | isolir.index | Cari customer by IP untuk isolir |
-| `/isolir/{customer}` | isolir.unknown | Info pembayaran customer kena isolir |
 | `/api/cron/run` | — | Trigger scheduler eksternal |
 | `POST /api/v1/mikrotik/hotspot-login` | — | Event-driven voucher login (dari MikroTik hotspot) |
 | `/api/v1/mikrotik/hotspot-login` | — | Route API (via `routes/api.php`) |
@@ -741,6 +853,8 @@ tenants ── users ──┬── customers ───────┬── in
 | `/olts-monitoring` | olt.monitoring | Monitoring ONU |
 | `/olts/map` | olt.map | Map OLT |
 | `/onus/search` | olt.search | Cari ONU |
+| `/onu-hotspot` | onu-hotspot.index | ONU hotspot (sync/link-customer/unlink) |
+| `/hotspot-customers` | hotspot-customers.index | Customer hotspot dari OLT |
 | `/vouchers` | vouchers.index | Daftar voucher (multi-tab) |
 | `/vouchers/create` | vouchers.create | Buat voucher |
 | `/voucher-profiles` | voucher-profiles.index | Profile voucher |
@@ -752,11 +866,21 @@ tenants ── users ──┬── customers ───────┬── in
 | `/monitoring` | mikrotik.monitoring | BW monitoring |
 | `/distribution` | distribution.index | Map ODP/ODC |
 | `/logs` | logs.index | Activity log |
+| `/teknisi/dashboard` | teknisi.dashboard | Dashboard teknisi |
+| `/xendit/pay/{invoice}` | — | Bayar via Xendit |
+| `/xendit/gateway` | — | Form settings Xendit |
+| `/noc/dashboard` | noc.dashboard | Dashboard NOC |
+| `/noc/features/map` | noc.features.map | Map features NOC (mikrotik/olt/genieacs) |
+| `/inventory/items` | inventory.items | Inventory aset |
+| `/inventory/masuk` | inventory.masuk | Barang masuk |
+| `/inventory/keluar` | inventory.keluar | Barang keluar |
+| `/inventory/laporan-aset` | inventory.laporan-aset | Laporan aset |
 
 ### 10.3 Admin-Only Pages
 | URL | View | Fungsi |
 |-----|------|--------|
 | `/settings` | settings.index | Pengaturan sistem |
+| `/settings/integrations` | settings.integrations | Integrasi MikroTik/OLT |
 | `/reports` | reports.index | Laporan keuangan |
 | `/backups` | backups.index | Backup database |
 | `/mikrotik-routers` | mikrotik-routers.index | Multi-router config |
@@ -785,31 +909,54 @@ Semua model utama menggunakan trait `BelongsToTenant` yang:
 |-----------|-------|--------|
 | `IsTeknisiOrAdmin` | `teknisi` | role === 'admin' atau 'teknisi' |
 | `IsAdmin` | `admin` | role === 'admin' |
+| `IsNoc` | `noc` | akses area NOC (`app/Http/Middleware/IsNoc.php`) |
 
 Route split: `teknisi` middleware sebagai base auth untuk semua user; `admin` middleware khusus route sensitif.
 
 ---
 
-## 12. Scheduled Tasks (Console)
+## 12. Scheduled Tasks (Console) — 17 schedules
 
 ```php
 Schedule::command('billing:process')->dailyAt('08:00');
+Schedule::command('invoices:purge-paid')->dailyAt('08:30');
 Schedule::command('olt:poll')->hourly()->withoutOverlapping();
 Schedule::command('customers:onu-sync')->hourly()->withoutOverlapping();
 Schedule::command('customer:auto-isolir')->dailyAt('00:30')->withoutOverlapping();
 Schedule::command('customer:sync-isolir-ips')->everyFiveMinutes()->withoutOverlapping();
+Schedule::command('customers:backup')->dailyAt('03:00')->withoutOverlapping();
+Schedule::command('routeros:sync-config')->everyFifteenMinutes()->withoutOverlapping();
+Schedule::command('network:data-collect')->everyFiveMinutes()->withoutOverlapping();
+Schedule::command('network:data-collect --aggregate')->hourly()->withoutOverlapping();
+Schedule::command('network:data-collect --prune')->everySixHours()->withoutOverlapping();
+Schedule::command('qos:optimize')->everyFiveMinutes()->withoutOverlapping();
+Schedule::command('incident:check-sla')->hourly();
+Schedule::command('incidents:purge')->monthly()->withoutOverlapping();
+Schedule::command('incidents:purge-auto')->everyMinute()->withoutOverlapping();
+Schedule::command('automation:scheduler')->everyMinute()->withoutOverlapping();
+Schedule::command('automation:worker --once')->everyMinute()->withoutOverlapping();
 ```
 
-### Command Details
+### Command Details (22 commands)
 
 | Command | File | Schedule | Fungsi |
 |---------|------|----------|--------|
-| `billing:process` | `Commands/BillingProcess.php` | `dailyAt('08:00')` | Generate invoice bulanan untuk semua pelanggan aktif per tenant + dispatch WA notification job |
+| `billing:process` | `Commands/BillingProcess.php` | `dailyAt('08:00')` | Generate invoice bulanan untuk semua pelanggan aktif per tenant |
+| `invoices:purge-paid` | `Commands/PurgePaidInvoices.php` | `dailyAt('08:30')` | Purge invoice lunas |
 | `olt:poll` | `Commands/PollOlt.php` | `hourly()` | Dispatch `PollOltJob` per OLT aktif (timeout=60s, tries=3). Opsi `--queue` untuk async, default sync. Fallback MikroTik jika scan 0 ONU |
 | `customers:onu-sync` | `Commands/SyncCustomerOnu.php` | `hourly()` | Sync semua pelanggan aktif ke ONU di OLT dari data PPPoE MikroTik. Opsi `--olt` untuk OLT tertentu |
 | `customer:auto-isolir` | `Commands/AutoIsolir.php` | `dailyAt('00:30')` | Auto-suspend pelanggan overdue, set PPP Profile isolir di MikroTik, tambah IP ke firewall address-list |
 | `customer:sync-isolir-ips` | `Commands/SyncIsolirIps.php` | `everyFiveMinutes()` | Sinkronasi IP customer suspended ke firewall address-list MikroTik |
+| `customers:backup` | `Commands/BackupCustomers.php` | `dailyAt('03:00')` | Backup data pelanggan PPPoE/Hotspot ke JSON |
+| `routeros:sync-config` | `Commands/RouterosSyncConfig.php` | `everyFifteenMinutes()` | Sync config RouterOS ke DB |
+| `network:data-collect` | `Commands/NetworkDataCollect.php` | `everyFiveMinutes()` | Collect metrics; `--aggregate` hourly, `--prune` 6h |
+| `qos:optimize` | `Commands/QosOptimize.php` | `everyFiveMinutes()` | Optimasi QoS |
+| `incident:check-sla` | `Commands/CheckIncidentSla.php` | `hourly()` | Cek SLA incident |
+| `incidents:purge` / `incidents:purge-auto` | `Commands/PurgeIncidentHistory*.php` | monthly / everyMinute | Purge riwayat incident |
+| `automation:scheduler` / `automation:worker --once` | `Commands/AutomationSchedulerTick.php` / `AutomationWorkerProcess.php` | everyMinute | Engine automation |
 | `hotspot:import` | `Commands/ImportHotspotFiles.php` | Manual | Import file HTML dari `public/hotspot/*.html` ke database sebagai VoucherTemplate baru |
+| `olt:batch-link` | `Commands/BatchLinkOnu.php` | Manual | Batch link ONU ke customer |
+| `qos:setup` / `qos:sync` / `qos:health` | `Commands/QosSetup.php` / `QosSync.php` / `QosHealth.php` | Manual | Setup, sync, cek health QoS |
 | `voucher:sync-mikrotik` | `Commands/SyncVoucherMikrotik.php` | **Non-aktif** | Dulu otomatis, sekarang digantikan oleh event-driven API `POST /api/v1/mikrotik/hotspot-login` |
 | `mikrotik:setup-isolir` | `Commands/MikrotikSetupIsolir.php` | Manual | Setup PPP Profile-Isolir, DST-NAT redirect, DROP filter rules di MikroTik |
 
@@ -838,9 +985,6 @@ POST /vouchers/public/generate      → generate voucher publik
 GET  /vouchers/check                → cek status voucher form
 POST /vouchers/check-status         → cek status voucher action
 GET  /hotspot/{page}                → serve hotspot static page
-GET  /isolir                        → landing isolir (auto-detect IP)
-GET  /isolir/by-ip                  → cari customer by IP untuk isolir
-GET  /isolir/{customer}             → halaman info bayar untuk customer kena isolir
 GET  /api/cron/run                  → trigger scheduler eksternal (token-protected)
 POST /api/v1/mikrotik/hotspot-login → event-driven voucher login callback
 ```
@@ -865,7 +1009,6 @@ PUT    /invoice/{invoice}                 → Update invoice
 DELETE /invoice/{invoice}                 → Delete invoice
 GET    /invoice/paid/{invoice}            → Mark as paid
 GET    /invoice/print/{invoice}           → Print invoice
-GET    /invoice/reminder/{invoice}        → Send WA reminder
 GET    /invoice/email-reminder/{invoice}  → Send email reminder
 GET    /invoice/email-payment/{invoice}   → Send payment confirmation email
 GET    /invoice/pdf/{invoice}             → Download PDF invoice
@@ -998,9 +1141,8 @@ GET    /export/payments                       → Export CSV payments
 | 12 | Mark invoice as paid | Invoice | InvoiceController | ✅ |
 | 13 | Print invoice (view) | Invoice | InvoiceController | ✅ |
 | 14 | Download PDF invoice | Invoice | InvoiceController | ✅ |
-| 15 | Kirim WA reminder (Fonnte) | Invoice | InvoiceController | ✅ |
-| 16 | Kirim email reminder | Invoice | InvoiceController (Mail) | ✅ |
-| 17 | Kirim email konfirmasi bayar | Invoice | InvoiceController (Mail) | ✅ |
+| 15 | Kirim email reminder | Invoice | InvoiceController (Mail) | ✅ |
+| 16 | Kirim email konfirmasi bayar | Invoice | InvoiceController (Mail) | ✅ |
 | 18 | Catat pembayaran (cash/transfer/QRIS) | Payment | PaymentController | ✅ |
 | 19 | History pembayaran | Payment | PaymentController | ✅ |
 | 20 | Hapus pembayaran (auto-update invoice) | Payment | PaymentController | ✅ |
@@ -1068,7 +1210,7 @@ GET    /export/payments                       → Export CSV payments
 | 82 | Auto-isolir pelanggan overdue | Isolir | AutoIsolir | ✅ |
 | 83 | Sync IP suspended ke firewall MikroTik | Isolir | SyncIsolirIps | ✅ |
 | 84 | Setup isolir di MikroTik (PPP Profile, DST-NAT, DROP) | Isolir | MikrotikSetupIsolir | ✅ |
-| 85 | Halaman publik isolir (redirect DNS) | Isolir | IsolirController | ✅ |
+| 85 | Setup isolir di MikroTik (PPP Profile, DST-NAT, DROP) | Isolir | MikrotikSetupIsolir | ✅ |
 | 86 | Event-driven voucher login API | Voucher | MikrotikHotspotController | ✅ |
 | 87 | Cron trigger eksternal (Vercel workaround) | Utility | CronController | ✅ |
 | 88 | Manajemen ODP baru (model Odp) | Distribution | DistributionController | ✅ |
@@ -1076,6 +1218,22 @@ GET    /export/payments                       → Export CSV payments
 | 90 | Live Network Topology (OLT→ODC→ODP→ONU) | Topology | OnuHealthController (FiberTopologyService) | ✅ |
 | 91 | Topology sinkron dengan modul Distribution | Topology | FiberTopologyService | ✅ |
 | 92 | Monitoring Real-Time trafik WAN-ISP (rate delta 1s) | Monitoring | MonitoringController | ✅ |
+| 93 | Xendit payment gateway | Payment | XenditController, XenditGateway | ✅ |
+| 94 | Payment gateway abstraction (interface) | Payment | PaymentService, PaymentGatewayInterface | ✅ |
+| 95 | Integrasi perangkat (Settings → Integrations) | Integration | IntegrationController | ✅ |
+| 96 | Manajemen inventory & aset | Inventory | InventoryController | ✅ |
+| 97 | Dashboard NOC | NOC | Noc\DashboardController | ✅ |
+| 98 | NOC features map (MikroTik/OLT/GenieACS) | NOC | Noc\FeaturesController | ✅ |
+| 99 | Automation engine (scheduler + worker + trigger) | NOC | Noc\AutomationController, app/Services/Automation/ | ✅ |
+| 100 | Incidents & SLA check | NOC | IncidentController, incident:check-sla | ✅ |
+| 101 | Network metrics & SmartQoS | Monitoring | NetworkDataCollect, qos:optimize, SmartQosService | ✅ |
+| 102 | RouterOS config sync | NOC | routeros:sync-config | ✅ |
+| 103 | ONU hotspot (sync/link/unlink) | OLT | OnuHotspotController | ✅ |
+| 104 | Hotspot customers dari OLT | OLT | HotspotCustomerController | ✅ |
+| 105 | Teknisi dashboard | Dashboard | TeknisiController | ✅ |
+| 106 | Backup customers (PPPoE/Hotspot) JSON | Schedule | BackupCustomers | ✅ |
+| 107 | Purge invoice lunas otomatis | Schedule | PurgePaidInvoices | ✅ |
+| 108 | Voucher print templates (multi-layout) | Voucher | VoucherPrintTemplateController | ✅ |
 
 ### Fitur Sebagian Selesai
 
@@ -1096,7 +1254,6 @@ GET    /export/payments                       → Export CSV payments
 |---|-------|------------|
 | 1 | Export CSV voucher | Belum ada route/controller untuk export voucher ke CSV |
 | 2 | Halaman index Voucher Template | Controller menyebut `voucher-templates.index` tapi file view tidak ditemukan |
-| 3 | Invoice reminder WA auto schedule dengan teks terpisah per kondisi | WA reminder sudah ada di billing:process tapi menggunakan template hardcoded (bukan dari settings) |
 
 ---
 
@@ -1159,8 +1316,8 @@ composer test
 # Format code
 ./vendor/bin/pint
 
-# Manual artisan
-C:\laragon\bin\php\php-8.2.31-Win32-vs16-x64\php.exe artisan {command}
+# Manual artisan (Laragon PHP 8.3 — php tidak ada di PATH)
+"C:\laragon\bin\php\php-8.3.31-Win32-vs16-x64 (1)\php.exe" artisan {command}
 ```
 
 ### Start Scripts
@@ -1195,8 +1352,8 @@ Lihat `.env.example` dan `vercel.json` untuk daftar lengkap environment variable
 - **Framework:** PHPUnit 11 + Mockery
 - **Database:** SQLite `:memory:` (tidak perlu DB eksternal)
 - **Suites:** Unit + Feature
-- **Test files:** 8 files (7 Feature, 1 Unit) — **55 test methods total**
-- **5 Feature test classes** menggunakan `RefreshDatabase`: Auth, Customer, Distribution, Invoice, Package
+- **Test files:** 17 files (7 Feature + 10 Unit) — **142 test methods total** (54 Feature + 88 Unit)
+- **6 Feature test classes** menggunakan `RefreshDatabase`: Auth, Customer, Distribution, Invoice, Package, Sitemap
 - **Coverage:**
   - Auth: login, register, dashboard, logout, ODP data in dashboard
   - Customer: CRUD, suspend, activate, validation, auto-create invoice
@@ -1204,27 +1361,30 @@ Lihat `.env.example` dan `vercel.json` untuk daftar lengkap environment variable
   - Package: CRUD (via admin), search, status filter, destroy protection (with customers)
   - Distribution: ODC/Route/Point full CRUD, duplicate rejection, cascade delete protection
   - Sitemap: XML sitemap, public URLs included
+  - Unit `Services/`: Billing (InvoiceGenerator, CustomerCodeGenerator), Payment (Midtrans, Xendit, PaymentService), GenieACS (Client, DTO, Repository), Olt (ChineseOltParser)
 - **Factory:** `UserFactory` default role `teknisi` + `admin()` state
 - **Command:** `php artisan test` atau `./vendor/bin/phpunit`
+- **⚠️ KNOWN ISSUE:** suite saat ini RED (68 failed / 74 passed). Penyebab utama: migrasi `2026_06_22_000004_add_tenant_id_to_business_tables.php` memakai `DROP CONSTRAINT IF EXISTS` (sintaks MySQL/Postgres) yang gagal di SQLite. Lihat `AGENTS.md`.
 
 ---
 
 ## 19. Catatan Pengembangan
 
-1. **CSS sepenuhnya custom** — `resources/css/app.css` (~5120 baris) menggunakan custom design system dengan CSS custom properties, gradient, glassmorphism. Tailwind hanya di-import tapi tidak digunakan secara aktif. Seluruh tabel pakai `.mon-table` + `.mon-thead`.
+1. **CSS sepenuhnya custom** — `resources/css/app.css` (~5.000 baris) menggunakan custom design system dengan CSS custom properties, gradient, glassmorphism. **Tailwind tidak terpasang** di source (hanya artefak compiled di `public/hotspot/templates/*/assets/style.css`). Seluruh tabel pakai `.mon-table` + `.mon-thead`. Bootstrap 5.3 di-bundle via Vite (`resources/js/app.js`), bukan CDN.
 2. **OLT polling** menggunakan Job per-OLT (`PollOltJob`) dengan timeout 60s, tries=3. Jika scan OLT gagal, fallback sync dari MikroTik. Juga menjalankan RCA (Root Cause Analysis) untuk cable cut detection.
 3. **MikroTik multi-router** — MikrotikRouter model dengan CRUD terpisah. Service mendukung konstruktor dengan parameter router.
 4. **Voucher** memiliki kolom traffic tracking (downloaded, uploaded, total_traffic) namun belum ada mekanisme sinkronasi otomatis dari MikroTik.
 5. **Migrations idempotent** — semua migration baru menggunakan guard `hasTable()`/`hasColumn()` untuk safety Vercel cold-start.
 6. **Password OLT** dienkripsi menggunakan Laravel `encrypted` cast. **Namun password MikroTik router tidak di-encrypt** (stored in plaintext).
 7. **Hotspot files** di `public/hotspot/` ditulis otomatis saat VoucherTemplate disimpan, tapi di Vercel (readonly filesystem) mekanisme ini akan gagal — perlu dynamic route.
-8. **Fonnte token** disimpan di settings per user, fallback ke `config('services.fonnte.token')`.
-9. **WA notification** dikirim dari `BillingProcess` command via `SendWhatsAppNotification` job (async, timeout=30s, tries=3).
+8. **Notifikasi pelanggan (Fonnte/WhatsApp) telah dihapus total** dari codebase (`FonnteService`, `SendWhatsAppNotification`, config `services.fonnte`, `fonnte_token`). Notifikasi direncanakan via aplikasi Android pelanggan (in-development); `IncidentNotification` dibuat berstatus `pending` sebagai data untuk aplikasi tersebut. Yang tersisa hanyalah **link kontak/chat WA** (tombol WA di peta NOC & "No. WA:" di portal).
+9. **Pengaturan notifikasi di peta FTTH** — tombol Notifikasi (bell) di toolbar map membuka dropdown "Pengaturan WhatsApp" & "Pengaturan Telegram" (enable checkbox + URL/API key/nomor atau bot token/chat id, tersimpan di tabel `settings` dengan key `wa_*` / `telegram_*`).
 10. **BelongsToUser** trait sudah tidak dipakai — semua model menggunakan **`BelongsToTenant`** dengan global scope `tenant_id`. `BelongsToUser` adalah dead code.
-11. **Isolir Subsystem** — 3 commands (`AutoIsolir`, `SyncIsolirIps`, `MikrotikSetupIsolir`) + 1 controller (`IsolirController`) untuk auto-suspend pelanggan telat bayar: set PPP Profile isolir, tambah IP ke firewall address-list, DST-NAT redirect ke halaman pembayaran.
+11. **Isolir Subsystem** — 3 commands (`AutoIsolir`, `SyncIsolirIps`, `MikrotikSetupIsolir`) untuk auto-suspend pelanggan telat bayar: set PPP Profile isolir, tambah IP ke firewall address-list, DST-NAT redirect ke halaman pembayaran. **Tidak ada halaman publik `/isolir/{customer}` lagi** — semua aksi lewat command + status `suspended` di `CustomerController`.
 12. **Event-driven voucher sync** — `POST /api/v1/mikrotik/hotspot-login` menggantikan scheduler `voucher:sync-mikrotik`. Dipicu dari On-Login script MikroTik User Profile.
-13. **Chart.js & Leaflet** di-load via CDN (`defer`) hanya di halaman yang membutuhkan (`@push('scripts')`), tidak lagi diimport di `resources/js/app.js`. Bootstrap CSS juga via CDN jsDelivr — build Vite hanya menghasilkan `app.css` + `app.js` (~103KB + ~122KB).
-14. **Security concerns:** `OdcPort` dan `OdpPort` model tidak punya BelongsToTenant scope (potensi data leak). SSL verification disabled untuk koneksi MikroTik REST API (`withoutVerifying()`). Cron token lewat query parameter `?token=` yang terbaca di server access logs.
+13. **Chart.js & Leaflet** di-load via CDN (`defer`) hanya di halaman yang membutuhkan (`@push('scripts')`), tidak lagi diimport di `resources/js/app.js`. Bootstrap 5.3 di-bundle via npm + Vite (bukan CDN). Build Vite hanya menghasilkan `app.css` + `app.js`.
+14. **Security concerns:** `OdcPort` dan `OdpPort` model tidak punya BelongsToTenant scope (potensi data leak). SSL verification disabled untuk koneksi MikroTik REST API (`withoutVerifying()`). Cron token lewat query parameter `?token=` yang terbaca di server access logs. Password MikroTik tidak di-encrypt (beda OLT yang pakai `encrypted` cast).
+15. **Payment abstraction** — `app/Services/Payment/` menyediakan `PaymentGatewayInterface` dengan dua implementasi: `MidtransGateway` & `XenditGateway`, dipakai via `PaymentService` (legacy `MidtransService` masih dipakai di beberapa path).
 
 ---
 
@@ -1236,16 +1396,17 @@ Lihat `.env.example` dan `vercel.json` untuk daftar lengkap environment variable
 - Hapus sensitive file (`.env`, `vercel.json`, `checker.md`) dari git history
 - Export CSV voucher
 - Halaman index Voucher Template (view blade)
+- Sinkronasi traffic voucher dari MikroTik (kolom sudah ada, belum ada mekanisme)
 
 ### Short-term (Prioritas P2)
 - Enable SSL verification MikroTik (configurable)
 - Proteksi `reset_data.php`
 - API auth + rate limiting (`/api/v1/mikrotik/hotspot-login`)
-- Sinkronasi traffic voucher dari MikroTik
-- Template WA reminder yang bisa dikustom dari settings
+- Template reminder/pesan notifikasi yang bisa dikustom dari settings
 - Notifikasi email untuk payment reminder bulk
 - Filter export CSV yang lebih kaya
 - Define RPO/RTO + backup encryption
+- Aktifkan route NOC yang masih commented-out (GenieACS, Interface Center, MikroTik Dashboard, dsb.)
 
 ### Long-term
 - API RESTful untuk integrasi pihak ketiga
@@ -1289,11 +1450,10 @@ Tenant (root)
  │    └── Invoice (tagihan bulanan)
  │         └── Payment (pembayaran)
  │
- └── Isolir Subsystem
+ └── Isolir Subsystem (via command + status suspended di CustomerController)
       ├── auto-isolir (command) → suspend + PPP Profile isolir
       ├── sync-isolir-ips (command) → firewall address-list
-      ├── setup-isolir (command) → DST-NAT redirect
-      └── IsolirController → halaman bayar publik
+      └── setup-isolir (command) → DST-NAT redirect
 ```
 
 ---
@@ -1325,7 +1485,9 @@ Dokumentasi lengkap tersedia di folder **`docs/`**:
 | AGENTS.md | `docs/04_AI/AGENTS.md` |
 | Prompts | `docs/04_AI/PROMPTS.md` |
 | AI Workflow | `docs/04_AI/AI_WORKFLOW.md` |
-
-## Referensi Detail
-
-Lihat folder **`docs/`** untuk dokumentasi lengkap proyek ini.
+| Controllers | `docs/05_IMPLEMENTATION/CONTROLLERS.md` |
+| Models | `docs/05_IMPLEMENTATION/MODELS.md` |
+| Services | `docs/05_IMPLEMENTATION/SERVICES.md` |
+| Migrations | `docs/05_IMPLEMENTATION/MIGRATIONS.md` |
+| Seeders | `docs/05_IMPLEMENTATION/SEEDERS.md` |
+| Isolir MikroTik | `docs/05_IMPLEMENTATION/ISOLIR_MIKROTIK.md` |

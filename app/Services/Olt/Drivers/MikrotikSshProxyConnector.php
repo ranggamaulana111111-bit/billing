@@ -4,6 +4,7 @@ namespace App\Services\Olt\Drivers;
 
 use App\Models\Setting;
 use App\Services\Olt\Contracts\OltConnector;
+use App\Services\Olt\Support\ChineseOltParser;
 use Exception;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -189,9 +190,61 @@ class MikrotikSshProxyConnector implements OltConnector
         return match ($this->brand) {
             'huawei' => $this->execOltCommand("system-view\n{$command}"),
             'zte' => $this->execOltCommand("enable\nconfigure terminal\n{$command}"),
-            'cdata' => $this->execOltCommand("enable\nconfig\n{$command}"),
+            'cdata', 'vsol', 'hioso', 'hsgq', 'global' => $this->execOltCommand("enable\nconfig\n{$command}"),
             default => $this->execOltCommand($command),
         };
+    }
+
+    private function isChineseBrand(): bool
+    {
+        return in_array($this->brand, ['vsol', 'hioso', 'hsgq', 'global'], true);
+    }
+
+    /**
+     * Candidate status commands per Chinese-brand (probed in order).
+     *
+     * @return string[]
+     */
+    private function chineseStatusCommands(): array
+    {
+        return match ($this->brand) {
+            'global' => [
+                'show epon onu-information',
+                'show gpon onu-information',
+                'show onu status all',
+                'show onu info all',
+                'show onu baisc-info all',
+                'show onu-status',
+            ],
+            'hsgq' => [
+                'show epon onu-information',
+                'show onu status all',
+                'show onu info all',
+                'show onu list',
+                'show onu-status',
+            ],
+            default => [
+                'show onu status all',
+                'show onu info all',
+                'show onu baisc-info all',
+                'show onu basic-info all',
+                'show onu-status',
+            ],
+        };
+    }
+
+    /**
+     * Candidate per-PON totals commands (probed in order).
+     *
+     * @return string[]
+     */
+    private function chineseTotalsCommands(): array
+    {
+        return [
+            'show pon baisc-info',
+            'show pon basic-info',
+            'show pon-info',
+        ];
     }
 
     public function testConnection(): array
@@ -202,6 +255,7 @@ class MikrotikSshProxyConnector implements OltConnector
                 'zte' => $this->execOltCommand('show system information'),
                 'fiberhome' => $this->execOltCommand('show system-info'),
                 'cdata' => $this->execOltCommand('show version'),
+                'vsol', 'hioso', 'hsgq', 'global' => $this->execPrivileged('show version'),
                 default => throw new Exception("Unsupported brand: {$this->brand}"),
             };
 
@@ -223,6 +277,7 @@ class MikrotikSshProxyConnector implements OltConnector
                 'zte' => $this->execOltCommand('show system information'),
                 'fiberhome' => $this->execOltCommand('show system-info'),
                 'cdata' => $this->execOltCommand('show version'),
+                'vsol', 'hioso', 'hsgq', 'global' => $this->execPrivileged('show version'),
                 default => '',
             };
 
@@ -237,6 +292,10 @@ class MikrotikSshProxyConnector implements OltConnector
     public function getOnuList(int $slot, int $port): array
     {
         try {
+            if ($this->isChineseBrand()) {
+                return $this->chineseGetOnuList($slot, $port);
+            }
+
             $output = match ($this->brand) {
                 'huawei' => $this->execOltCommand("display ont info {$slot} {$port}"),
                 'zte' => $this->execOltCommand("show onu unquiet interface gpon-olt_{$slot}/{$port}"),
@@ -291,6 +350,156 @@ class MikrotikSshProxyConnector implements OltConnector
         }
     }
 
+    private function chineseGetOnuList(int $slot, int $port): array
+    {
+        $output = $this->probeChineseStatusCommand();
+        $onus = array_values(array_filter(ChineseOltParser::parseOnus($output), function ($onu) use ($slot, $port) {
+            if ($onu['slot'] === 0 && $onu['port'] === 0) {
+                return true;
+            }
+
+            return $onu['slot'] === $slot && $onu['port'] === $port;
+        }));
+
+        return array_map(fn ($onu) => [
+            'onu_id' => $onu['onu_id'],
+            'sn' => $onu['sn'] ?? null,
+            'status' => $onu['status'],
+        ], $onus);
+    }
+
+    private function probeChineseStatusCommand(): string
+    {
+        foreach ($this->chineseStatusCommands() as $command) {
+            try {
+                $output = $this->execPrivileged($command);
+                $onus = ChineseOltParser::parseOnus($output);
+
+                if ($onus !== []) {
+                    $this->logCli('STATUS_COMMAND_SELECTED', $output, [
+                        'command' => $command,
+                        'parsed_onus' => count($onus),
+                    ]);
+
+                    return $output;
+                }
+            } catch (\Throwable) {
+                // try next candidate
+            }
+        }
+
+        foreach ($this->chineseStatusCommands() as $command) {
+            try {
+                return $this->execPrivileged($command);
+            } catch (\Throwable) {
+                // keep looking
+            }
+        }
+
+        throw new Exception('Tidak ada command ONU yang berhasil dieksekusi');
+    }
+
+    /**
+     * Read ONU counts for multiple ports in one shot (real-time).
+     *
+     * @param  array<int, array{slot: int, port: int, type: string|null}>  $ports
+     * @return array{total_onus: int, online_onus: int, offline_onus: int, onus: array<int, array{onu_id: string, status: string}>}
+     */
+    public function getOnuSummaryAll(array $ports): array
+    {
+        $ports = array_values($ports);
+
+        if ($ports === []) {
+            return ['total_onus' => 0, 'online_onus' => 0, 'offline_onus' => 0, 'onus' => []];
+        }
+
+        // Non-Chinese brands: loop the per-port list (same as direct drivers).
+        if (! $this->isChineseBrand()) {
+            $summary = ['total_onus' => 0, 'online_onus' => 0, 'offline_onus' => 0, 'onus' => []];
+
+            foreach ($ports as $p) {
+                foreach ($this->getOnuList($p['slot'], $p['port']) as $onu) {
+                    $status = ($onu['status'] ?? '') === 'online' ? 'online' : 'offline';
+                    $summary['total_onus']++;
+                    $summary[$status === 'online' ? 'online_onus' : 'offline_onus']++;
+                    $summary['onus'][] = ['onu_id' => $onu['onu_id'] ?? '-', 'status' => $status];
+                }
+            }
+
+            return $summary;
+        }
+
+        try {
+            // Prefer per-PON totals when the device supports it (matches OLT GUI counts).
+            foreach ($this->chineseTotalsCommands() as $command) {
+                try {
+                    $output = $this->execPrivileged($command);
+                    $totals = ChineseOltParser::parsePonTotals($output);
+
+                    if ($totals === []) {
+                        continue;
+                    }
+
+                    $total = 0;
+                    $online = 0;
+                    foreach ($totals as $t) {
+                        foreach ($ports as $p) {
+                            if ($t['slot'] === $p['slot'] && $t['port'] === $p['port']) {
+                                $total += $t['total'];
+                                $online += $t['online'];
+                            }
+                        }
+                    }
+
+                    return [
+                        'total_onus' => $total,
+                        'online_onus' => $online,
+                        'offline_onus' => max(0, $total - $online),
+                        'onus' => [],
+                    ];
+                } catch (\Throwable) {
+                    // try next candidate
+                }
+            }
+
+            // Fallback: parse the full ONU listing filtered to configured ports.
+            $output = $this->probeChineseStatusCommand();
+            $onus = array_values(array_filter(ChineseOltParser::parseOnus($output), function ($onu) use ($ports) {
+                foreach ($ports as $p) {
+                    if ($onu['slot'] === 0 && $onu['port'] === 0) {
+                        return true;
+                    }
+                    if ($onu['slot'] === $p['slot'] && $onu['port'] === $p['port']) {
+                        return true;
+                    }
+                }
+
+                return false;
+            }));
+
+            $online = 0;
+            $flat = [];
+            foreach ($onus as $onu) {
+                $status = $onu['status'] === 'online' ? 'online' : 'offline';
+                if ($status === 'online') {
+                    $online++;
+                }
+                $flat[] = ['onu_id' => $onu['onu_id'], 'status' => $status];
+            }
+
+            return [
+                'total_onus' => count($flat),
+                'online_onus' => $online,
+                'offline_onus' => max(0, count($flat) - $online),
+                'onus' => $flat,
+            ];
+        } catch (Exception $e) {
+            Log::error("MikroTik proxy getOnuSummaryAll({$this->brand}): {$e->getMessage()}");
+
+            return ['total_onus' => 0, 'online_onus' => 0, 'offline_onus' => 0, 'onus' => []];
+        }
+    }
+
     public function getOnuDetail(string $onuId): array
     {
         try {
@@ -304,6 +513,7 @@ class MikrotikSshProxyConnector implements OltConnector
                 'zte' => $this->execOltCommand("show onu detail gpon-olt_{$slot}/{$port} onu {$idx}"),
                 'fiberhome' => $this->execOltCommand("show ont info slot {$slot} port {$port} ont {$idx}"),
                 'cdata' => $this->execOltCommand("show ont info {$slot}/{$port} {$idx}"),
+                'vsol', 'hioso', 'hsgq', 'global' => $this->execPrivileged("show onu running config {$slot}/{$port}"),
                 default => throw new Exception('Unsupported brand'),
             };
 
@@ -337,6 +547,9 @@ class MikrotikSshProxyConnector implements OltConnector
                 'cdata' => $this->execPrivileged(
                     "interface gpon {$slot}/0\nont add {$onuId} sn-auth {$sn} ont-lineprofile-id 1 ont-srvprofile-id 1\nont port native-vlan {$slot}/{$port} {$onuId} eth 1 vlan {$vlan}"
                 ),
+                'vsol', 'hioso', 'hsgq', 'global' => $this->execPrivileged(
+                    "interface gpon {$slot}/{$port}\nonu {$onuId} add sn-auth ".strtoupper($sn)
+                ),
                 default => throw new Exception('Unsupported brand'),
             };
 
@@ -366,6 +579,9 @@ class MikrotikSshProxyConnector implements OltConnector
                 ),
                 'cdata' => $this->execPrivileged(
                     "interface gpon {$slot}/0\nno ont add {$idx}"
+                ),
+                'vsol', 'hioso', 'hsgq', 'global' => $this->execPrivileged(
+                    "interface gpon {$slot}/{$port}\nno onu {$idx}"
                 ),
                 default => throw new Exception('Unsupported brand'),
             };
@@ -397,6 +613,9 @@ class MikrotikSshProxyConnector implements OltConnector
                 'cdata' => $this->execPrivileged(
                     "interface gpon {$slot}/0\nont reset {$idx}"
                 ),
+                'vsol', 'hioso', 'hsgq', 'global' => $this->execPrivileged(
+                    "interface gpon {$slot}/{$port}\nonu {$idx} reboot"
+                ),
                 default => throw new Exception('Unsupported brand'),
             };
 
@@ -414,6 +633,7 @@ class MikrotikSshProxyConnector implements OltConnector
                 'zte' => $this->execOltCommand("show interface gpon-olt_{$slot}/{$port}"),
                 'fiberhome' => $this->execOltCommand("show port info slot {$slot} port {$port}"),
                 'cdata' => $this->execOltCommand("show port state gpon {$slot}/{$port}"),
+                'vsol', 'hioso', 'hsgq', 'global' => $this->execPrivileged("show interface gpon {$slot}/{$port}"),
                 default => throw new Exception('Unsupported brand'),
             };
 
@@ -440,6 +660,8 @@ class MikrotikSshProxyConnector implements OltConnector
                 $output = $this->execPrivileged(
                     "interface gpon {$slot}/0\nshow ont optical-info {$port} all\nexit"
                 );
+            } elseif ($this->isChineseBrand()) {
+                $output = $this->execPrivileged('show onu opm-diag all');
             } else {
                 $command = match ($this->brand) {
                     'huawei' => "display ont optical-info {$slot} {$port} {$idx}",
@@ -486,6 +708,31 @@ class MikrotikSshProxyConnector implements OltConnector
     {
         $rx = null;
         $tx = null;
+
+        // Chinese brand bulk OPM table: "EPON0/1:1  ...  -19.5  2.1"
+        if ($this->isChineseBrand()) {
+            foreach (explode("\n", $output) as $line) {
+                $line = trim($line);
+                if (preg_match('/^[A-Za-z]*0*'.$idx.'\b/i', $line) === 1) {
+                    if (preg_match_all('/-?\d+\.?\d*/', $line, $vals)) {
+                        $nums = array_map('floatval', $vals[0]);
+                        $neg = array_values(array_filter($nums, fn ($v) => $v < 0));
+                        $pos = array_values(array_filter($nums, fn ($v) => $v >= 0));
+
+                        if ($neg !== []) {
+                            $rx = max($neg);
+                        }
+                        if ($pos !== []) {
+                            $tx = min($pos);
+                        }
+                    }
+
+                    return ['rx_power' => $rx, 'tx_power' => $tx];
+                }
+            }
+
+            return ['rx_power' => $rx, 'tx_power' => $tx];
+        }
 
         // If C-DATA bulk output, parse table and find specific ONT
         if ($this->brand === 'cdata') {

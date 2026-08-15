@@ -46,6 +46,10 @@
                         <option value="zte" {{ old('brand') === 'zte' ? 'selected' : '' }}>ZTE</option>
                         <option value="fiberhome" {{ old('brand') === 'fiberhome' ? 'selected' : '' }}>FiberHome</option>
                         <option value="cdata" {{ old('brand') === 'cdata' ? 'selected' : '' }}>C-Data</option>
+                        <option value="global" {{ old('brand') === 'global' ? 'selected' : '' }}>Global</option>
+                        <option value="vsol" {{ old('brand') === 'vsol' ? 'selected' : '' }}>VSOL</option>
+                        <option value="hsgq" {{ old('brand') === 'hsgq' ? 'selected' : '' }}>HSGQ</option>
+                        <option value="hioso" {{ old('brand') === 'hioso' ? 'selected' : '' }}>Hioso</option>
                     </select>
                 </div>
                 <div class="col-md-3">

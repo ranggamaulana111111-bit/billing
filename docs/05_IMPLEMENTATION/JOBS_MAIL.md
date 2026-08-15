@@ -38,39 +38,14 @@ handle()
 │   ├── Jika >80% port offline → tandai DOWN_LINK_FAILURE
 │   ├── Update ODP kondisi_jalur = 'DOWN_LINK_FAILURE'
 │   ├── Set ODP Ports → 'broken'
-│   └── notifyTechnician() via Fonnte WA API
+│   └── notifyTechnician() → tulis IncidentNotification (pending)
 │
 └── update last_polled_at
 ```
 
 **RCA Threshold:**
 - ODP dengan >80% port offline → kabel distribusi putus
-- Notifikasi WA dikirim ke `notif_phone_teknisikoordinator` atau `admin_phone`
-
-### SendWhatsAppNotification (`app/Jobs/SendWhatsAppNotification.php`)
-
-| Key | Value |
-|-----|-------|
-| Queue | `default` (database) |
-| Timeout | 30 detik |
-| Retry | 3x |
-| Trigger | Scheduler `billing:process` |
-
-| Parameter | Type | Deskripsi |
-|-----------|------|-----------|
-| `$userId` | `int` | User ID untuk lookup Fonnte token |
-| `$phone` | `string` | Nomor tujuan |
-| `$message` | `string` | Pesan teks |
-
-**Flow:**
-```
-handle()
-├── Setting::get('fonnte_token', null, userId)
-├── POST https://api.fonnte.com/send
-│   ├── headers: Authorization = token
-│   ├── body: target, message, countryCode=62
-└── (no return check — fire and forget)
-```
+- Catatan notifikasi dikirim ke aplikasi pelanggan Android (in-development)
 
 ---
 

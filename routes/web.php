@@ -22,6 +22,8 @@ use App\Http\Controllers\MonitoringController;
 use App\Http\Controllers\Noc\AutomationController;
 use App\Http\Controllers\Noc\ConfigModuleController;
 use App\Http\Controllers\Noc\ConfigRepositoryController;
+use App\Http\Controllers\Noc\DashboardController as NocDashboardController;
+use App\Http\Controllers\Noc\FeaturesController;
 use App\Http\Controllers\Noc\GenieacsController;
 use App\Http\Controllers\Noc\InterfaceCenterController;
 use App\Http\Controllers\Noc\InternetServiceController;
@@ -52,7 +54,9 @@ use App\Http\Controllers\VoucherPrintTemplateController;
 use App\Http\Controllers\VoucherProfileController;
 use App\Http\Controllers\VoucherReportController;
 use App\Http\Controllers\VoucherTemplateController;
+use App\Http\Controllers\XenditController;
 use App\Models\Package;
+use App\Models\Setting;
 use App\Models\VoucherTemplate;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -103,9 +107,9 @@ Route::get('/', function () {
     $packages = Package::where('is_active', true)->orderBy('price')->get();
 
     $company = [
-        'name' => \App\Models\Setting::get('company_name', 'ALKONEK'),
-        'address' => \App\Models\Setting::get('company_address', ''),
-        'phone' => \App\Models\Setting::get('company_phone', ''),
+        'name' => Setting::get('company_name', 'ALKONEKbill'),
+        'address' => Setting::get('company_address', ''),
+        'phone' => Setting::get('company_phone', ''),
         'email' => 'admin@alkonek.net',
     ];
 
@@ -115,10 +119,15 @@ Route::get('/', function () {
 // ── MIDTRANS (auth required for pay & finish, not for notification) ──
 Route::post('/midtrans/notification', [MidtransController::class, 'notification'])->name('midtrans.notification');
 
+// ── XENDIT (auth required for pay, not for notification & finish) ──
+Route::post('/xendit/notification', [XenditController::class, 'notification'])->name('xendit.notification');
+Route::get('/xendit/finish', [XenditController::class, 'finish'])->name('xendit.finish');
+
 // ── PORTAL PELANGGAN (public) ──
 Route::get('/portal', [PortalController::class, 'index'])->name('portal.index');
 Route::post('/portal', [PortalController::class, 'lookup'])->name('portal.lookup');
 Route::get('/portal/bayar/{invoice}', [PortalController::class, 'bayar'])->name('portal.bayar');
+Route::get('/portal/bayar-xendit/{invoice}', [PortalController::class, 'bayarXendit'])->name('portal.bayar-xendit');
 Route::get('/portal/finish', [PortalController::class, 'finish'])->name('portal.finish');
 
 // ── VOUCHER PUBLIC ──
@@ -160,7 +169,6 @@ Route::middleware(['auth', 'teknisi'])->group(function () {
     Route::get('/invoice/paid/{invoice}', [InvoiceController::class, 'markPaid'])->name('invoice.paid');
     Route::get('/invoice/print/{invoice}', [InvoiceController::class, 'print'])->name('invoice.print');
     Route::get('/invoice/print-thermal/{invoice}', [InvoiceController::class, 'printThermal'])->name('invoice.print-thermal');
-    Route::get('/invoice/reminder/{invoice}', [InvoiceController::class, 'sendReminder'])->name('invoice.reminder');
     Route::get('/invoice/email-reminder/{invoice}', [InvoiceController::class, 'sendEmailReminder'])->name('invoice.email-reminder');
     Route::get('/invoice/email-payment/{invoice}', [InvoiceController::class, 'sendEmailPayment'])->name('invoice.email-payment');
 
@@ -279,8 +287,74 @@ Route::middleware(['auth', 'teknisi'])->group(function () {
     Route::get('/midtrans/pay/{invoice}', [MidtransController::class, 'pay'])->name('midtrans.pay');
     Route::get('/midtrans/finish', [MidtransController::class, 'finish'])->name('midtrans.finish');
 
+    Route::get('/xendit/pay/{invoice}', [XenditController::class, 'pay'])->name('xendit.pay');
+    Route::get('/xendit/gateway', [XenditController::class, 'settings'])->name('xendit.gateway');
+    Route::post('/xendit/gateway', [XenditController::class, 'updateSettings'])->name('xendit.gateway.update');
+
     // ── NOC CONTROL CENTER ──
     // Route::get('/noc/traffic-analyzer', [NocController::class, 'trafficAnalyzer'])->name('noc.traffic-analyzer');
+
+    // ── NOC DASHBOARD ──
+    Route::middleware(['auth', 'noc'])->group(function () {
+        Route::get('/noc/dashboard', [NocDashboardController::class, 'index'])->name('noc.dashboard');
+        Route::get('/noc/features/map', [FeaturesController::class, 'map'])->name('noc.features.map');
+        Route::get('/noc/features/map/search', [FeaturesController::class, 'search'])->name('noc.features.map.search');
+        Route::get('/noc/features/map/mikrotik', [FeaturesController::class, 'mikrotikList'])->name('noc.features.map.mikrotik');
+        Route::post('/noc/features/map/mikrotik/save', [FeaturesController::class, 'mikrotikSave'])->name('noc.features.map.mikrotik.save');
+        Route::post('/noc/features/map/mikrotik/connect', [FeaturesController::class, 'mikrotikConnect'])->name('noc.features.map.mikrotik.connect');
+        Route::post('/noc/features/map/mikrotik/sync-all', [FeaturesController::class, 'mikrotikSyncAll'])->name('noc.features.map.mikrotik.sync-all');
+        Route::get('/noc/features/map/mikrotik/pppoe', [FeaturesController::class, 'mikrotikPppoe'])->name('noc.features.map.mikrotik.pppoe');
+        Route::post('/noc/features/map/mikrotik/delete', [FeaturesController::class, 'mikrotikDelete'])->name('noc.features.map.mikrotik.delete');
+        Route::get('/noc/features/map/olt', [FeaturesController::class, 'oltList'])->name('noc.features.map.olt');
+        Route::post('/noc/features/map/olt/save', [FeaturesController::class, 'oltSave'])->name('noc.features.map.olt.save');
+        Route::post('/noc/features/map/olt/connect', [FeaturesController::class, 'oltConnect'])->name('noc.features.map.olt.connect');
+        Route::post('/noc/features/map/olt/sync-all', [FeaturesController::class, 'oltSyncAll'])->name('noc.features.map.olt.sync-all');
+        Route::post('/noc/features/map/olt/delete', [FeaturesController::class, 'oltDelete'])->name('noc.features.map.olt.delete');
+        Route::get('/noc/features/map/genieacs', [FeaturesController::class, 'genieacsConfig'])->name('noc.features.map.genieacs');
+        Route::post('/noc/features/map/genieacs/save', [FeaturesController::class, 'genieacsSave'])->name('noc.features.map.genieacs.save');
+        Route::post('/noc/features/map/genieacs/sync', [FeaturesController::class, 'genieacsSync'])->name('noc.features.map.genieacs.sync');
+
+        Route::get('/noc/features/map/notif/config', [FeaturesController::class, 'notifConfig'])->name('noc.features.map.notif.config');
+        Route::post('/noc/features/map/notif/save', [FeaturesController::class, 'notifSave'])->name('noc.features.map.notif.save');
+
+        Route::get('/noc/features/map/backup/config', [FeaturesController::class, 'backupConfig'])->name('noc.features.map.backup.config');
+
+        Route::post('/noc/features/map/backup/save', [FeaturesController::class, 'backupSave'])->name('noc.features.map.backup.save');
+
+        Route::post('/noc/features/map/backup/send', [FeaturesController::class, 'backupSendNow'])->name('noc.features.map.backup.send');
+
+        Route::post('/noc/features/map/backup/restore', [FeaturesController::class, 'backupRestore'])->name('noc.features.map.backup.restore');
+
+        Route::get('/noc/features/map/backup/excel-export', [FeaturesController::class, 'excelExport'])->name('noc.features.map.backup.excel-export');
+
+        Route::post('/noc/features/map/backup/excel-import', [FeaturesController::class, 'excelImport'])->name('noc.features.map.backup.excel-import');
+
+        Route::get('/noc/features/map/backup/kmz-export', [FeaturesController::class, 'kmzExport'])->name('noc.features.map.backup.kmz-export');
+
+        Route::post('/noc/features/map/backup/kmz-import', [FeaturesController::class, 'kmzImport'])->name('noc.features.map.backup.kmz-import');
+
+        Route::get('/noc/features/map/markers', [FeaturesController::class, 'mapMarkers'])->name('noc.features.map.markers');
+
+        Route::get('/noc/features/map/device', [FeaturesController::class, 'deviceList'])->name('noc.features.map.device');
+
+        Route::get('/noc/features/map/device/parents', [FeaturesController::class, 'deviceParents'])->name('noc.features.map.device.parents');
+
+        Route::post('/noc/features/map/device/save', [FeaturesController::class, 'deviceSave'])->name('noc.features.map.device.save');
+
+        Route::post('/noc/features/map/device/status', [FeaturesController::class, 'deviceStatus'])->name('noc.features.map.device.status');
+
+        Route::post('/noc/features/map/device/delete', [FeaturesController::class, 'deviceDelete'])->name('noc.features.map.device.delete');
+
+        Route::get('/noc/features/map/customer/detail', [FeaturesController::class, 'customerDetail'])->name('noc.features.map.customer.detail');
+
+        Route::post('/noc/features/map/customer/ping', [FeaturesController::class, 'customerPing'])->name('noc.features.map.customer.ping');
+
+        Route::post('/noc/features/map/customer/acs', [FeaturesController::class, 'customerAcs'])->name('noc.features.map.customer.acs');
+
+        Route::post('/noc/features/map/customer/duplicate', [FeaturesController::class, 'customerDuplicate'])->name('noc.features.map.customer.duplicate');
+
+        Route::post('/noc/features/map/onu/reboot', [FeaturesController::class, 'onuReboot'])->name('noc.features.map.onu.reboot');
+    });
 
     // ── GENIEACS (hidden per request, MikroTik-related) ──
     // Route::get('/noc/genieacs', [GenieacsController::class, 'dashboard'])->name('noc.genieacs');
@@ -639,16 +713,19 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::put('/settings/integrations/mikrotik/{mikrotikRouter}', [IntegrationController::class, 'updateMikrotik'])->name('settings.integrations.mikrotik.update');
     Route::delete('/settings/integrations/mikrotik/{mikrotikRouter}', [IntegrationController::class, 'destroyMikrotik'])->name('settings.integrations.mikrotik.destroy');
     Route::post('/settings/integrations/mikrotik/{mikrotikRouter}/test', [IntegrationController::class, 'testMikrotik'])->name('settings.integrations.mikrotik.test');
+    Route::get('/settings/integrations/mikrotik/{mikrotikRouter}/live', [IntegrationController::class, 'liveMikrotik'])->name('settings.integrations.mikrotik.live');
     Route::post('/settings/integrations/olt', [IntegrationController::class, 'storeOlt'])->name('settings.integrations.olt.store');
     Route::put('/settings/integrations/olt/{olt}', [IntegrationController::class, 'updateOlt'])->name('settings.integrations.olt.update');
     Route::delete('/settings/integrations/olt/{olt}', [IntegrationController::class, 'destroyOlt'])->name('settings.integrations.olt.destroy');
     Route::post('/settings/integrations/olt/{olt}/test', [IntegrationController::class, 'testOlt'])->name('settings.integrations.olt.test');
+    Route::get('/settings/integrations/olt/{olt}/live', [IntegrationController::class, 'liveOlt'])->name('settings.integrations.olt.live');
 
     // ── USER MANAGEMENT ──
     Route::get('/settings/users', [UserController::class, 'index'])->name('settings.users');
     Route::post('/settings/users', [UserController::class, 'store'])->name('settings.users.store');
     Route::put('/settings/users/{user}', [UserController::class, 'update'])->name('settings.users.update');
     Route::delete('/settings/users/{user}', [UserController::class, 'destroy'])->name('settings.users.destroy');
+    Route::get('/settings/users/{user}/password', [UserController::class, 'password'])->name('settings.users.password');
 
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
 

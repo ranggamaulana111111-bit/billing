@@ -14,11 +14,13 @@ class IsTeknisiOrAdmin
     ! in_array($request->user()->role, [
         'admin',
         'superadmin',
-        'teknisi'
+        'teknisi',
+        'noc',
     ])) {
 
-    abort(403, 'Akses ditolak.');
-}
+            abort(403, 'Akses ditolak.');
+        }
+
         return $next($request);
     }
 }

@@ -8,7 +8,6 @@ use App\Models\Incident;
 use App\Models\Invoice;
 use App\Models\Setting;
 use App\Models\User;
-use App\Services\FonnteService;
 use App\Services\Payment\PaymentService;
 use Illuminate\Http\Request;
 
@@ -19,7 +18,7 @@ class PortalController extends Controller
         $firstUser = User::orderBy('id')->first();
         $uid = $firstUser?->id;
         $company = [
-            'name' => Setting::get('company_name', 'ALKONEK', $uid),
+            'name' => Setting::get('company_name', 'ALKONEKbill', $uid),
             'address' => Setting::get('company_address', '', $uid),
             'phone' => Setting::get('company_phone', '', $uid),
         ];
@@ -46,7 +45,13 @@ class PortalController extends Controller
 
         // Fallback: cari by nomor telepon (normalisasi format 0xx / 62xx / 8xx)
         if (! $customer) {
-            $canonical = FonnteService::cleanPhone($input);
+            $canonical = preg_replace('/\D/', '', $input);
+
+            if (str_starts_with($canonical, '0')) {
+                $canonical = substr($canonical, 1);
+            } elseif (str_starts_with($canonical, '62') && strlen($canonical) > 10) {
+                $canonical = substr($canonical, 2);
+            }
 
             if ($canonical !== '') {
                 $customer = Customer::allTenants()
@@ -75,12 +80,13 @@ class PortalController extends Controller
             ->get();
 
         $company = [
-            'name' => Setting::get('company_name', 'ALKONEK', $customer->tenant_id),
+            'name' => Setting::get('company_name', 'ALKONEKbill', $customer->tenant_id),
             'address' => Setting::get('company_address', '', $customer->tenant_id),
             'phone' => Setting::get('company_phone', '', $customer->tenant_id),
         ];
 
         $midtransConfigured = app(PaymentService::class)->getGateway('midtrans')?->isConfigured() ?? false;
+        $xenditConfigured = app(PaymentService::class)->getGateway('xendit')?->isConfigured() ?? false;
 
         $incidents = collect();
         if ($customer->odp_id) {
@@ -92,7 +98,7 @@ class PortalController extends Controller
         }
 
         if ($request->wantsJson()) {
-            $html = view('portal.partials.invoice-modal', compact('customer', 'invoices', 'company', 'midtransConfigured', 'incidents'))->render();
+            $html = view('portal.partials.invoice-modal', compact('customer', 'invoices', 'company', 'midtransConfigured', 'xenditConfigured', 'incidents'))->render();
 
             return response()->json([
                 'found' => true,
@@ -100,7 +106,7 @@ class PortalController extends Controller
             ]);
         }
 
-        return view('portal.invoices', compact('customer', 'invoices', 'company', 'midtransConfigured', 'incidents'));
+        return view('portal.invoices', compact('customer', 'invoices', 'company', 'midtransConfigured', 'xenditConfigured', 'incidents'));
     }
 
     public function bayar(Invoice $invoice, PaymentService $paymentService)
@@ -124,6 +130,31 @@ class PortalController extends Controller
         $snapToken = $result['token'];
 
         return view('portal.pay', compact('snapToken', 'invoice'));
+    }
+
+    public function bayarXendit(Invoice $invoice, PaymentService $paymentService)
+    {
+        $invoice = Invoice::allTenants()->findOrFail($invoice->id);
+
+        if ($invoice->payment_status === 'paid') {
+            return redirect()->route('portal.index')->with('error', 'Invoice ini sudah lunas.');
+        }
+
+        $customer = $invoice->customer;
+
+        $result = $paymentService->createTransaction('xendit', $invoice);
+
+        if (! $result['success']) {
+            return back()->with('error', $result['message']);
+        }
+
+        if (! empty($result['invoice_id'])) {
+            $invoice->update(['xendit_invoice_id' => $result['invoice_id']]);
+        }
+
+        ActivityLog::log('Portal Bayar Xendit', 'Pembayaran portal Xendit untuk '.$customer->name.' - '.$invoice->invoice_display);
+
+        return redirect()->away($result['invoice_url']);
     }
 
     public function finish(Request $request)

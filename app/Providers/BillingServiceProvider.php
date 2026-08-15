@@ -7,6 +7,7 @@ use App\Services\Billing\CustomerCodeGenerator;
 use App\Services\Billing\InvoiceGenerator;
 use App\Services\Payment\MidtransGateway;
 use App\Services\Payment\PaymentService;
+use App\Services\Payment\XenditGateway;
 use Illuminate\Support\ServiceProvider;
 
 class BillingServiceProvider extends ServiceProvider
@@ -19,6 +20,7 @@ class BillingServiceProvider extends ServiceProvider
         $this->app->singleton(PaymentService::class, function ($app) {
             $service = new PaymentService;
             $service->registerGateway('midtrans', new MidtransGateway);
+            $service->registerGateway('xendit', new XenditGateway);
 
             return $service;
         });

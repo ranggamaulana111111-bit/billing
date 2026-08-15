@@ -1,4 +1,4 @@
-# Business Process — RabegNet ISP Billing System
+# Business Process — ALKONEK ISP Billing System
 
 ---
 
@@ -38,30 +38,35 @@ Schedule: setiap hari jam 08:00
    ├── Loop setiap customer active:
    │   ├── Cek: sudah ada invoice bulan ini?
    │   ├── Jika belum:
-   │   │   ├── Invoice.create(amount = package.price)
-   │   │   └── Dispatch SendWhatsAppNotification (WA reminder)
-   │   └── Jika sudah: skip
-   └── Selesai
-
-3. WA reminder terkirim ke pelanggan
+    │   │   ├── Invoice.create(amount = package.price)
+    │   │   └── (reminder dikirim via aplikasi pelanggan Android — in-development)
+    │   └── Jika sudah: skip
+    └── Selesai
 ```
 
 ---
 
 ## 3. Alur Pembayaran
 
-### Pembayaran Online (Midtrans)
+### Pembayaran Online (Midtrans / Xendit)
 
 ```
 1. Pelanggan buka portal /portal
 2. Input nomor telepon
 3. Lihat daftar tagihan unpaid
 4. Klik "Bayar"
-5. Redirect ke Midtrans (QRIS/VA/Convenience Store)
-6. Pelanggan bayar di Midtrans
-7. Midtrans callback POST /midtrans/notification
-   ├── MidtransController@notification
+5. Redirect ke gateway pembayaran:
+   ├── Midtrans → /midtrans (QRIS/VA/Convenience Store)
+   └── Xendit → /xendit/pay/{invoice} (QRIS/VA/e-Wallet)
+6. Pelanggan bayar di gateway
+7. Gateway callback:
+   ├── POST /midtrans/notification → MidtransController@notification
    │   ├── Validasi signature
+   │   ├── Invoice.update(payment_status='paid', paid_at=now)
+   │   ├── Payment.create
+   │   └── Jika customer suspended: auto-activate
+   ├── POST /xendit/notification → XenditController@notification
+   │   ├── Validasi webhook signature
    │   ├── Invoice.update(payment_status='paid', paid_at=now)
    │   ├── Payment.create
    │   └── Jika customer suspended: auto-activate

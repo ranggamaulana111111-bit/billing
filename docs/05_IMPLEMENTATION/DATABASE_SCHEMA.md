@@ -1,6 +1,6 @@
-# Database Schema — RabegNet ISP Billing System
+# Database Schema — ALKONEK ISP Billing System
 
-> 28 Tables | Definisi kolom per tabel (tipe, nullable, default, FK, index)
+> 45 Tables (39 app + 6 Laravel framework) | Definisi kolom per tabel (tipe, nullable, default, FK, index)
 
 ---
 
@@ -445,15 +445,180 @@
 
 ---
 
+## Incidents & SLA (2 tables)
+
+### `incidents`
+
+| Kolom | Tipe | Nullable | Default | Keterangan |
+|-------|------|----------|---------|------------|
+| id | bigint unsigned | NO | auto_increment | Primary Key |
+| tenant_id | bigint unsigned | YES | NULL | FK → tenants.id, **INDEX** |
+| title | varchar(255) | NO | — | Judul |
+| description | text | YES | NULL | Deskripsi |
+| status | varchar(255) | NO | 'open' | open/investigating/resolved/closed |
+| severity | varchar(255) | YES | NULL | critical/high/medium/low |
+| impact | varchar(255) | YES | NULL | |
+| started_at | timestamp | YES | NULL | |
+| resolved_at | timestamp | YES | NULL | |
+| closed_at | timestamp | YES | NULL | |
+| sla_minutes | int | YES | NULL | Target SLA |
+| sla_breached | tinyint(1) | YES | 0 | |
+| notifiable_customer_ids | json | YES | NULL | Pelanggan terdampak |
+| created_at / updated_at | timestamp | YES | NULL | |
+
+### `incident_notifications`
+
+| Kolom | Tipe | Nullable | Default | Keterangan |
+|-------|------|----------|---------|------------|
+| id | bigint unsigned | NO | auto_increment | Primary Key |
+| incident_id | bigint unsigned | NO | — | FK → incidents.id, **INDEX** |
+| recipient | varchar(255) | NO | — | Nomor WA / email |
+| channel | varchar(255) | NO | 'wa' | wa/email |
+| status | varchar(255) | NO | 'pending' | pending/sent/failed |
+| sent_at | timestamp | YES | NULL | |
+| created_at / updated_at | timestamp | YES | NULL | |
+
+---
+
+## Automation Engine (3 tables)
+
+### `noc_automation_jobs`
+
+| Kolom | Tipe | Keterangan |
+|-------|------|------------|
+| id | bigint unsigned | Primary Key |
+| tenant_id | bigint unsigned | FK → tenants.id, **INDEX** |
+| name | varchar(255) | Nama job |
+| type | varchar(255) | trigger/trigger-driven |
+| status | varchar(255) | draft/active/paused |
+| config | json | Konfigurasi job |
+| last_run_at | timestamp | |
+| next_run_at | timestamp | |
+
+### `noc_automation_job_logs`
+
+Riwayat eksekusi job (job_id, status, started_at, finished_at, output, error).
+
+### `noc_automation_triggers`
+
+Definisi trigger (job_id, event, params, cooldown, is_active).
+
+---
+
+## Network Metrics & Monitoring (4 tables)
+
+### `network_metrics`
+
+| Kolom | Tipe | Keterangan |
+|-------|------|------------|
+| id | bigint unsigned | Primary Key |
+| tenant_id | bigint unsigned | FK → tenants.id, **INDEX** |
+| device_type | varchar(255) | olt/mikrotik |
+| device_id | bigint unsigned | ID device |
+| metric_type | varchar(255) | traffic/cpu/latency/dll |
+| value | json | Data metric |
+| collected_at | timestamp | |
+
+### `network_metrics_aggregated`
+
+Agregasi per jam (metric_type, period, value).
+
+### `onu_monitoring_history`
+
+Snapshot kesehatan ONU (onu_id, rx_power, tx_power, temperature, status, recorded_at).
+
+### `ping_results`
+
+Hasil ping monitor (target, latency, packet_loss, status, executed_at).
+
+---
+
+## RouterOS Sync & Config (4 tables)
+
+### `routeros_sync_logs`
+
+Log sinkronisasi (mikrotik_router_id, status, message, synced_at).
+
+### `routeros_synced_configs`
+
+Config RouterOS tersinkron (mikrotik_router_id, section, data json, hash, last_synced_at).
+
+### `config_versions`
+
+Versioning config (mikrotik_router_id, version, changes, created_at).
+
+### `network_config_audit_logs`
+
+Audit perubahan config (user_id, target, action, before/after json, created_at).
+
+---
+
+## Inventory (2 tables)
+
+### `inventory_items`
+
+| Kolom | Tipe | Keterangan |
+|-------|------|------------|
+| id | bigint unsigned | Primary Key |
+| tenant_id | bigint unsigned | FK → tenants.id, **INDEX** |
+| name | varchar(255) | Nama barang |
+| category | varchar(255) | Kategori |
+| sku | varchar(255) | SKU |
+| quantity | int | Stok |
+| unit | varchar(255) | Satuan |
+| location | varchar(255) | Lokasi |
+| min_stock | int | Batas minimum |
+
+### `inventory_transactions`
+
+Transaksi barang masuk/keluar (inventory_item_id, type in/out, quantity, condition, note, user_id).
+
+---
+
+## MikroTik Interface Metadata (2 tables)
+
+### `mikrotik_interface_metadata`
+
+Metadata interface per router (mikrotik_router_id, interface_name, alias, monitor_status, last_seen_at).
+
+### `interface_change_logs`
+
+Log perubahan status interface (interface, old_status, new_status, changed_at).
+
+---
+
+## Voucher Print Template (1 table)
+
+### `voucher_print_templates`
+
+| Kolom | Tipe | Keterangan |
+|-------|------|------------|
+| id | bigint unsigned | Primary Key |
+| tenant_id | bigint unsigned | FK → tenants.id, **INDEX** |
+| name | varchar(255) | Nama template |
+| content | text | HTML template cetak |
+| page_size | varchar(255) | A4/58mm/80mm |
+| is_default | tinyint(1) | boolean |
+| is_active | tinyint(1) | boolean |
+
+---
+
 ## Ringkasan
 
 | Grup | Tabel | Jumlah |
 |------|-------|--------|
-| Core / System | tenants, users, sessions, password_reset_tokens, cache, jobs | 6 |
+| Core / System | tenants, users, sessions, password_reset_tokens, cache, cache_locks, jobs, job_batches, failed_jobs | 9 |
 | Billing | packages, customers, invoices, payments | 4 |
 | Infrastructure | olts, olt_ports, onus, odcs, odc_ports, odps, odp_ports | 7 |
 | Voucher | mikrotik_routers, voucher_profiles, voucher_templates, vouchers | 4 |
+| Voucher Print | voucher_print_templates | 1 |
+| Incidents & SLA | incidents, incident_notifications | 2 |
+| Automation | noc_automation_jobs, noc_automation_job_logs, noc_automation_triggers | 3 |
+| Monitoring | network_metrics, network_metrics_aggregated, onu_monitoring_history, ping_results | 4 |
+| RouterOS Sync | routeros_sync_logs, routeros_synced_configs, config_versions, network_config_audit_logs | 4 |
+| Inventory | inventory_items, inventory_transactions | 2 |
+| MikroTik Metadata | mikrotik_interface_metadata, interface_change_logs | 2 |
 | Activity | activity_logs | 1 |
 | Key-value | settings | 1 |
 | Legacy | odp_routes, odp_points | 2 |
-| **Total** | | **25 + 3 Laravel (sessions, cache, password_reset_tokens)** = 28 |
+| **Total** | | **45** |

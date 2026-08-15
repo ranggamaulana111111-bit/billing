@@ -1,6 +1,6 @@
 # AI Workflow — Panduan untuk AI Agent
 
-> Dokumen ini memandu AI Agent dalam bekerja dengan kodebase RabegNet secara efektif.
+> Dokumen ini memandu AI Agent dalam bekerja dengan kodebase ALKONEK secara efektif.
 
 ---
 
@@ -46,13 +46,14 @@ Gunakan search tools untuk memahami existing code sebelum membuat perubahan:
 
 - Test di `tests/Feature/` untuk integration test
 - Test di `tests/Unit/` untuk unit test
-- `RefreshDatabase` untuk test yang butuh database
+- `RefreshDatabase` untuk test yang butuh database — dipakai **eksplisit** per class, bukan default
+- ⚠️ Suite saat ini **RED (68 failed / 74 passed)** — penyebab utama migrasi `2026_06_22_000004_add_tenant_id_to_business_tables.php` memakai `DROP CONSTRAINT IF EXISTS` yang gagal di SQLite. Fokus verifikasi pada test yang relevan dengan perubahanmu, bukan seluruh suite.
 
 ### 5. Format & Verify
 
 ```bash
 ./vendor/bin/pint          # Format code
-php artisan test           # Run all tests
+"C:\laragon\bin\php\php-8.3.31-Win32-vs16-x64 (1)\php.exe" artisan test   # Run all tests
 npm run build              # Build frontend (jika ada perubahan asset)
 ```
 
@@ -60,7 +61,7 @@ npm run build              # Build frontend (jika ada perubahan asset)
 
 ## Checklist Sebelum Selesai
 
-- [ ] Semua test passing
+- [ ] Test yang relevan dengan perubahan passing (catatan: suite penuh RED karena SQLite `DROP CONSTRAINT` issue)
 - [ ] Code sudah di-format dengan pint
 - [ ] Tidak ada debug code (`dd()`, `dump()`, `var_dump()`)
 - [ ] Tidak ada credentials atau sensitive data

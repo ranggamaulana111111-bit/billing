@@ -8,6 +8,9 @@
         <h2 class="mb-0"><i class="fa-solid fa-credit-card me-2" style="color:var(--primary);"></i>Payment Gateway</h2>
         <p class="section-subtitle mb-0 mt-1">Konfigurasi Midtrans Payment Gateway untuk pembayaran online</p>
     </div>
+    <a href="{{ route('xendit.gateway') }}" class="btn btn-outline-primary px-3">
+        <i class="fa-solid fa-wallet me-1"></i>Konfigurasi Xendit
+    </a>
 </div>
 
 @if(session('success'))

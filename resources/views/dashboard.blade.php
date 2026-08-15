@@ -192,7 +192,6 @@
             </div>
             <div class="v4-invoice-amount">Rp{{ number_format($inv->amount, 0, ',', '.') }}</div>
             <div class="v4-invoice-actions">
-                <a href="{{ route('invoice.reminder', $inv->id) }}" class="v4-btn-icon v4-btn-wa" title="WA Reminder" onclick="return confirm('Kirim reminder ke {{ $inv->customer->name ?? '?' }}?')"><i class="fa-brands fa-whatsapp"></i></a>
                 <a href="{{ route('invoice.paid', $inv->id) }}" class="v4-btn-icon v4-btn-check" title="Tandai Lunas" onclick="return confirm('Konfirmasi pembayaran?')"><i class="fa-solid fa-check"></i></a>
                 <a href="{{ route('invoice.print', $inv->id) }}" class="v4-btn-icon v4-btn-print" title="Cetak" target="_blank"><i class="fa-solid fa-print"></i></a>
             </div>
@@ -324,7 +323,7 @@
         });
 
         var pmLabels = [], pmData = [], pmColors = [];
-        var colorMap = { cash: '#10b981', transfer: '#3b82f6', qris: '#8b5cf6', midtrans: '#f59e0b' };
+        var colorMap = { cash: '#10b981', transfer: '#3b82f6', qris: '#8b5cf6', midtrans: '#f59e0b', xendit: '#6366f1' };
         var pmLegendHtml = '';
         @foreach($paymentMethods as $pm)
         pmLabels.push('{{ ucfirst($pm->payment_method) }}'); pmData.push({{ $pm->count }}); pmColors.push(colorMap['{{ $pm->payment_method }}'] || '#94a3b8');

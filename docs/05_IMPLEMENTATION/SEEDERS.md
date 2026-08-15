@@ -1,4 +1,4 @@
-# Seeders — RabegNet ISP Billing System
+# Seeders — ALKONEK ISP Billing System
 
 > 5 Files | `Database\Seeders\` namespace
 
@@ -38,7 +38,7 @@ Dua seeder **tidak dipanggil** oleh `DatabaseSeeder`:
 **Data yang dibuat:**
 | Email | Name | Password | Role |
 |-------|------|----------|------|
-| admin@rabegnet.id | Admin | admin123 | admin |
+| admin@alkonek.net | Admin | admin123 | admin |
 | test@example.com | Test User | password | teknisi |
 
 ---
@@ -90,18 +90,21 @@ Dua seeder **tidak dipanggil** oleh `DatabaseSeeder`:
 |-----|-------|
 | Class | `SettingSeeder` |
 | Idempotent | Ya — `firstOrCreate` |
-| Data | 7 settings |
+| Data | 10 settings |
 
 **Default settings:**
 | Key | Value |
 |-----|-------|
-| company_name | RabegNet |
+| company_name | ALKONEKbill |
+| company_short_name | ALKONEKbill |
 | company_address | Jl. Raya Rabeg No. 1 |
 | company_phone | 08123456789 |
 | bank_name | Bank BCA |
 | bank_account | 1234567890 |
-| bank_holder | RabegNet |
+| bank_holder | ALKONEKbill |
 | invoice_footer | Terima kasih atas kepercayaan Anda. |
+| admin_phone | (kosong) |
+| admin_name | Admin |
 
 ---
 
@@ -133,13 +136,13 @@ Semua `is_active = true`, `description = ''`.
 
 ```bash
 # Full reseed (hapus semua data + migrasi ulang)
-C:\laragon\bin\php\php-8.2.31-Win32-vs16-x64\php.exe artisan migrate:fresh --seed
+"C:\laragon\bin\php\php-8.3.31-Win32-vs16-x64 (1)\php.exe" artisan migrate:fresh --seed
 
 # Seeder spesifik
-C:\laragon\bin\php\php-8.2.31-Win32-vs16-x64\php.exe artisan db:seed --class=SettingSeeder
+"C:\laragon\bin\php\php-8.3.31-Win32-vs16-x64 (1)\php.exe" artisan db:seed --class=SettingSeeder
 
 # Tanpa seeder (hanya migrasi)
-C:\laragon\bin\php\php-8.2.31-Win32-vs16-x64\php.exe artisan migrate:fresh
+"C:\laragon\bin\php\php-8.3.31-Win32-vs16-x64 (1)\php.exe" artisan migrate:fresh
 ```
 
 ---

@@ -117,8 +117,8 @@
         <div class="card">
             <div class="header">
                 <div class="header-left">
-                    <div class="title">INFORMASI TAGIHAN ALKONEK</div>
-                    <div class="sub">Alkonek-Billing Statement</div>
+                    <div class="title">INFORMASI TAGIHAN ALKONEKbill</div>
+                    <div class="sub">ALKONEKbill Billing Statement</div>
                 </div>
                 <div class="header-right">
                     @if(!empty($settings['company_logo']))
@@ -220,7 +220,7 @@
 
                 <div class="bank-box">
                     <strong style="color:#0f172a;">Pembayaran dapat dilakukan melalui transfer ke rekening:</strong><br>
-                    {{ $settings['bank_name'] ?? 'Bank BCA' }} &middot; {{ $settings['bank_account'] ?? '1234567890' }} &middot; a.n. {{ $settings['bank_holder'] ?? ($settings['company_name'] ?? 'ALKONEK') }}
+                    {{ $settings['bank_name'] ?? 'Bank BCA' }} &middot; {{ $settings['bank_account'] ?? '1234567890' }} &middot; a.n. {{ $settings['bank_holder'] ?? ($settings['company_name'] ?? 'ALKONEKbill') }}
                 </div>
             </div>
 

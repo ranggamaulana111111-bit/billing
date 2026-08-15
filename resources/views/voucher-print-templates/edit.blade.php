@@ -96,7 +96,7 @@
 <script>
 function escapeHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function buildSample(content){
-    var map={COMPANY:'ALKONEK',USERNAME:'ALK12345',PASSWORD:'pass123',DURATION:'7 Hari',HOTSPOT_SERVER:'hotspot1',ADMIN_PHONE:'62812xxxxxxx',ADMIN_NAME:'Admin'};
+    var map={COMPANY:'ALKONEKbill',USERNAME:'ALK12345',PASSWORD:'pass123',DURATION:'7 Hari',HOTSPOT_SERVER:'hotspot1',ADMIN_PHONE:'62812xxxxxxx',ADMIN_NAME:'Admin'};
     var html=content;
     Object.keys(map).forEach(function(k){html=html.split('{'+k+'}').join(map[k]);});
     return '<!doctype html><html><head><style>body{font-family:monospace;padding:16px;margin:0;}.voucher{border:1px dashed #999;padding:12px;border-radius:8px}.v-header{font-weight:bold;text-align:center}.v-title{text-align:center;font-size:18px;font-weight:bold;margin:6px 0}.v-row{display:flex;justify-content:space-between;border-bottom:1px dotted #ccc;padding:3px 0}.v-footer{text-align:center;font-size:12px;margin-top:8px}</style></head><body>'+html+'</body></html>';

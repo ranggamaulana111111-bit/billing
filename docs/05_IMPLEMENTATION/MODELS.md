@@ -1,6 +1,6 @@
-# Models — RabegNet ISP Billing System
+# Models — ALKONEK ISP Billing System
 
-> 19 Models + 2 Traits | `App\Models\` namespace
+> 39 Models + 2 Traits | `App\Models\` namespace
 
 ---
 
@@ -14,9 +14,9 @@
 | Boot | `bootBelongsToTenant()` — registered via `addGlobalScope` |
 | Scope | `forTenant($id)`, `allTenants()` (without global scope) |
 | Relasi | `tenant()`: `belongsTo(Tenant::class)` |
-| Model | 15 model menggunakannya (lihat tabel di bawah) |
+| Model | **30 model** menggunakannya (lihat tabel di bawah) |
 
-**Tidak menggunakan:** `OdcPort`, `OdpPort`, `Tenant` (root), `User` (Authenticatable)
+**Tidak menggunakan (9):** `OdcPort`, `OdpPort`, `Tenant` (root), `User` (Authenticatable), `IncidentNotification`, `InterfaceChangeLog`, `MikrotikInterfaceMetadata`, `OnuMonitoringHistory`, `PingResult`
 
 ### BelongsToUser (`app/Models/Traits/BelongsToUser.php`)
 
@@ -225,6 +225,93 @@
 | Static | `get(string $key, ?string $default, ?int $tenantId): ?string` |
 | Static | `set(string $key, ?string $value, ?int $tenantId): void` — `updateOrCreate` |
 | Static | `getByUser(int $userId, string $key, ?string $default): ?string` |
+
+---
+
+## Modul Baru (2026-07+)
+
+### Incident
+
+| Key | Value |
+|-----|-------|
+| Traits | `BelongsToTenant` |
+| `$fillable` | `tenant_id`, `title`, `description`, `status`, `severity`, `impact`, `started_at`, `resolved_at`, `closed_at`, `sla_minutes`, `sla_breached`, `notifiable_customer_ids` |
+| `$casts` | `notifiable_customer_ids` → `array`, timestamp → `datetime`, `sla_breached` → `boolean` |
+| Relationships | `notifications()`: `hasMany(IncidentNotification)` |
+| Notes | Status: open/investigating/resolved/closed; dicek SLA oleh `incident:check-sla` |
+
+### IncidentNotification
+
+| Key | Value |
+|-----|-------|
+| Traits | ⚠️ **TIDAK menggunakan BelongsToTenant** |
+| `$fillable` | `incident_id`, `recipient`, `channel`, `status`, `sent_at` |
+| Relationships | `incident()`: `belongsTo(Incident)` |
+
+### AutomationJob / AutomationJobLog / AutomationTrigger
+
+| Model | Traits | Keterangan |
+|-------|--------|------------|
+| `AutomationJob` | `BelongsToTenant` | Definisi job (`name`, `type`, `status`, `config` json, `last_run_at`, `next_run_at`) |
+| `AutomationJobLog` | `BelongsToTenant` | Log eksekusi (`job_id`, `status`, `started_at`, `finished_at`, `output`, `error`) |
+| `AutomationTrigger` | `BelongsToTenant` | Trigger (`job_id`, `event`, `params` json, `cooldown`, `is_active`) |
+
+Relationships: `AutomationJob` → `hasMany(AutomationTrigger)`, `hasMany(AutomationJobLog)`.
+
+### ConfigVersion
+
+| Key | Value |
+|-----|-------|
+| Traits | `BelongsToTenant` |
+| `$fillable` | `mikrotik_router_id`, `version`, `changes`, `created_at` |
+| Relationships | `router()`: `belongsTo(MikrotikRouter)` |
+
+### InventoryItem / InventoryTransaction
+
+| Model | Traits | Keterangan |
+|-------|--------|------------|
+| `InventoryItem` | `BelongsToTenant` | Item aset/stok (`name`, `category`, `sku`, `quantity`, `unit`, `location`, `min_stock`) |
+| `InventoryTransaction` | `BelongsToTenant` | Transaksi masuk/keluar (`type` in/out, `quantity`, `condition`, `note`) |
+
+Relationships: `InventoryTransaction` → `item()`: `belongsTo(InventoryItem)`.
+
+### NetworkMetric / NetworkMetricAggregated
+
+| Model | Traits | Keterangan |
+|-------|--------|------------|
+| `NetworkMetric` | `BelongsToTenant` | Metric mentah (`device_type`, `device_id`, `metric_type`, `value` json, `collected_at`) — diisi `network:data-collect` |
+| `NetworkMetricAggregated` | `BelongsToTenant` | Agregasi per jam (`metric_type`, `period`, `value`) |
+
+### OnuMonitoringHistory / PingResult
+
+| Model | Traits | Keterangan |
+|-------|--------|------------|
+| `OnuMonitoringHistory` | ⚠️ **TIDAK menggunakan BelongsToTenant** | Snapshot kesehatan ONU (`onu_id`, `rx_power`, `tx_power`, `temperature`, `status`, `recorded_at`) |
+| `PingResult` | ⚠️ **TIDAK menggunakan BelongsToTenant** | Hasil ping monitor (`target`, `latency`, `packet_loss`, `status`, `executed_at`) |
+
+### RouterosSyncedConfig / RouterosSyncLog / NetworkConfigAuditLog
+
+| Model | Traits | Keterangan |
+|-------|--------|------------|
+| `RouterosSyncedConfig` | `BelongsToTenant` | Config RouterOS tersinkron (`section`, `data` json, `hash`, `last_synced_at`) |
+| `RouterosSyncLog` | `BelongsToTenant` | Log sync (`mikrotik_router_id`, `status`, `message`, `synced_at`) |
+| `NetworkConfigAuditLog` | `BelongsToTenant` | Audit config (`user_id`, `target`, `action`, `before`/`after` json) |
+
+### MikrotikInterfaceMetadata / InterfaceChangeLog
+
+| Model | Traits | Keterangan |
+|-------|--------|------------|
+| `MikrotikInterfaceMetadata` | ⚠️ **TIDAK menggunakan BelongsToTenant** | Metadata interface (`interface_name`, `alias`, `monitor_status`, `last_seen_at`) |
+| `InterfaceChangeLog` | ⚠️ **TIDAK menggunakan BelongsToTenant** | Log perubahan status interface (`interface`, `old_status`, `new_status`, `changed_at`) |
+
+### VoucherPrintTemplate
+
+| Key | Value |
+|-----|-------|
+| Traits | `BelongsToTenant` |
+| `$fillable` | `tenant_id`, `name`, `content`, `page_size`, `is_default`, `is_active` |
+| `$casts` | `is_default`/`is_active` → `boolean` |
+| Relationships | — |
 
 ---
 

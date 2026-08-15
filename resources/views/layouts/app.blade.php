@@ -3,9 +3,9 @@
 <head>
     @php
         try {
-            $metaCompany = \App\Models\Setting::get('company_name') ?: config('app.name', 'ALKONEK');
+            $metaCompany = \App\Models\Setting::get('company_name') ?: config('app.name', 'ALKONEKbill');
         } catch (\Exception $e) {
-            $metaCompany = config('app.name', 'ALKONEK');
+            $metaCompany = config('app.name', 'ALKONEKbill');
         }
         $metaBrand = $metaCompany . ' Billing';
     @endphp
@@ -65,14 +65,11 @@
                 }
             @endphp
             <div class="sidebar-header d-flex align-items-center gap-3">
-                <img src="{{ $sidebarLogo ? asset('storage/' . $sidebarLogo) : asset('images/logo.png') }}" alt="Logo" style="height:56px;width:auto;border-radius:10px;background:linear-gradient(135deg,#2563eb,#7c3aed);padding:3px;">
+                <img src="{{ $sidebarLogo ? asset('storage/' . $sidebarLogo) : asset('images/logo.png') }}" alt="Logo" style="height:40px;width:auto;border-radius:8px;background:linear-gradient(135deg,#2563eb,#7c3aed);padding:2px;">
                 <div style="min-width:0;overflow:hidden;">
-                    <h4 class="mb-0" style="font-size:1.7rem;font-weight:800;color:#ffffff;letter-spacing:0;line-height:1.05;white-space:nowrap;">{{ $sidebarShortName ?: 'ALKONEK' }}</h4>
-                    <small style="font-size:9px;color:rgba(255,255,255,0.35);font-weight:500;letter-spacing:0.06em;display:block;margin-top:-1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ $sidebarCompanyName ?: 'PT. ALKONEK NETWORK ACCESS' }}</small>
+                    <h4 class="mb-0" style="font-size:1.2rem;font-weight:800;color:#ffffff;letter-spacing:0;line-height:1.05;white-space:nowrap;">{{ auth()->user()->role === 'noc' ? 'PROVISION NOC' : ($sidebarShortName ?: 'ALKONEKbill') }}</h4>
+                    <small style="font-size:8px;color:rgba(255,255,255,0.35);font-weight:500;letter-spacing:0.22em;display:block;margin-top:-1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ auth()->user()->role === 'noc' ? 'PT.Alkonek Network Access' : ($sidebarCompanyName ?: 'PT. ALKONEK NETWORK ACCESS') }}</small>
                 </div>
-                <button class="sidebar-toggle" id="sidebarToggle" type="button" title="Buka/Tutup Sidebar">
-                    <i class="fa-solid fa-chevron-left"></i>
-                </button>
             </div>
 
             <div class="sidebar-menu">
@@ -393,7 +390,7 @@
                     </li>
                     --}}
 
-                    {{-- <p>🖥 Server</p> --}}
+                    {{-- Server menu hidden (NOC)
                     <li class="{{ request()->routeIs('noc.linux-server') || request()->routeIs('noc.dns') || request()->routeIs('noc.speedtest') ? 'active' : '' }}">
                         <a href="#serverMenu" data-bs-toggle="collapse">
                             <i class="fa-solid fa-server"></i><span>Server</span>
@@ -419,6 +416,7 @@
                             </ul>
                         </div>
                     </li>
+                    --}}
 
                     <li class="{{ request()->routeIs('inventory.*') ? 'active' : '' }}">
                         <a href="#inventoryMenu" data-bs-toggle="collapse">
@@ -503,11 +501,64 @@
                     </li>
 
                     {{-- NOC CONTROL CENTER — disabled, items moved to top-level --}}
-                    {{-- <p>🏢 NOC CONTROL CENTER</p>
-                    <li class="{{ ... }}">
-                        <a href="#nocCenterMenu" data-bs-toggle="collapse">...</a>
-                        <div id="nocCenterMenu" class="collapse">...</div>
-                    </li> -->
+                </ul>
+                @elseif(auth()->user()->role === 'noc')
+                {{-- NOC SIDEBAR --}}
+                <ul class="list-unstyled components mt-2">
+                    <p>NOC Control Center</p>
+                    <li class="{{ request()->routeIs('noc.dashboard') ? 'active' : '' }}">
+                        <a href="{{ route('noc.dashboard') }}"><i class="fa-solid fa-satellite-dish"></i><span>NOC Dashboard</span></a>
+                    </li>
+                    <li class="{{ request()->routeIs('monitoring.*') ? 'active' : '' }}">
+                        <a href="{{ route('monitoring.index') }}"><i class="fa-solid fa-signal"></i><span>Monitoring</span></a>
+                    </li>
+                    <li class="{{ request()->routeIs('incidents.*') ? 'active' : '' }}">
+                        <a href="{{ route('incidents.index') }}"><i class="fa-solid fa-triangle-exclamation"></i><span>Incident / Alarm</span></a>
+                    </li>
+
+                    <li class="{{ request()->routeIs('noc.features.*') ? 'active' : '' }}">
+                        <a href="{{ route('noc.features.map') }}" target="_blank"><i class="fa-solid fa-earth-asia"></i><span>Panel FTTH</span></a>
+                    </li>
+
+                    <p>Manajemen Jaringan</p>
+                    <li class="{{ request()->routeIs('noc.automation.*') ? 'active' : '' }}">
+                        <a href="{{ route('noc.automation.index') }}"><i class="fa-solid fa-gears"></i><span>Automation</span></a>
+                    </li>
+                    <li class="{{ request()->routeIs('noc.netconfig.*') ? 'active' : '' }}">
+                        <a href="{{ route('noc.netconfig.dashboard') }}"><i class="fa-solid fa-sliders"></i><span>Network Config</span></a>
+                    </li>
+                    <li class="{{ request()->routeIs('noc.security.*') ? 'active' : '' }}">
+                        <a href="{{ route('noc.security.dashboard') }}"><i class="fa-solid fa-shield-halved"></i><span>Security Policy</span></a>
+                    </li>
+                    <li class="{{ request()->routeIs('noc.traffic_eng.*') ? 'active' : '' }}">
+                        <a href="{{ route('noc.traffic_eng.dashboard') }}"><i class="fa-solid fa-chart-line"></i><span>Traffic Engineering</span></a>
+                    </li>
+
+                    <li class="{{ request()->routeIs('noc.linux-server') || request()->routeIs('noc.dns') || request()->routeIs('noc.speedtest') ? 'active' : '' }}">
+                        <a href="#nocServerMenu" data-bs-toggle="collapse">
+                            <i class="fa-solid fa-server"></i><span>Server</span>
+                            <i class="fa-solid fa-chevron-down ms-auto" style="font-size:0.6rem;"></i>
+                        </a>
+                        <div id="nocServerMenu" class="collapse {{ request()->routeIs('noc.linux-server') || request()->routeIs('noc.dns') || request()->routeIs('noc.speedtest') ? 'show' : '' }}">
+                            <ul class="nav flex-column ms-3 mt-1" style="font-size:0.85rem;">
+                                <li class="nav-item">
+                                    <a class="nav-link {{ request()->routeIs('noc.linux-server') ? 'active py-1' : 'py-1' }}" href="{{ route('noc.linux-server') }}">
+                                        <i class="fa-solid fa-server me-1"></i> Linux Server
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link {{ request()->routeIs('noc.dns') ? 'active py-1' : 'py-1' }}" href="{{ route('noc.dns') }}">
+                                        <i class="fa-solid fa-globe me-1"></i> DNS Server
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link {{ request()->routeIs('noc.speedtest') ? 'active py-1' : 'py-1' }}" href="{{ route('noc.speedtest') }}">
+                                        <i class="fa-solid fa-gauge-simple me-1"></i> Speedtest Server
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </li>
                 </ul>
                 @else
                 {{-- TEKNISI SIDEBAR — empty --}}
@@ -533,9 +584,9 @@
                         </button>
                     </form>
                 </div>
-                <div style="text-align:center;font-size:9px;color:rgba(255,255,255,0.35);padding-top:8px;margin-top:auto;white-space:nowrap;">
-                    Developed by: <a href="https://www.instagram.com/rangga.mrw" target="_blank" rel="noopener" style="color:var(--primary);font-weight:600;text-decoration:none;">Rangga Maulana</a>
-                    <span style="color:rgba(255,255,255,0.25);"> · Refactor: </span><a href="https://www.instagram.com/faisal_alqodar/" target="_blank" rel="noopener" style="color:var(--primary);font-weight:400;text-decoration:none;">Faisal Alqodar</a>
+                <div class="dev-credit" style="text-align:center;font-size:9px;color:rgba(255,255,255,0.35);padding-top:8px;margin-top:auto;line-height:1.6;white-space:nowrap;overflow:hidden;text-overflow:clip;">
+                    Developed by: <a href="https://www.instagram.com/rangga.mrw" target="_blank" rel="noopener" style="color:var(--primary);font-weight:600;text-decoration:none;">Rangga</a>
+                    <span style="color:rgba(255,255,255,0.25);"> · Refactor: </span><a href="https://www.instagram.com/faisal_alqodar/" target="_blank" rel="noopener" style="color:var(--primary);font-weight:400;text-decoration:none;">Alko</a>
                 </div>
                 @else
                 <div style="display:flex;gap:8px;">
@@ -548,6 +599,7 @@
                 </div>
                 @endauth
             </div>
+            <div class="sidebar-resizer" id="sidebarResizer" title="Geser untuk mengubah lebar sidebar"></div>
         </nav>
         @endif
 
@@ -559,17 +611,68 @@
     <script>
     (function() {
         var sidebar = document.getElementById('sidebar');
-        var toggle = document.getElementById('sidebarToggle');
-        if (sidebar && toggle) {
-            var saved = localStorage.getItem('sidebar_collapsed');
-            if (saved === 'true') {
-                sidebar.classList.add('sidebar-collapsed');
-            }
-            toggle.addEventListener('click', function() {
-                sidebar.classList.toggle('sidebar-collapsed');
-                localStorage.setItem('sidebar_collapsed', sidebar.classList.contains('sidebar-collapsed'));
-            });
+        var resizer = document.getElementById('sidebarResizer');
+        if (!sidebar || !resizer) return;
+
+        var MIN = 70;
+        var SNAP = 100;
+        var MAX = 420;
+        var DEFAULT = 270;
+
+        function applyWidth(w) {
+            sidebar.style.setProperty('--sidebar-width', w + 'px');
         }
+        function setCollapsed(state) {
+            sidebar.classList.toggle('sidebar-collapsed', !!state);
+        }
+
+        var saved = parseInt(localStorage.getItem('sidebar_width'), 10);
+        if (!isNaN(saved) && saved >= MIN && saved <= MAX) {
+            applyWidth(saved);
+            setCollapsed(saved <= SNAP);
+        } else {
+            applyWidth(DEFAULT);
+        }
+
+        function onStart(e) {
+            if (e.cancelable) e.preventDefault();
+            var startX = e.touches ? e.touches[0].clientX : e.clientX;
+            var startW = sidebar.getBoundingClientRect().width;
+            sidebar.classList.add('sidebar-resizing');
+            resizer.classList.add('dragging');
+            document.body.style.cursor = 'ew-resize';
+            document.body.style.userSelect = 'none';
+
+            function onMove(ev) {
+                var x = ev.touches ? ev.touches[0].clientX : ev.clientX;
+                var w = Math.min(MAX, Math.max(MIN, startW + (x - startX)));
+                if (w <= SNAP) {
+                    setCollapsed(true);
+                    applyWidth(MIN);
+                } else {
+                    setCollapsed(false);
+                    applyWidth(w);
+                }
+            }
+            function onEnd() {
+                document.removeEventListener('mousemove', onMove);
+                document.removeEventListener('mouseup', onEnd);
+                document.removeEventListener('touchmove', onMove);
+                document.removeEventListener('touchend', onEnd);
+                sidebar.classList.remove('sidebar-resizing');
+                resizer.classList.remove('dragging');
+                document.body.style.cursor = '';
+                document.body.style.userSelect = '';
+                localStorage.setItem('sidebar_width', Math.round(sidebar.getBoundingClientRect().width));
+            }
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('mouseup', onEnd);
+            document.addEventListener('touchmove', onMove, { passive: true });
+            document.addEventListener('touchend', onEnd);
+        }
+
+        resizer.addEventListener('mousedown', onStart);
+        resizer.addEventListener('touchstart', onStart, { passive: true });
     })();
     document.querySelectorAll('.mon-table-wrap .dropdown').forEach(function(dd) {
         dd.addEventListener('show.bs.dropdown', function() {

@@ -6,19 +6,15 @@ use App\Models\Customer;
 use App\Models\Incident;
 use App\Models\IncidentNotification;
 use App\Models\Setting;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 class IncidentNotificationService
 {
-    protected FonnteService $fonnte;
-
     protected ?int $tenantId;
 
     public function __construct(?int $tenantId = null)
     {
         $this->tenantId = $tenantId;
-        $this->fonnte = new FonnteService($tenantId);
     }
 
     public function notifyCreated(Incident $incident, ?array $customerIds = null): void
@@ -29,13 +25,6 @@ class IncidentNotificationService
 
     public function notifyStatusChange(Incident $incident, string $newStatus): void
     {
-        $statusLabel = match ($newStatus) {
-            'investigating' => 'SEDANG DITANGANI',
-            'resolved' => 'SELESAI',
-            'closed' => 'DITUTUP',
-            default => strtoupper($newStatus),
-        };
-
         $customerIds = $incident->notifiable_customer_ids;
 
         if ($newStatus === 'investigating') {
@@ -65,7 +54,7 @@ class IncidentNotificationService
             return;
         }
 
-        $notification = IncidentNotification::create([
+        IncidentNotification::create([
             'incident_id' => $incident->id,
             'recipient_phone' => $phone,
             'recipient_type' => 'technician',
@@ -74,15 +63,6 @@ class IncidentNotificationService
             'notification_type' => $notificationType,
             'status' => 'pending',
         ]);
-
-        $result = $this->fonnte->send($phone, $message);
-
-        if ($result['success']) {
-            $notification->markSent();
-        } else {
-            $notification->markFailed();
-            Log::warning("IncidentNotification: gagal kirim WA ke teknisi: {$result['error']}");
-        }
     }
 
     protected function notifyAffectedCustomers(Incident $incident, string $type, ?array $customerIds = null): void
@@ -107,13 +87,6 @@ class IncidentNotificationService
         ]);
 
         foreach ($customers as $customer) {
-            $cooldownKey = "incident_wa_{$incident->odp_id}_{$customer->id}";
-            if (Cache::has($cooldownKey)) {
-                Log::info("IncidentNotification: skip {$customer->name} - cooldown (24h per ODP)");
-
-                continue;
-            }
-
             $message = match ($type) {
                 'created' => $this->buildCustomerCreatedMessage($incident, $customer),
                 'status_change' => $this->buildCustomerInvestigatingMessage($incident, $customer),
@@ -125,7 +98,7 @@ class IncidentNotificationService
                 continue;
             }
 
-            $notification = IncidentNotification::create([
+            IncidentNotification::create([
                 'incident_id' => $incident->id,
                 'recipient_phone' => $customer->phone,
                 'recipient_type' => 'customer',
@@ -135,18 +108,6 @@ class IncidentNotificationService
                 'notification_type' => $type === 'investigating' ? 'status_change' : $type,
                 'status' => 'pending',
             ]);
-
-            $result = $this->fonnte->send($customer->phone, $message);
-
-            if ($result['success']) {
-                $notification->markSent();
-                Cache::put($cooldownKey, true, now()->addHours(24));
-            } else {
-                $notification->markFailed();
-                Log::warning("IncidentNotification: gagal kirim WA ke {$customer->name}: {$result['error']}");
-            }
-
-            usleep(1500000);
         }
     }
 

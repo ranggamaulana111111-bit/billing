@@ -1,4 +1,4 @@
-# Security — RabegNet ISP Billing System
+# Security — ALKONEK ISP Billing System v1.2
 
 ---
 
@@ -7,11 +7,12 @@
 | # | Issue | Severity | File/Location | Status |
 |---|-------|----------|---------------|--------|
 | 1 | Password MikroTik disimpan plaintext | **High** | `mikrotik_routers.password` | ⏳ Pending |
-| 2 | SSL verification disabled untuk REST API | **High** | `MikrotikService.php` — `withoutVerifying()` | ⏳ Pending |
+| 2 | SSL verification disabled untuk REST API | **High** | `MikrotikService.php` / `RouterOSApiService` — `withoutVerifying()` | ⏳ Pending |
 | 3 | `OdcPort` & `OdpPort` tanpa tenant scope | **Medium** | `app/Models/OdcPort.php`, `OdpPort.php` | ⏳ Pending |
-| 4 | `reset_data.php` tanpa proteksi | **High** | `public/reset_data.php` | ⏳ Pending |
-| 5 | Credentials di file publik | **High** | `.env`, `vercel.json`, `checker.md` di git history | ⏳ Pending |
+| 4 | `reset_data.php` tanpa proteksi | **High** | `public/reset_data.php` | ✅ Fixed — file sudah dihapus |
+| 5 | Credentials di file publik | **High** | `.env` (gitignored), `vercel.json` berisi plaintext prod credentials (gitignored) | ⚠️ Pantau — jangan commit |
 | 6 | Tidak ada rate limiting | **Medium** | Login, API endpoints | ⏳ Pending |
+| 7 | Kredensial notifikasi WA/Telegram di Settings DB | **Medium** | `settings` key `wa_*` / `telegram_*` | ⏳ Pending (jangan bocor via log/screenshot) |
 
 ---
 
@@ -25,9 +26,10 @@
 - Session expired after browser close
 
 ### Authorization
-- Role-based access: `admin` dan `teknisi`
+- Role-based access: `admin`, `teknisi`, dan `noc`
 - Middleware `IsAdmin` — admin-only routes
 - Middleware `IsTeknisiOrAdmin` — authenticated routes
+- Middleware `IsNoc` — modul NOC (GenieACS, MikrotikDashboard, TrafficEngineering, dll)
 - Route-level authorization di web.php
 
 ### Data Isolation
@@ -57,8 +59,8 @@
 1. **Encrypt MikroTik passwords** — gunakan `encrypted` cast seperti OLT
 2. **Enable SSL verification** — buat configurable, default `true`
 3. **Add BelongsToTenant** ke OdcPort & OdpPort
-4. **Protect reset_data.php** — tambah auth check atau hapus
-5. **Clean git history** — hapus file dengan credentials
+4. ~~Protect reset_data.php~~ — ✅ file sudah dihapus dari `public/`
+5. **Jangan commit kredensial** — pastikan `.env`, `vercel.json`, `checker.md`, `_check*.php` tetap gitignored (vercel.json berisi plaintext prod credentials)
 6. **Add rate limiting** — ke route login dan API
 
 ### Short-term (v2.0)

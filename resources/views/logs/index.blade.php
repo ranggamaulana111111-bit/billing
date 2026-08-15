@@ -81,7 +81,6 @@
                                 @php
                                     $badge = match($log->action) {
                                         'Pembayaran', 'Pembayaran Online' => ['bg' => '#f0fdf4', 'text' => '#059669'],
-                                        'Reminder WA' => ['bg' => '#fef3c7', 'text' => '#d97706'],
                                         'Login', 'Logout' => ['bg' => '#e0f2fe', 'text' => '#0369a1'],
                                         default => ['bg' => '#eef2ff', 'text' => '#475569'],
                                     };

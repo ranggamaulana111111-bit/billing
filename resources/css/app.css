@@ -332,12 +332,44 @@ textarea.form-control {
 #sidebar.sidebar-collapsed .sidebar-footer form {
     display: none;
 }
+#sidebar.sidebar-collapsed .sidebar-footer .dev-credit {
+    display: none;
+}
 #sidebar.sidebar-collapsed .sidebar-toggle i {
     transform: rotate(180deg);
 }
 
 @media (max-width: 768px) {
     .sidebar-toggle { display: none; }
+}
+
+/* --- Sidebar Resizer (drag to resize) --- */
+.sidebar-resizer {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 6px;
+    cursor: ew-resize;
+    z-index: 20;
+    touch-action: none;
+}
+.sidebar-resizer::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 2px;
+    width: 2px;
+    background: rgba(96,165,250,0.25);
+    transition: background 0.2s;
+}
+.sidebar-resizer:hover::after,
+.sidebar-resizer.dragging::after {
+    background: rgba(96,165,250,0.85);
+}
+#sidebar.sidebar-resizing {
+    transition: none !important;
 }
 
 /* ----- CONTENT ----- */
@@ -1945,7 +1977,7 @@ body:has(.auth-shell) {
 .auth-input-wrap .auth-input-icon {
     position: absolute;
     left: 14px;
-    color: rgba(255,255,255,0.25);
+    color: #60a5fa;
     font-size: 0.85rem;
     pointer-events: none;
     transition: color 0.25s;
@@ -1990,7 +2022,7 @@ body:has(.auth-shell) {
     right: 12px;
     background: none;
     border: none;
-    color: rgba(255,255,255,0.3);
+    color: #60a5fa;
     cursor: pointer;
     padding: 6px;
     font-size: 0.85rem;
@@ -2001,7 +2033,7 @@ body:has(.auth-shell) {
     justify-content: center;
 }
 .auth-input-toggle:hover {
-    color: rgba(255,255,255,0.7);
+    color: #3b82f6;
 }
 .auth-input-wrap:has(.auth-input-toggle) .auth-input {
     padding-right: 42px;
@@ -2414,6 +2446,8 @@ body:has(.auth-shell) {
 @media (max-width: 768px) {
     body { padding-bottom: 72px; }
     .wrapper { display: block; }
+
+    .sidebar-resizer { display: none; }
 
     #sidebar {
         position: fixed;

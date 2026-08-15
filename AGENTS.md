@@ -4,10 +4,10 @@
 
 - **Framework:** Laravel 12 (PHP ^8.2, installed v12.61)
 - **Database:** MySQL locally (`.env` `DB_CONNECTION=mysql`, db `e_billing`); Aiven MySQL in prod (Vercel)
-- **CSS Framework:** **Bootstrap 5.3 via npm + Vite** (not CDN, not Tailwind). `resources/js/app.js` imports `bootstrap` + `bootstrap/dist/css/bootstrap.min.css`. **Tailwind tidak terpasang di source** (hanya artefak compiled di `public/hotspot/templates/*/assets/style.css`) — jangan pakai class Tailwind. Custom design system di `resources/css/app.css` (~5k baris). Font Awesome via jsDelivr CDN di layout; Chart.js/Leaflet juga via CDN per-halaman (walaupun ada di `package.json`).
+- **CSS Framework:** **Bootstrap 5.3 via npm + Vite** (not CDN, not Tailwind). `resources/js/app.js` imports `bootstrap` + `bootstrap/dist/css/bootstrap.min.css`. **Tailwind tidak terpasang di source** (hanya artefak compiled di `public/hotspot/templates/*/assets/style.css`) — jangan pakai class Tailwind. Custom design system di `resources/css/app.css` (~5.3k baris). Font Awesome 6.4 via cdnjs CDN di layout; Chart.js/Leaflet juga via CDN per-halaman (walaupun ada di `package.json`). **Kecuali halaman portal** (`portal/index`, `portal/invoices`, `portal/pay`) **& `customer/print-a4`** yang load Bootstrap 5.3.0 CDN langsung (di luar layout app).
 - **Per-page JS:** halaman yang butuh Chart.js/Leaflet load sendiri (CDN, `defer`) + `@push('scripts')` → `@stack('scripts')` di `layouts/app.blade.php`. **Jangan tambah ke bundle global** — Vite hanya entry `resources/css/app.css` + `resources/js/app.js`.
 - **QR Code:** `simplesoftwareio/simple-qrcode` v4.2 (inline SVG, no external API)
-- **WA Gateway:** Fonnte via `App\Services\FonnteService`
+- **Notifikasi pelanggan:** direncanakan via aplikasi Android pelanggan (in-development) — **Fonnte/WhatsApp sudah dihapus dari codebase**, jangan dihidupkan kembali
 - **Code style:** Laravel Pint (default rules, no local `pint.json`)
 - **Testing:** PHPUnit 11 + Mockery — SQLite `:memory:` (see `phpunit.xml`)
 - **Deployment:** Vercel (`vercel-php@0.9.0`, `api/index.php`) + Railway.app backup
@@ -36,7 +36,7 @@
 
 | Command | Schedule | Fungsi |
 |---|---|---|
-| `billing:process` | `dailyAt('08:00')` | Generate invoice bulanan + WA reminder |
+| `billing:process` | `dailyAt('08:00')` | Generate invoice bulanan |
 | `invoices:purge-paid` | `dailyAt('08:30')` | Purge invoice lunas |
 | `olt:poll` | `hourly()` | Poll OLT via SSH, update ONU status |
 | `customers:onu-sync` | `hourly()` | Sync ONU dari data PPPoE MikroTik |
@@ -54,20 +54,24 @@ Manual / legacy: `hotspot:import`, `mikrotik:setup-isolir`, `olt:batch-link`, `q
 
 ## Testing
 
-- **124 test methods** across **15 files** (7 Feature + 8 Unit) — incl. Unit untuk `Services/Billing`, `Services/Payment`, `Services/GenieACS`
-- SQLite `:memory:` — no external DB needed
+- **142 test methods** across **17 files** (7 Feature + 10 Unit) — incl. Unit untuk `Services/Billing`, `Services/Payment` (Midtrans + Xendit), `Services/GenieACS`, `Services/Olt`
+- SQLite `:memory:` — no external DB needed (see `phpunit.xml`)
 - Run focused: `php artisan test --filter=CustomerTest`
 - Run single suite: `php artisan test --testsuite=Unit`
-- `RefreshDatabase` dipakai **eksplisit** per class (Auth, Customer, Distribution, Invoice, Package, CustomerCodeGeneratorTest) — bukan default
+- `RefreshDatabase` dipakai **eksplisit** per class — bukan default
+- **⚠️ KNOWN ISSUE: suite saat ini RED (142 tests → 88 errors + 3 failures).** Jangan panik & jangan salahkan kode yang sedang dikerjakan:
+  - Penyebab utama: migrasi `2026_06_22_000004_add_tenant_id_to_business_tables.php` memakai `DROP CONSTRAINT IF EXISTS` (sintaks MySQL/Postgres) yang **gagal di SQLite** → semua test `RefreshDatabase` error `near "CONSTRAINT"`.
+  - Beberapa Unit test yang menyentuh DB tanpa `RefreshDatabase` (`MidtransGatewayTest`, `PaymentServiceTest`, `XenditGatewayTest`) → error `no such table`.
+  - `InvoiceGeneratorTest::test_uses_current_date_when_no_period_given` expect format `INV-YYYYMM-` padahal `InvoiceGenerator::generate()` menghasilkan `INV-YYYYMMDD-` (pakai `now()->format('Ymd')`).
 
 ## Architecture
 
-Monolith Laravel besar: 22 commands, 56 controllers, 39 models + 2 traits, 91 migrations, 169 views, 500 routes (web.php).
+Monolith Laravel besar: 22 commands, 59 controllers (39 root + 3 Api + 3 Auth + 14 Noc), 40 models + 2 traits, 100 migrations, 172 views, ~546 routes (web.php).
 
 ### Multi-Tenancy
-- **`BelongsToTenant` trait** (`app/Models/Traits/`) — global scope `tenant_id` pada 30 model; `Tenant` sebagai root, `User` belongsTo `Tenant`
+- **`BelongsToTenant` trait** (`app/Models/Traits/`) — global scope `tenant_id` pada 31 model; `Tenant` sebagai root, `User` belongsTo `Tenant`
 - `BelongsToUser` trait masih ada tapi **dead code**
-- **Gotcha:** `OdcPort` & `OdpPort` TIDAK punya tenant scope — potensi data leak
+- **Gotcha:** `OdcPort`, `OdpPort`, `IncidentNotification`, `InterfaceChangeLog`, `MikrotikInterfaceMetadata`, `OnuMonitoringHistory`, `PingResult` TIDAK punya tenant scope — potensi data leak (cek filter manual bila perlu)
 
 ### Key Patterns
 - Monolithic Controller → Service → Model
@@ -78,20 +82,17 @@ Monolith Laravel besar: 22 commands, 56 controllers, 39 models + 2 traits, 91 mi
 - **Topology:** `app/Services/Monitoring/FiberTopologyService::getTopologyData()` bangun graf OLT→ODC→ODP→ONU dari entitas Distribution (`Odc`, `Odp`, `OdpPort.customer_id`) — **bukan** `OdcPort.connected_to_odp_id`. Route `/onu-health/topology/graph`.
 
 ### Modul Baru (tidak ada di docs lama)
+- **Noc controllers:** 14 controller di `app/Http/Controllers/Noc/` (namespace `Noc\`) — GenieACS, Automation, MikrotikDashboard, TrafficEngineering, dll; routes di bawah `/noc/*`
 - **GenieACS (TR-069):** `app/Modules/GenieACS/` (Contracts, Exceptions, Repositories, Services, Support — termasuk `Support/GenieacsServiceProvider`) + `Noc\GenieacsController` — routes di bawah `/noc/genieacs`
 - **Incidents & SLA:** `Incident`, `IncidentNotification`, `IncidentNotificationService`, `incident:check-sla`
 - **Automation engine:** `AutomationJob/Trigger/Log` + `app/Services/Automation/` (scheduler + worker + trigger)
 - **Network metrics & QoS:** `NetworkMetric`, `app/Services/SmartQos/SmartQosService.php`, `qos:*`, `app/Services/Monitoring/` (HealthScore, PingMonitor, Diagnosis, SpeedTest, FiberTopology)
-- **Payment abstraction:** `app/Services/Payment/` (`PaymentGatewayInterface`, `MidtransGateway`, `PaymentService`) — legacy `MidtransService` juga masih dipakai
+- **Payment abstraction:** `app/Services/Payment/` (`PaymentGatewayInterface`, `MidtransGateway`, `XenditGateway`, `PaymentService`) + `XenditController` — legacy `MidtransService` juga masih dipakai
 
-### WA Gateway (Fonnte)
-- **`FonnteService`** centralized (`app/Services/FonnteService.php`), **tenant-aware** (constructor `?int $tenantId`)
-  - `cleanPhone()` (static) — strip non-digit, hapus prefix `0`/`62`
-  - `send()` — validasi response, log error jika gagal
-  - **Cooldown 60 detik per nomor** (`Cache::has('fonnte_cooldown_...')`) — test/ulang-panggil cepat dalam 1 menit akan di-block, jangan dianggap bug
-- **Token:** `Setting::get('fonnte_token')` atau fallback `config('services.fonnte.token')` (`FONNTE_TOKEN`)
-- **6 call sites:** `BillingProcess` (cron), `InvoiceController` (reminder manual + notif lunas), `MidtransController` (WA notif setelah bayar), `PortalController` (lookup customer via `cleanPhone`), `SendWhatsAppNotification` (job), `IncidentNotificationService` (alert SLA)
-- Nomor disimpan format lokal (`08xx`), dibersihkan sebelum dikirim
+### Notifikasi Pelanggan (Android app — in-development)
+- **Fonnte/WhatsApp dihapus total** dari codebase (`FonnteService`, `SendWhatsAppNotification`, config `services.fonnte`, `fonnte_token` di settings). Referensi WA yang tersisa hanya **link kontak/chat** (mis. tombol WA di map NOC & "No. WA:" di portal) — bukan gateway.
+- **`IncidentNotification`** masih dibuat (status `'pending'`) sebagai data untuk aplikasi Android pelanggan nanti — jangan hapus.
+- Rencana: aplikasi Android pelanggan akan menerima notifikasi pengingat pembayaran/isolir langsung di app, bukan via WhatsApp.
 
 ### Isolir Subsystem
 - `customer:auto-isolir` — suspend otomatis, set PPP Profile "Isolir", tambah IP ke address-list
@@ -104,17 +105,15 @@ Monolith Laravel besar: 22 commands, 56 controllers, 39 models + 2 traits, 91 mi
 - PSR-4: `App\` → `app/`, `Database\Factories\`, `Database\Seeders\`, `Tests\`; **modul tambahan di `app/Modules/`** (mis. GenieACS)
 - `.env` gitignored — copy `.env.example` + `key:generate` pada fresh clone
 - Local `.env` variance dari default: `QUEUE_CONNECTION=database`, `DB_CONNECTION=mysql` (session/cache pakai `file`)
-- **Docs:** `docs/` (lihat `docs/INDEX.md`) punya detail arsitektur, tapi **angka & tabelnya ketinggalan zaman** (contoh: `docs/04_AI/AGENTS.md` bilang "No CI" padahal `.github/workflows/deploy.yml` ada; `docs/03_DEVELOPMENT/TESTING.md` pakai count lama) — percaya kode & root `AGENTS.md` ini di atas angka di docs.
+- **Docs:** `docs/` (lihat `docs/INDEX.md`) punya detail arsitektur, tapi **angka & tabelnya ketinggalan zaman** (contoh: `docs/03_DEVELOPMENT/TESTING.md` masih pakai count 55 test methods & path PHP 8.2; `docs/04_AI/AGENTS.md` sudah disinkronkan dengan file ini) — percaya kode & root `AGENTS.md` ini di atas angka di docs.
 
 ## Security Notes
 
-- **JANGAN commit** `.env`, `vercel.json`, `checker.md`, `_check*.php` — semua sudah gitignored. `vercel.json` berisi **plaintext prod credentials** (Aiven DB password, APP_KEY, FONNTE_TOKEN).
+- **JANGAN commit** `.env`, `vercel.json`, `checker.md`, `_check*.php` — semua sudah gitignored. `vercel.json` berisi **plaintext prod credentials** (Aiven DB password, APP_KEY).
 - Password MikroTik router **tidak di-encrypt** (beda OLT yang pakai `encrypted` cast)
 - MikroTik REST API pakai `withoutVerifying()` (SSL verification disabled)
-- Fonnte token juga ada di Settings DB — jangan bocor via screenshot/log
 
 ## MikroTik Tunnel Connection
-- Host router MikroTik dikonfigurasi via **Setting DB** (`mikrotik_host`) — bisa diganti runtime tanpa deploy
-- Default via tunnel: `cloud10.tunnel.id:3069`
+- Host router MikroTik dikonfigurasi via **Setting DB** (`mikrotik_host`) — bisa diganti runtime tanpa deploy; **tidak ada default hardcoded di code/seeders** (nilai saat ini di DB: tunnel `cloud10.tunnel.id:3069`)
 - cURL error 6/7/28 = tunnel client di MikroTik offline → restart MikroTik onsite
 - Jika tunnel mati, `mikrotik_host` bisa diganti sementara ke IP langsung MikroTik

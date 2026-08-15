@@ -14,6 +14,9 @@ class Onu extends Model
         'vendor', 'model', 'mac_address', 'status',
         'rx_power', 'tx_power', 'distance', 'uptime',
         'slot_number', 'port_number', 'notes', 'last_seen_at',
+        'acs_device_id', 'acs_status', 'acs_last_inform', 'acs_ip', 'acs_manufacturer',
+        'acs_product_class', 'acs_hardware_version', 'acs_software_version',
+        'acs_connection_request_url', 'acs_username', 'acs_password',
     ];
 
     protected function casts(): array
@@ -24,6 +27,7 @@ class Onu extends Model
             'rx_power' => 'float',
             'tx_power' => 'float',
             'distance' => 'integer',
+            'acs_last_inform' => 'datetime',
         ];
     }
 
@@ -40,5 +44,10 @@ class Onu extends Model
     public function customer()
     {
         return $this->belongsTo(Customer::class);
+    }
+
+    public function scopeFromOlt($query)
+    {
+        return $query->whereNot('onu_id', 'like', 'mikrotik-%');
     }
 }

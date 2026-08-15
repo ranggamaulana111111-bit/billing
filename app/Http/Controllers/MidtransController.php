@@ -6,7 +6,6 @@ use App\Models\ActivityLog;
 use App\Models\Invoice;
 use App\Models\Setting;
 use App\Services\Billing\BillingService;
-use App\Services\FonnteService;
 use App\Services\Payment\PaymentService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -60,8 +59,6 @@ class MidtransController extends Controller
                 'gross_amount' => $notification['gross_amount'] ?? $invoice->amount,
                 'payment_type' => $notification['payment_type'] ?? 'midtrans',
             ]);
-
-            $this->sendPaymentNotification($invoice);
         }
 
         return response('OK', 200);
@@ -112,36 +109,5 @@ class MidtransController extends Controller
         ActivityLog::log('Payment Gateway', 'Update konfigurasi Midtrans Payment Gateway');
 
         return back()->with('success', 'Pengaturan Payment Gateway berhasil disimpan.');
-    }
-
-    protected function sendPaymentNotification(Invoice $invoice): void
-    {
-        $customer = $invoice->customer;
-        $phone = $customer->phone;
-
-        if (! $phone) {
-            return;
-        }
-
-        try {
-            $message = "━━━ *ALKONEK BILLING* ━━━\n\n"
-                ."✅ *PEMBAYARAN DITERIMA*\n\n"
-                ."Halo YTH *{$customer->name}*, terima kasih!\n\n"
-                ."📋 *Detail Pembayaran*\n"
-                ."━━━━━━━━━━━━━━━━\n"
-                ."Invoice : {$invoice->invoice_display}\n"
-                .'Paket   : '.($customer->package->name ?? '-')."\n"
-                .'Total   : Rp '.number_format($invoice->amount, 0, ',', '.')."\n"
-                ."Status  : ✅ LUNAS\n"
-                .'Tanggal : '.now()->format('d/m/Y H:i')."\n"
-                ."━━━━━━━━━━━━━━━━\n\n"
-                ."Terima kasih telah melakukan pembayaran tepat waktu.\n"
-                ."Nikmati layanan internet Anda!\n\n"
-                .'━━━ *PT Alkonek Network Access* ━━━';
-
-            (new FonnteService)->send($phone, $message);
-        } catch (\Exception $e) {
-            Log::error('WA notification gagal setelah Midtrans payment: '.$e->getMessage());
-        }
     }
 }

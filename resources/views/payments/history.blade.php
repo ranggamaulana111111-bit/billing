@@ -61,6 +61,7 @@
                                         @case('transfer') Transfer @break
                                         @case('qris') QRIS @break
                                         @case('midtrans') Midtrans @break
+                                        @case('xendit') Xendit @break
                                         @default {{ $p->payment_method }}
                                     @endswitch
                                 </span>

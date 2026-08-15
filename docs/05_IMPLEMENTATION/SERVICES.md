@@ -1,6 +1,6 @@
-# Services — RabegNet ISP Billing System
+# Services — ALKONEK ISP Billing System
 
-> 12 Files | `App\Services\` namespace
+> 55 Files | `App\Services\` namespace
 
 ---
 
@@ -177,6 +177,11 @@ Jika router punya `ssh_port`, `safeGet()` akan:
 | ZTE | `ZteConnector` | 205 | phpseclib3 (SSH2) |
 | FiberHome | `FiberHomeConnector` | 185 | phpseclib3 (SSH2) |
 | C-Data | `CDataConnector` | 220 | phpseclib3 (SSH2) |
+| ChineseOlt | `ChineseOltConnector` | — | phpseclib3 + `ChineseOltParser` |
+| Global | `GlobalConnector` | — | phpseclib3 (SSH2) |
+| Hioso | `HiosoConnector` | — | phpseclib3 (SSH2) |
+| Hsgq | `HsgqConnector` | — | phpseclib3 (SSH2) |
+| Vsol | `VsolConnector` | — | phpseclib3 (SSH2) |
 
 ### Factory
 
@@ -260,4 +265,74 @@ Auto-login via SSH2 dengan timeout 30 detik.
 
 ### Output Parsing
 
-Output CLI di-parse dengan `parseColonLines()` untuk format `key: value` dan `parseTabledLines()` untuk format tabel MikroTik. Hasil parsing dikonversi ke array asosiatif sesuai format REST API untuk kompatibilitas.<｜end▁of▁thinking｜>
+Output CLI di-parse dengan `parseColonLines()` untuk format `key: value` dan `parseTabledLines()` untuk format tabel MikroTik. Hasil parsing dikonversi ke array asosiatif sesuai format REST API untuk kompatibilitas.
+
+---
+
+## Modul Service Baru
+
+### Billing/ (`app/Services/Billing/`)
+
+| Class | Fungsi |
+|-------|--------|
+| `BillingService` | Generate invoice bulanan + reminder (dipakai `billing:process`) |
+| `InvoiceGenerator` | Generate kode invoice (format `INV-YYYYMMDD-`) + insert invoice |
+| `CustomerCodeGenerator` | Generate kode customer unik |
+
+### Payment/ (`app/Services/Payment/`)
+
+Abstraksi payment gateway — pengganti sebagian peran legacy `MidtransService`:
+
+| Class | Fungsi |
+|-------|--------|
+| `PaymentGatewayInterface` | Contract: `createInvoice()`, `handleNotification()` |
+| `MidtransGateway` | Implementasi Midtrans Snap API |
+| `XenditGateway` | Implementasi Xendit Invoice API |
+| `PaymentService` | Orchestrator gateway berdasarkan konfigurasi |
+
+> `MidtransService` legacy masih dipakai untuk `PortalController@payMidtrans`; gateway baru dipakai `XenditController` + `MidtransController`.
+
+### IncidentNotificationService (`app/Services/IncidentNotificationService.php`)
+
+Menulis record `IncidentNotification` (status `pending`) untuk aplikasi pelanggan Android (in-development).
+
+### InterfaceCenterService (`app/Services/InterfaceCenterService.php`)
+
+Manajemen metadata interface MikroTik + deteksi perubahan status (ke `InterfaceChangeLog`).
+
+### Monitoring/ (`app/Services/Monitoring/`)
+
+| Class | Fungsi |
+|-------|--------|
+| `HealthScoreService` | Skor kesehatan jaringan/ONU |
+| `PingMonitorService` | Monitoring ping (`ping_results`) |
+| `DiagnosisService` | Diagnosa ONU (power, status, dll) |
+| `SpeedTestService` | Speed test |
+| `FiberTopologyService` | Bangun graf OLT→ODC→ODP→ONU dari `getTopologyData()` |
+
+### Mikrotik/ (`app/Services/Mikrotik/`)
+
+Layer baru di atas `MikrotikService`:
+
+| Area | Class |
+|------|-------|
+| Connection | `RouterConnectionPool`, `RouterConnectionManager`, `RouterConnectionService`, `RouterResult`, `RouterRetryPolicy`, `RouterErrorHandler`, `RouterOSApiService`, `RouterCommandService` |
+| Data | `DataCollectorService` (untuk `network:data-collect`) |
+| Config | `Config/ConfigRepositoryService`, `Config/ConfigModuleRegistry`, `Config/NetworkConfigService` |
+| Sync | `Sync/RouterosConfigSyncService`, `Sync/ConfigSyncModuleRegistry` |
+| Internet | `Internet/InternetServiceManager` |
+| Security | `Security/SecurityPolicyManager` |
+| Traffic | `TrafficEngineering/TrafficEngineeringManager` |
+
+### SmartQos (`app/Services/SmartQos/SmartQosService.php`)
+
+Optimasi QoS otomatis — dipakai `qos:optimize` (everyFiveMinutes).
+
+### Automation/ (`app/Services/Automation/`)
+
+| Class | Fungsi |
+|-------|--------|
+| `AutomationSchedulerService` | Scheduler engine (`automation:scheduler`) |
+| `AutomationWorkerService` | Worker eksekusi (`automation:worker --once`) |
+| `AutomationTriggerService` | Evaluasi trigger |
+| `AutomationJobService` | CRUD + run job |<｜end▁of▁thinking｜>

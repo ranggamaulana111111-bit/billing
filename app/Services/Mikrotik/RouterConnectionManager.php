@@ -42,6 +42,12 @@ class RouterConnectionManager
 
     private string $status = self::STATUS_DISCONNECTED;
 
+    private ?string $activeHost = null;
+
+    private ?int $localPort = null;
+
+    private bool $localMode = false;
+
     private ?float $connectedAt = null;
 
     private ?float $lastActivityAt = null;
@@ -54,6 +60,8 @@ class RouterConnectionManager
     {
         $this->router = $router;
         $this->errorHandler = new RouterErrorHandler;
+        $this->localPort = $router->local_port ? (int) $router->local_port : null;
+        $this->localMode = ($router->connection_mode ?? 'tunnel') === 'local_ip';
     }
 
     /**
@@ -134,11 +142,56 @@ class RouterConnectionManager
             $this->consecutiveFailures++;
             $this->lastError = $e->getMessage();
 
+            $errorType = $this->errorHandler->classify($e);
+
+            if (in_array($errorType, [RouterErrorHandler::DNS_ERROR, RouterErrorHandler::CONNECTION_REFUSED, RouterErrorHandler::TIMEOUT, RouterErrorHandler::CONNECTION_RESET, RouterErrorHandler::CONNECTION_CLOSED], true)
+                && $this->switchToLocalIp()) {
+                return $this->validateViaLocalIp();
+            }
+
             if ($this->consecutiveFailures >= 3) {
                 $this->status = self::STATUS_DEGRADED;
             }
 
             return $this->errorHandler->handle($e, 'validate', $this->router->id, $this->router->host);
+        }
+    }
+
+    private function validateViaLocalIp(): RouterResult
+    {
+        $start = microtime(true);
+
+        try {
+            $client = $this->httpClient ?? $this->buildClient();
+            $url = $this->restUrl('/system/resource');
+            $res = $client->get($url)->json();
+            $latencyMs = round((microtime(true) - $start) * 1000, 1);
+
+            $this->lastActivityAt = microtime(true);
+            $this->consecutiveFailures = 0;
+            $this->status = self::STATUS_CONNECTED;
+
+            $this->errorHandler->logConnectionSuccess(
+                'validate (IP lokal)',
+                $this->router->id,
+                $this->router->local_ip,
+                $latencyMs,
+            );
+
+            return RouterResult::ok(
+                'Validasi OK via IP lokal — '.($res['board-name'] ?? 'MikroTik'),
+                $res,
+                ['latency_ms' => $latencyMs, 'router_id' => $this->router->id, 'via_local_ip' => true],
+            );
+        } catch (\Exception $e) {
+            $this->consecutiveFailures++;
+            $this->lastError = $e->getMessage();
+
+            if ($this->consecutiveFailures >= 3) {
+                $this->status = self::STATUS_DEGRADED;
+            }
+
+            return $this->errorHandler->handle($e, 'validate (IP lokal)', $this->router->id, $this->router->local_ip);
         }
     }
 
@@ -227,10 +280,34 @@ class RouterConnectionManager
      */
     public function restUrl(string $path): string
     {
-        $port = $this->router->api_ssl_port ?? $this->router->port;
-        $scheme = ($port == 443 || $this->router->connection_type === 'api_ssl') ? 'https' : 'http';
+        $isLocal = $this->localMode || $this->activeHost !== null;
+        $defaultPort = $this->router->api_ssl_port ?? $this->router->port;
+        $port = $isLocal ? ($this->localPort ?? 80) : $defaultPort;
+        $scheme = $isLocal
+            ? ($port == 443 ? 'https' : 'http')
+            : (($port == 443 || $this->router->connection_type === 'api_ssl') ? 'https' : 'http');
+        $host = $this->activeHost ?? $this->router->host;
 
-        return "{$scheme}://{$this->router->host}:{$port}/rest{$path}";
+        return "{$scheme}://{$host}:{$port}/rest{$path}";
+    }
+
+    /**
+     * Pindahkan koneksi ke IP lokal jika host utama tidak reachable.
+     */
+    public function switchToLocalIp(): bool
+    {
+        if (! $this->router->hasLocalIpFallback() || $this->activeHost === $this->router->local_ip) {
+            return false;
+        }
+
+        $this->activeHost = $this->router->local_ip;
+        Log::channel('mikrotik')->warning('RouterOS connection manager fallback ke IP lokal', [
+            'router_id' => $this->router->id,
+            'router_host' => $this->router->host,
+            'local_ip' => $this->router->local_ip,
+        ]);
+
+        return true;
     }
 
     // ═══════════════════════════════════════════

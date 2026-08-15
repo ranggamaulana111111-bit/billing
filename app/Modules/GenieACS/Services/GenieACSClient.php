@@ -2,6 +2,7 @@
 
 namespace App\Modules\GenieACS\Services;
 
+use App\Models\Setting;
 use App\Modules\GenieACS\Contracts\IGenieACSClient;
 use App\Modules\GenieACS\Exceptions\GenieACSApiException;
 use App\Modules\GenieACS\Exceptions\GenieACSAuthenticationException;
@@ -32,9 +33,10 @@ class GenieACSClient implements IGenieACSClient
 
     public function __construct()
     {
-        $this->baseUrl = rtrim(config('genieacs.base_url', 'http://localhost:7557'), '/');
-        $this->username = config('genieacs.username', '');
-        $this->password = config('genieacs.password', '');
+        $settingBase = Setting::get('genieacs_base_url');
+        $this->baseUrl = rtrim((string) ($settingBase ?: (config('genieacs.base_url') ?: 'http://localhost:7557')), '/');
+        $this->username = (string) (config('genieacs.username') ?? '');
+        $this->password = (string) (config('genieacs.password') ?? '');
         $this->timeout = (int) config('genieacs.timeout', 30);
     }
 

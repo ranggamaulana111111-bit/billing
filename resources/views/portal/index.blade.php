@@ -469,10 +469,10 @@
         <div class="portal-hero">
             <div class="portal-brand">
                 <span class="logo-chip" style="width:48px;height:48px;border-radius:12px;">
-                    <img src="{{ asset('images/logo-alkonek.gif') }}" alt="Logo ALKONEK">
+                    <img src="{{ asset('images/logo-alkonek.gif') }}" alt="Logo ALKONEKbill">
                 </span>
                 <div>
-                    <h2>ALKONEK</h2>
+                    <h2>ALKONEKbill</h2>
                     <small>PT. Alkonek Network Access</small>
                 </div>
             </div>

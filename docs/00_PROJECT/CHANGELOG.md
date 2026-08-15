@@ -1,4 +1,4 @@
-# Changelog — RabegNet ISP Billing System
+# Changelog — ALKONEK ISP Billing System
 
 ---
 
@@ -41,6 +41,24 @@
 ### Security
 - Proteksi path traversal pada route `hotspot/templates/{template}/{path}`
 
+### Pembaruan Lanjutan (Juli–Agustus 2026)
+- **Modul NOC** — 14 controller di `app/Http/Controllers/Noc/` di bawah route `/noc/*` + middleware `IsNoc` (Automation, ConfigModule, ConfigRepository, Dashboard, Features, Genieacs, InterfaceCenter, InternetService, MikrotikDashboard, MikrotikDevice, NetworkConfig, SecurityPolicy, SyncDashboard, TrafficEngineering)
+- **GenieACS (TR-069)** — modul `app/Modules/GenieACS/` + `Noc\GenieacsController`
+- **Incidents & SLA** — `Incident`, `IncidentNotification`, `IncidentNotificationService`, `incident:check-sla`
+- **Automation engine** — `AutomationJob/Trigger/Log` + `app/Services/Automation/` (`automation:scheduler`, `automation:worker --once`)
+- **Network metrics & QoS** — `NetworkMetric`, `app/Services/SmartQos/SmartQosService.php`, `qos:*`, `network:data-collect`
+- **RouterOS config sync** — `routeros:sync-config` (setiap 15 menit) ke tabel sync DB
+- **Inventory** — `InventoryItem`, `InventoryTransaction`, `InventoryController`
+- **Payment abstraction** — `app/Services/Payment/` (`PaymentGatewayInterface`, `MidtransGateway`, `XenditGateway`, `PaymentService`) + integrasi **Xendit** (`XenditController`, `xendit_invoice_id`)
+- **ONU monitoring history & Ping** — `OnuMonitoringHistory`, `PingResult`
+- **Voucher print templates** — `VoucherPrintTemplateController` + tabel `voucher_print_templates`
+- **MikroTik device fields** — connection mode, local IP/port, user stats, `ssh_port`
+
+### Agustus 2026 — Notifikasi & Toolbar FTTH Map
+- **Fonnte/WhatsApp gateway dihapus total** — `FonnteService`, `SendWhatsAppNotification`, config `services.fonnte`, setting `fonnte_token`, route `/invoice/send-wa` & `/invoice/reminder/{id}` dihapus. Notifikasi pelanggan ke depan via aplikasi Android (in-development); `IncidentNotification` tetap dibuat berstatus `pending` sebagai data aplikasi tersebut.
+- **Pengaturan notifikasi di peta FTTH** — tombol Notifikasi (bell) di toolbar map: dropdown "Pengaturan WhatsApp" & "Pengaturan Telegram" (enable + URL/API key/nomor atau bot token/chat id). Simpan ke tabel `settings` key `wa_*` / `telegram_*` via `FeaturesController@notifSave` (route `POST /noc/features/map/notif/save`, baca `GET /noc/features/map/notif/config`).
+- **Toolbar FTTH map** — vis card toggle animasi master + toggle notifikasi; tombol 26×26, search kecil, aksesibilitas.
+
 ---
 
 ## v1.0
@@ -55,7 +73,7 @@
 - Package management
 - Invoice auto-generate + print + PDF
 - Payment manual + Midtrans integration
-- OLT management multi-brand (Huawei, ZTE, FiberHome, C-Data)
+- OLT management multi-brand (Huawei, ZTE, FiberHome, CData)
 - MikroTik management (hotspot, PPP, queue, monitoring)
 - Distribution ODC/ODP dengan peta Leaflet
 - Voucher WiFi generate + print + push MikroTik
@@ -67,4 +85,4 @@
 - Reporting
 - Multi-tenant (BelongsToTenant)
 - Scheduler untuk billing, polling, isolir
-- 55 test methods
+- 142 test methods (17 file: 7 Feature + 10 Unit) — **suite saat ini RED** (±88 errors + 3 failures) karena migrasi tenant memakai `DROP CONSTRAINT IF EXISTS` yang gagal di SQLite

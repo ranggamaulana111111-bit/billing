@@ -111,7 +111,7 @@
                         <div class="card border-2 border-success h-100">
                             <div class="card-body py-3">
                                 <i class="fa-solid fa-database fa-2x text-success mb-2"></i>
-                                <div class="fw-bold">ALKONEK Billing</div>
+                                <div class="fw-bold">PROVISION NOC Billing</div>
                                 <small class="text-muted">MySQL DB<br>Users, Profiles, Payment</small>
                             </div>
                         </div>

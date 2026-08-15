@@ -68,8 +68,8 @@
                             <td><span class="badge badge-premium" style="background:#f1f5f9;color:#475569;">{{ $p->invoice->customer->package->name ?? '-' }}</span></td>
                             <td>
                                 @php
-                                    $methods = ['cash' => 'Tunai', 'transfer' => 'Transfer', 'qris' => 'QRIS', 'midtrans' => 'Midtrans'];
-                                    $colors = ['cash' => '#059669', 'transfer' => '#2563eb', 'qris' => '#7c3aed', 'midtrans' => '#e11d48'];
+                                    $methods = ['cash' => 'Tunai', 'transfer' => 'Transfer', 'qris' => 'QRIS', 'midtrans' => 'Midtrans', 'xendit' => 'Xendit'];
+                                    $colors = ['cash' => '#059669', 'transfer' => '#2563eb', 'qris' => '#7c3aed', 'midtrans' => '#e11d48', 'xendit' => '#6366f1'];
                                 @endphp
                                 <span class="badge" style="background:{{ $colors[$p->payment_method] ?? '#6b7280' }}22;color:{{ $colors[$p->payment_method] ?? '#6b7280' }};">
                                     {{ $methods[$p->payment_method] ?? $p->payment_method }}

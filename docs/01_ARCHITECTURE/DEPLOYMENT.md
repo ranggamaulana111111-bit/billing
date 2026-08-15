@@ -1,4 +1,4 @@
-# Deployment — RabegNet ISP Billing System
+# Deployment — ALKONEK ISP Billing System v1.2
 
 ---
 
@@ -6,11 +6,11 @@
 
 | Komponen | Versi Minimal |
 |----------|---------------|
-| PHP | ^8.2 |
+| PHP | ^8.2 (local Laragon PHP 8.3.31; Vercel runtime PHP 8.5) |
 | Composer | 2.x |
 | Node.js | 18.x+ |
 | NPM | 10.x+ |
-| MySQL | 8.0+ |
+| MySQL | 8.0+ (local) / Aiven MySQL (prod) |
 | Extensions | PDO, MySQL, BCMath, Ctype, JSON, Mbstring, OpenSSL, PDO, Tokenizer, XML |
 
 ---
@@ -30,14 +30,20 @@ MIDTRANS_SERVER_KEY=
 MIDTRANS_CLIENT_KEY=
 MIDTRANS_IS_PRODUCTION=false
 
+# Xendit
+XENDIT_SECRET_KEY=
+XENDIT_WEBHOOK_VERIFICATION_TOKEN=
+
 # MikroTik (default)
 MIKROTIK_HOST=
 MIKROTIK_USER=admin
 MIKROTIK_PASSWORD=
 
-# Fonnte
-FONNTE_TOKEN=
+# Cron trigger (Vercel — tidak ada cron server)
+CRON_TOKEN=
 ```
+
+> ⚠️ `vercel.json` berisi **plaintext prod credentials** (Aiven DB password, APP_KEY) dan sudah gitignored. Jangan pernah commit file ini.
 
 ---
 
@@ -49,10 +55,10 @@ FONNTE_TOKEN=
 vercel.json:
   - builder: vercel-php@0.9.0
   - entry: api/index.php
-  - runtime: php 8.2
+  - runtime: php 8.5
 ```
 
-### Langkah
+### Langkah (manual)
 
 ```bash
 # 1. Install dependencies
@@ -66,15 +72,22 @@ cp .env.example .env
 # 3. Build frontend
 npm run build
 
-# 4. Deploy
-vercel --prod
+# 4. Deploy (prebuilt)
+vercel deploy --prebuilt --prod
 ```
+
+### CI/CD (`.github/workflows/deploy.yml`)
+
+Auto-deploy saat push ke `main`/`master`:
+1. `npm ci && npm run build`
+2. `vercel deploy --prebuilt --prod`
 
 ### Catatan Vercel
 
 - **No persistent storage** — gunakan Aiven MySQL (cloud)
-- **No cron jobs** — trigger scheduler via external cron service hitting `/api/cron/run`
+- **No cron jobs** — trigger scheduler via external cron service hitting `/api/cron/run?token=xxx` (CronController → `artisan schedule:run`)
 - **Read-only filesystem** — template hotspot tidak bisa write file, gunakan route `/hotspot/{page}` dari database
+- **PHP 8.5 di Vercel** — `fake()` tidak tersedia & tidak ada Factory di production path; pastikan path produksi tidak memakai helper test
 
 ---
 

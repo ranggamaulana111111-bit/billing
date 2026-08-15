@@ -20,9 +20,9 @@ class OltController extends Controller
     public function index()
     {
         $olts = Olt::orderBy('name')->get();
-        $totalOnus = Onu::count();
-        $onlineOnus = Onu::where('status', 'online')->count();
-        $offlineOnus = Onu::where('status', 'offline')->count();
+        $totalOnus = Onu::fromOlt()->count();
+        $onlineOnus = Onu::fromOlt()->where('status', 'online')->count();
+        $offlineOnus = Onu::fromOlt()->where('status', 'offline')->count();
 
         return view('olt.index', compact('olts', 'totalOnus', 'onlineOnus', 'offlineOnus'));
     }
@@ -36,7 +36,7 @@ class OltController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'brand' => 'required|in:huawei,zte,fiberhome,cdata',
+            'brand' => 'required|in:huawei,zte,fiberhome,cdata,global,vsol,hsgq,hioso',
             'model' => 'nullable|string|max:255',
             'ip_address' => 'required|string|max:45',
             'ssh_port' => 'required|integer|min:1|max:65535',
@@ -82,7 +82,7 @@ class OltController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'brand' => 'required|in:huawei,zte,fiberhome,cdata',
+            'brand' => 'required|in:huawei,zte,fiberhome,cdata,global,vsol,hsgq,hioso',
             'model' => 'nullable|string|max:255',
             'ip_address' => 'required|string|max:45',
             'ssh_port' => 'required|integer|min:1|max:65535',
@@ -187,6 +187,12 @@ class OltController extends Controller
         // Auto-create default ports based on brand
         $defaults = match ($olt->brand) {
             'cdata' => [
+                ['slot' => 0, 'port' => 1, 'type' => 'gpon'],
+                ['slot' => 0, 'port' => 2, 'type' => 'gpon'],
+                ['slot' => 0, 'port' => 3, 'type' => 'gpon'],
+                ['slot' => 0, 'port' => 4, 'type' => 'gpon'],
+            ],
+            'vsol', 'hioso', 'hsgq', 'global' => [
                 ['slot' => 0, 'port' => 1, 'type' => 'gpon'],
                 ['slot' => 0, 'port' => 2, 'type' => 'gpon'],
                 ['slot' => 0, 'port' => 3, 'type' => 'gpon'],

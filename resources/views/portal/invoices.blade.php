@@ -105,6 +105,11 @@
                                                         <i class="fa-solid fa-credit-card me-1"></i>Bayar
                                                     </a>
                                                 @endif
+                                                @if($xenditConfigured)
+                                                    <a href="{{ route('portal.bayar-xendit', $inv->id) }}" class="btn btn-sm text-white" style="background:#6366f1;">
+                                                        <i class="fa-solid fa-wallet me-1"></i>Xendit
+                                                    </a>
+                                                @endif
                                             @endif
                                         </div>
                                     </div>

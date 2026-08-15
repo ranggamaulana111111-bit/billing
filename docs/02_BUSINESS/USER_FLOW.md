@@ -1,20 +1,21 @@
-# User Flow — RabegNet ISP Billing System
+# User Flow — ALKONEK ISP Billing System
 
 ---
 
 ## Customer Flow
 
 ```
-START: Menerima tagihan (WA/Email)
+START: Menerima tagihan (Email / notifikasi aplikasi Android)
   │
   ├─ 1. Buka portal /portal
   ├─ 2. Input nomor telepon
   ├─ 3. Lihat daftar tagihan unpaid
   │
   ├─ [Pilih Bayar]
-  │   ├─ Redirect ke Midtrans
-  │   ├─ Bayar via QRIS/VA/Convenience Store
-  │   └─ Konfirmasi pembayaran real-time
+  │   ├─ Redirect ke Midtrans (QRIS/VA/Convenience Store)
+  │   │   └─ atau Xendit (QRIS/VA/e-Wallet) via /xendit/pay/{invoice}
+  │   ├─ Bayar di gateway pilihan
+  │   └─ Konfirmasi pembayaran real-time (callback → invoice lunas)
   │
   ├─ [Cek Voucher]
   │   ├─ Buka /vouchers/check
@@ -57,7 +58,7 @@ START: Login ke dashboard
   │   ├─ Buat invoice manual
   │   ├─ Mark paid
   │   ├─ Print/PDF invoice
-  │   ├─ Kirim WA/Email reminder
+  │   ├─ Kirim Email reminder
   │   └─ Mass billing
   │
   ├─ 4. Payment
@@ -105,7 +106,7 @@ START: Login ke dashboard
   │   ├─ Bank account
   │   ├─ Midtrans config
   │   ├─ MikroTik config
-  │   └─ Fonnte token
+  │   └─ Notifikasi WA/Telegram (via pengaturan map FTTH)
   │
   └─ 11. Backup & Export
       ├─ Download backup database

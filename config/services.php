@@ -47,13 +47,14 @@ return [
         'redirect' => env('GITHUB_REDIRECT_URI'),
     ],
 
-    'fonnte' => [
-        'token' => env('FONNTE_TOKEN'),
-    ],
-
     'midtrans' => [
         'server_key' => env('MIDTRANS_SERVER_KEY'),
         'client_key' => env('MIDTRANS_CLIENT_KEY'),
+    ],
+
+    'xendit' => [
+        'secret_key' => env('XENDIT_SECRET_KEY'),
+        'webhook_token' => env('XENDIT_WEBHOOK_TOKEN'),
     ],
 
     'cron_token' => env('CRON_TOKEN'),

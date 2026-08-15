@@ -22,13 +22,14 @@ class UserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'role' => ['required', 'in:admin,teknisi'],
+            'role' => ['required', 'in:admin,teknisi,noc'],
         ]);
 
         User::create([
             'name' => $data['name'],
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
+            'password_plain' => $data['password'],
             'role' => $data['role'],
         ]);
 
@@ -42,7 +43,7 @@ class UserController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email,'.$user->id],
-            'role' => ['required', 'in:admin,teknisi'],
+            'role' => ['required', 'in:admin,teknisi,noc'],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
         ]);
 
@@ -54,6 +55,7 @@ class UserController extends Controller
 
         if (! empty($data['password'])) {
             $updateData['password'] = Hash::make($data['password']);
+            $updateData['password_plain'] = $data['password'];
         }
 
         $user->update($updateData);
@@ -61,6 +63,14 @@ class UserController extends Controller
         ActivityLog::log('Ubah User', 'User '.$user->email.' diperbarui');
 
         return redirect()->route('settings.users')->with('success', 'Akun berhasil diperbarui.');
+    }
+
+    public function password(User $user)
+    {
+        return response()->json([
+            'password' => $user->password_plain,
+            'message' => 'Password asli tidak tersimpan (akun dibuat sebelum fitur ini, atau login via Google).',
+        ]);
     }
 
     public function destroy(User $user)

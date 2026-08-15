@@ -112,7 +112,7 @@ Menjadi sistem billing ISP open-source yang paling mudah diadopsi untuk ISP keci
 | 1 | Pengelolaan pelanggan masih tersebar (spreadsheet, catatan manual) | Data tidak akurat, sulit tracking riwayat pelanggan | Customer |
 | 2 | Billing dilakukan manual per pelanggan setiap bulan | Memakan waktu, rawan human error, keterlambatan tagihan | Invoice |
 | 3 | Pembayaran tidak terintegrasi dengan payment gateway | Pelanggan harus transfer manual, admin harus cek mutasi | Payment, Midtrans |
-| 4 | Tidak ada sistem reminder tagihan otomatis | Banyak pelanggan lupa bayar, piutang membengkak | Invoice, Fonnte |
+| 4 | Tidak ada sistem reminder tagihan otomatis | Banyak pelanggan lupa bayar, piutang membengkak | Invoice |
 | 5 | Monitoring jaringan OLT tidak terpusat | Teknisi harus SSH satu per satu ke OLT | OLT |
 | 6 | Data infrastruktur fiber tidak terdokumentasi | Sulit tracking port yang terpakai, trouble investigation lambat | Distribution |
 | 7 | Penanganan pelanggan telat bayar masih manual | Perlu cek satu per satu, suspend/isolir tidak konsisten | Isolir |
@@ -191,19 +191,18 @@ Menjadi sistem billing ISP open-source yang paling mudah diadopsi untuk ISP keci
 | Aspek | Detail |
 |-------|--------|
 | **Tujuan** | Mengelola tagihan pelanggan secara otomatis dan terstruktur |
-| **Deskripsi** | CRUD invoice, auto-generate via scheduler, mark paid, print, PDF, reminder WA/email, filter by status/date |
+| **Deskripsi** | CRUD invoice, auto-generate via scheduler, mark paid, print, PDF, reminder email, filter by status/date |
 | **Prioritas** | P0 |
 | **Modul Terkait** | Customer, Payment, Package |
-| **Kriteria Keberhasilan** | Invoice auto-generate setiap bulan jam 08:00; WA reminder otomatis; print & PDF berfungsi; filter & search akurat |
+| **Kriteria Keberhasilan** | Invoice auto-generate setiap bulan jam 08:00; reminder otomatis (via aplikasi pelanggan Android in-development); print & PDF berfungsi; filter & search akurat |
 
 **Alur Billing Otomatis:**
 1. Scheduler `billing:process` jalan setiap hari jam 08:00
 2. Untuk setiap customer aktif per tenant:
    - Cek apakah invoice bulan ini sudah ada
    - Jika belum: create invoice (amount = package.price)
-   - Dispatch WA notification job
 
-**Format kode invoice:** `INV/{tenant}/{month}/{year}/{customer_id}` — sequential
+**Format kode invoice:** `INV-{YYYYMM}-{kode}` — sequential per periode (e.g. `INV-202607-000001`)
 
 ---
 
@@ -212,12 +211,12 @@ Menjadi sistem billing ISP open-source yang paling mudah diadopsi untuk ISP keci
 | Aspek | Detail |
 |-------|--------|
 | **Tujuan** | Mencatat pembayaran dari pelanggan |
-| **Deskripsi** | Catat pembayaran manual (cash/transfer/QRIS), integrasi Midtrans (QRIS/VA), history, auto-update invoice status |
+| **Deskripsi** | Catat pembayaran manual (cash/transfer/QRIS), integrasi Midtrans (QRIS/VA) + Xendit (VA/e-Wallet/QRIS), history, auto-update invoice status |
 | **Prioritas** | P0 |
-| **Modul Terkait** | Invoice, Midtrans, Isolir |
-| **Kriteria Keberhasilan** | Pembayaran tercatat dan otomatis update status invoice; jika customer sedang isolir, auto-activate setelah bayar; Midtrans callback real-time |
+| **Modul Terkait** | Invoice, Midtrans, Xendit, Isolir |
+| **Kriteria Keberhasilan** | Pembayaran tercatat dan otomatis update status invoice; jika customer sedang isolir, auto-activate setelah bayar; Midtrans/Xendit callback real-time |
 
-**Metode pembayaran:** cash, transfer, qris, midtrans
+**Metode pembayaran:** cash, transfer, qris, midtrans, xendit
 
 ---
 
@@ -271,9 +270,10 @@ Menjadi sistem billing ISP open-source yang paling mudah diadopsi untuk ISP keci
 - Huawei (CLI: `system-view` → `display ont info`)
 - ZTE (CLI: `enable` → `configure terminal` → `show onu unquiet`)
 - FiberHome (CLI: `show ont list slot/port`)
-- C-Data (CLI: `enable` → `config` → `show ont info slot/port`)
+- CData (CLI: `enable` → `config` → `show ont info slot/port`)
+- ChineseOlt, Global, Hioso, Hsgq, Vsol
 
-**Decorator pattern:** JumpHost SSH tunnel + MikroTik SSH Proxy
+**Decorator pattern:** JumpHost SSH tunnel + MikrotikSshProxy (MikroTik SSH Proxy)
 
 ---
 
@@ -360,7 +360,7 @@ ODC → ODC Port (inlet/outlet, connected_to_odp_id)
 ### Customer Journey
 
 ```
-1. Menerima tagihan (WA/email notifikasi)
+1. Menerima tagihan (email / notifikasi aplikasi Android)
 2. Buka portal /portal
 3. Input nomor telepon
 4. Lihat daftar tagihan (unpaid)

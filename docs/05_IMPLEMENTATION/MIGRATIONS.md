@@ -1,6 +1,8 @@
-# Migrations — RabegNet ISP Billing System
+# Migrations — ALKONEK ISP Billing System
 
-> 48 Files | Kronologi perubahan skema database
+> 98 Files | Kronologi perubahan skema database
+
+> ⚠️ **Known issue:** migrasi `2026_06_22_000004_add_tenant_id_to_business_tables.php` memakai `DROP CONSTRAINT IF EXISTS` (sintaks MySQL/Postgres) — **gagal di SQLite** (`near "CONSTRAINT"`). Ini penyebab utama suite test RED saat memakai `RefreshDatabase`.
 
 ---
 
@@ -143,6 +145,80 @@ Daftar migrasi diurutkan berdasarkan timestamp. Kolom `Aksi` menunjukkan jenis p
 | 53 | `2026_07_06_030000_add_profile_fields_to_voucher_profiles_table` | ALTER | voucher_profiles +speed, +quota_limit, +validity_days, +shared_users, +prefix, +name_length, +password_length, +character_type, +password_same_as_username | Field tambahan untuk generate voucher |
 | 54 | `2026_07_07_150000_add_ssh_port_to_mikrotik_routers_table` | ALTER | mikrotik_routers +ssh_port | integer nullable, default null — untuk SSH fallback |
 
+## Fase 14: MikroTik Type & Customer Fields (2026_07_02/09)
+
+| # | File | Aksi | Tabel/Kolom | Detail |
+|---|------|------|-------------|--------|
+| 55 | `2026_07_02_113035_add_type_to_mikrotik_routers_table` | ALTER | mikrotik_routers +type | Kategori router (core/distribution/access) |
+| 56 | `2026_07_09_150000_add_nik_and_ktp_photo_to_customers_table` | ALTER | customers +nik +ktp_photo | Data identitas pelanggan |
+
+## Fase 15: Incidents & SLA (2026_07_13/14)
+
+| # | File | Aksi | Tabel/Kolom | Detail |
+|---|------|------|-------------|--------|
+| 57 | `2026_07_13_000001_create_incidents_table` | CREATE | incidents | Incident + SLA fields |
+| 58 | `2026_07_13_000002_create_incident_notifications_table` | CREATE | incident_notifications | Notifikasi per incident |
+| 59 | `2026_07_14_143949_add_notifiable_customer_ids_to_incidents_table` | ALTER | incidents +notifiable_customer_ids | JSON pelanggan terdampak |
+| 60 | `2026_07_14_185232_add_customer_code_to_customers_table` | ALTER | customers +customer_code | Kode unik pelanggan |
+
+## Fase 16: Inventory, Monitoring & Billing Restructure (2026_07_15)
+
+| # | File | Aksi | Tabel/Kolom | Detail |
+|---|------|------|-------------|--------|
+| 61 | `2026_07_15_000000_add_device_fields_to_mikrotik_routers_table` | ALTER | mikrotik_routers device fields | model, serial, firmware, dll |
+| 62 | `2026_07_15_000001_create_inventory_items_table` | CREATE | inventory_items | Item stok/aset |
+| 63 | `2026_07_15_000002_create_inventory_transactions_table` | CREATE | inventory_transactions | Transaksi masuk/keluar |
+| 64 | `2026_07_15_000003_add_condition_to_inventory_transactions_table` | ALTER | inventory_transactions +condition | Kondisi barang |
+| 65 | `2026_07_15_021323_fix_settings_unique_constraint_and_cleanup_duplicates` | FIX | settings | Perbaiki unique constraint + hapus duplikat |
+| 66 | `2026_07_15_034337_add_serial_number_to_customers_table` | ALTER | customers +serial_number | Serial ONU/modem pelanggan |
+| 67 | `2026_07_15_100000_restructure_billing_tables` | ALTER | invoices/payments | Restrukturisasi skema billing |
+| 68 | `2026_07_15_120000_create_mikrotik_interface_metadata_table` | CREATE | mikrotik_interface_metadata | Metadata interface per router |
+| 69 | `2026_07_15_120100_create_interface_change_logs_table` | CREATE | interface_change_logs | Log perubahan interface |
+| 70 | `2026_07_15_150054_create_onu_monitoring_history_table` | CREATE | onu_monitoring_history | Snapshot kesehatan ONU |
+| 71 | `2026_07_15_150054_create_ping_results_table` | CREATE | ping_results | Hasil ping monitor |
+| 72 | `2026_07_15_160000_add_modem_and_pppoe_password_to_customers_table` | ALTER | customers +modem +pppoe_password | Data modem & password PPPoE |
+
+## Fase 17: RouterOS Sync, Automation & Network Metrics (2026_07_15/16)
+
+| # | File | Aksi | Tabel/Kolom | Detail |
+|---|------|------|-------------|--------|
+| 73 | `2026_07_15_170000_create_routeros_sync_logs_table` | CREATE | routeros_sync_logs | Log sync config RouterOS |
+| 74 | `2026_07_15_170100_create_routeros_synced_configs_table` | CREATE | routeros_synced_configs | Config tersinkron |
+| 75 | `2026_07_15_180000_create_config_versions_table` | CREATE | config_versions | Versioning config |
+| 76 | `2026_07_16_100000_create_noc_automation_jobs_table` | CREATE | noc_automation_jobs | Job automation engine |
+| 77 | `2026_07_16_100100_create_noc_automation_job_logs_table` | CREATE | noc_automation_job_logs | Log eksekusi job |
+| 78 | `2026_07_16_100200_create_noc_automation_triggers_table` | CREATE | noc_automation_triggers | Trigger automation |
+| 79 | `2026_07_16_110000_create_network_config_audit_logs_table` | CREATE | network_config_audit_logs | Audit perubahan config |
+| 80 | `2026_07_16_140000_create_network_metrics_table` | CREATE | network_metrics | Metric jaringan mentah |
+| 81 | `2026_07_16_140100_create_network_metrics_aggregated_table` | CREATE | network_metrics_aggregated | Agregasi per jam |
+
+## Fase 18: Customer, QoS & GenieACS Refinements (2026_07_16 — 2026_07_26)
+
+| # | File | Aksi | Tabel/Kolom | Detail |
+|---|------|------|-------------|--------|
+| 82 | `2026_07_16_150000_add_mac_address_to_customers_table` | ALTER | customers +mac_address | MAC address pelanggan |
+| 83 | `2026_07_17_000000_add_qos_fields_to_packages_table` | ALTER | packages +qos fields | rate_limit, burst, priority, dll |
+| 84 | `2026_07_17_000001_add_odp_port_id_to_onus_table` | ALTER | onus +odp_port_id | FK ke odp_ports |
+| 85 | `2026_07_17_131403_add_type_to_customers_table` | ALTER | customers +type | pppoe/hotspot |
+| 86 | `2026_07_17_134727_make_package_id_nullable_on_customers_table` | ALTER | customers package_id nullable | Pelanggan tanpa paket |
+| 87 | `2026_07_19_000001_create_voucher_print_templates_table` | CREATE | voucher_print_templates | Template cetak voucher |
+| 88 | `2026_07_20_000001_add_soft_deletes_to_invoices` | ALTER | invoices +deleted_at | Soft deletes invoice |
+| 89 | `2026_07_26_101234_add_genieacs_fields_to_onus_table` | ALTER | onus +genieacs fields | device_id, presets, dll |
+| 90 | `2026_07_26_174214_add_genieacs_fields_to_onus_table` | ALTER | onus +genieacs fields | Field tambahan GenieACS |
+
+## Fase 19: Performance, Xendit & Connection Status (2026_08_02 — 2026_08_07)
+
+| # | File | Aksi | Tabel/Kolom | Detail |
+|---|------|------|-------------|--------|
+| 91 | `2026_08_02_000000_add_performance_indexes` | INDEX | multi tabel | Index performa query |
+| 92 | `2026_08_06_000001_add_xendit_invoice_id_to_invoices_table` | ALTER | invoices +xendit_invoice_id | ID invoice Xendit |
+| 93 | `2026_08_06_100000_add_local_ip_to_mikrotik_routers_table` | ALTER | mikrotik_routers +local_ip | IP lokal untuk tunnel |
+| 94 | `2026_08_06_110000_add_connection_mode_to_mikrotik_routers_table` | ALTER | mikrotik_routers +connection_mode | direct/tunnel |
+| 95 | `2026_08_06_120000_add_user_stats_to_mikrotik_routers_table` | ALTER | mikrotik_routers +user_stats | Statistik user |
+| 96 | `2026_08_06_130000_add_local_port_to_mikrotik_routers_table` | ALTER | mikrotik_routers +local_port | Port lokal tunnel |
+| 97 | `2026_08_06_140000_add_connection_status_to_olts_table` | ALTER | olts +connection_status | Status koneksi OLT |
+| 98 | `2026_08_07_000000_add_password_plain_to_users_table` | ALTER | users +password_plain | Password plaintext (fallback/legacy) |
+
 ---
 
 ## Ringkasan Timeline
@@ -162,4 +238,10 @@ Daftar migrasi diurutkan berdasarkan timestamp. Kolom `Aksi` menunjukkan jenis p
 | 11 | 2026-06-22 (batch 3) | 6 | ODP refactor |
 | 12 | 2026-06-27/30 | 2 | Tambahan |
 | 13 | 2026-07-06/07 | 6 | Voucher & SSH MikroTik |
-| | **Total** | **54** | |
+| 14 | 2026-07-02/09 | 2 | MikroTik type & customer |
+| 15 | 2026-07-13/14 | 4 | Incidents & SLA |
+| 16 | 2026-07-15 | 12 | Inventory, monitoring, billing restructure |
+| 17 | 2026-07-15/16 | 9 | RouterOS sync, automation, metrics |
+| 18 | 2026-07-16 — 07-26 | 9 | Customer, QoS, GenieACS |
+| 19 | 2026-08-02 — 08-07 | 8 | Performance, Xendit, connection status |
+| | **Total** | **98** | |

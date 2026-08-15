@@ -75,7 +75,7 @@
                                     <div class="col-md-6">
                                         <label class="form-label">Nama Singkat (Sidebar)</label>
                                         <input type="text" name="company_short_name" class="form-control @error('company_short_name') is-invalid @enderror"
-                                               value="{{ old('company_short_name', $settings['company_short_name'] ?? '') }}" placeholder="ALKONEK">
+                                               value="{{ old('company_short_name', $settings['company_short_name'] ?? '') }}" placeholder="ALKONEKbill">
                                         <div class="form-text">Nama pendek yang tampil di sidebar. Kosongkan untuk menggunakan default.</div>
                                         @error('company_short_name') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                     </div>
@@ -173,6 +173,60 @@
                                             </span>
                                         </div>
                                         <div class="form-text mt-2">Aktifkan jika menggunakan akun Midtrans production (non-sandbox).</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="card settings-card h-100 stagger-card" data-accent="#6366f1">
+                            <div class="card-header mon-card-head">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="settings-icon-badge" style="background:linear-gradient(135deg,#4f46e5,#6366f1);">
+                                        <i class="fa-solid fa-wallet"></i>
+                                    </div>
+                                    <div>
+                                        <h5 class="mb-0 text-white">Payment Gateway Xendit</h5>
+                                        <small class="text-white-50">Integrasi Xendit untuk pembayaran online</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="form-label">Xendit Secret Key</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fa-solid fa-lock"></i></span>
+                                        <input type="password" name="xendit_secret_key" class="form-control @error('xendit_secret_key') is-invalid @enderror"
+                                               value="{{ old('xendit_secret_key', $settings['xendit_secret_key'] ?? '') }}" placeholder="xnd_development_xxxx / xnd_production_xxxx" id="xenditSecretKey">
+                                        <button type="button" class="settings-eye-btn" onclick="togglePassword('xenditSecretKey', this)"><i class="fa-regular fa-eye"></i></button>
+                                        @error('xendit_secret_key') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Xendit Webhook Callback Token</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fa-solid fa-shield-halved"></i></span>
+                                        <input type="password" name="xendit_webhook_token" class="form-control @error('xendit_webhook_token') is-invalid @enderror"
+                                               value="{{ old('xendit_webhook_token', $settings['xendit_webhook_token'] ?? '') }}" placeholder="Callback token dari dashboard Xendit" id="xenditWebhookToken">
+                                        <button type="button" class="settings-eye-btn" onclick="togglePassword('xenditWebhookToken', this)"><i class="fa-regular fa-eye"></i></button>
+                                        @error('xendit_webhook_token') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                    </div>
+                                </div>
+                                <div class="mb-0">
+                                    <div class="settings-toggle-area">
+                                        <div class="d-flex align-items-center gap-3">
+                                            <div class="form-check form-switch mb-0">
+                                                <input type="hidden" name="xendit_is_production" value="0">
+                                                <input type="checkbox" name="xendit_is_production" value="1" class="form-check-input" id="xenditProduction"
+                                                       {{ old('xendit_is_production', $settings['xendit_is_production'] ?? '0') === '1' ? 'checked' : '' }}>
+                                                <label class="form-check-label fw-semibold" for="xenditProduction">Mode Production</label>
+                                            </div>
+                                            <span class="settings-mode-badge" id="xenditModeBadge" style="background:{{ old('xendit_is_production', $settings['xendit_is_production'] ?? '0') === '1' ? '#fef3c7' : '#f0fdf4' }};color:{{ old('xendit_is_production', $settings['xendit_is_production'] ?? '0') === '1' ? '#d97706' : '#059669' }};">
+                                                <span class="settings-mode-dot"></span>
+                                                {{ old('xendit_is_production', $settings['xendit_is_production'] ?? '0') === '1' ? 'Production' : 'Sandbox' }}
+                                            </span>
+                                        </div>
+                                        <div class="form-text mt-2">Aktifkan jika menggunakan akun Xendit production (non-sandbox).</div>
                                     </div>
                                 </div>
                             </div>
@@ -371,24 +425,16 @@
                             <div class="card-header mon-card-head">
                                 <div class="d-flex align-items-center gap-3">
                                     <div class="settings-icon-badge" style="background:linear-gradient(135deg,#0ea5e9,#06b6d4);">
-                                        <i class="fa-brands fa-whatsapp"></i>
+                                        <i class="fa-solid fa-bell"></i>
                                     </div>
                                     <div>
-                                        <h5 class="mb-0">Notifikasi WhatsApp</h5>
-                                        <small class="text-muted">Gateway WA untuk pengiriman notifikasi otomatis</small>
+                                        <h5 class="mb-0">Notifikasi Aplikasi Pelanggan</h5>
+                                        <small class="text-muted">Notifikasi pengingat pembayaran &amp; gangguan via aplikasi Android pelanggan</small>
                                     </div>
                                 </div>
                             </div>
                             <div class="card-body">
-                                <label class="form-label">Fonnte Token</label>
-                                <div class="input-group">
-                                    <span class="input-group-text"><i class="fa-solid fa-key"></i></span>
-                                    <input type="password" name="fonnte_token" class="form-control @error('fonnte_token') is-invalid @enderror"
-                                           value="{{ old('fonnte_token', $settings['fonnte_token'] ?? '') }}" placeholder="Token API dari fonnte.com" id="fonnteToken">
-                                    <button type="button" class="settings-eye-btn" onclick="togglePassword('fonnteToken', this)"><i class="fa-regular fa-eye"></i></button>
-                                    @error('fonnte_token') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                                </div>
-                                <div class="form-text">Diperlukan untuk kirim notifikasi WA otomatis. Daftar di <code>fonnte.com</code></div>
+                                <p class="text-muted mb-0">Notifikasi pengingat pembayaran dan isolir akan dikirim langsung melalui aplikasi pelanggan (Android), bukan lagi via WhatsApp.</p>
                             </div>
                         </div>
                     </div>
@@ -524,6 +570,22 @@ function previewLogo(input) {
                 modeBadge.style.background = '#f0fdf4';
                 modeBadge.style.color = '#059669';
                 modeBadge.innerHTML = '<span class="settings-mode-dot"></span> Sandbox';
+            }
+        });
+    }
+
+    const xenditCheck = document.getElementById('xenditProduction');
+    const xenditModeBadge = document.getElementById('xenditModeBadge');
+    if (xenditCheck && xenditModeBadge) {
+        xenditCheck.addEventListener('change', function() {
+            if (this.checked) {
+                xenditModeBadge.style.background = '#fef3c7';
+                xenditModeBadge.style.color = '#d97706';
+                xenditModeBadge.innerHTML = '<span class="settings-mode-dot"></span> Production';
+            } else {
+                xenditModeBadge.style.background = '#f0fdf4';
+                xenditModeBadge.style.color = '#059669';
+                xenditModeBadge.innerHTML = '<span class="settings-mode-dot"></span> Sandbox';
             }
         });
     }

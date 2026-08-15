@@ -12,7 +12,7 @@ class Invoice extends Model
     use BelongsToTenant, HasFactory, SoftDeletes;
 
     protected $fillable = ['tenant_id', 'invoice_code', 'invoice_number', 'customer_id', 'amount', 'payment_status',
-        'billing_period', 'period', 'status', 'paid_at', 'payment_method', 'midtrans_order_id',
+        'billing_period', 'period', 'status', 'paid_at', 'payment_method', 'midtrans_order_id', 'xendit_invoice_id',
     ];
 
     protected function casts(): array

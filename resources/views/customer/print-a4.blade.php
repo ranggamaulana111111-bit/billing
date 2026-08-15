@@ -200,7 +200,7 @@
                                 </div>
                             @endif
                             <div>
-                                <h3>{{ $settings['company_name'] ?? 'ALKONEK' }}</h3>
+                                <h3>{{ $settings['company_name'] ?? 'ALKONEKbill' }}</h3>
                                 <small>Internet Service Provider</small>
                             </div>
                         </div>
@@ -242,13 +242,13 @@
                 <div class="bank-box">
                     <i class="fa-solid fa-info-circle me-1" style="color:var(--primary);"></i>
                     Pembayaran dapat dilakukan melalui transfer ke rekening:<br>
-                    <strong>{{ $settings['bank_name'] ?? 'Bank BCA' }} &middot; {{ $settings['bank_account'] ?? '1234567890' }} &middot; a.n. {{ $settings['bank_holder'] ?? ($settings['company_name'] ?? 'ALKONEK') }}</strong>
+                    <strong>{{ $settings['bank_name'] ?? 'Bank BCA' }} &middot; {{ $settings['bank_account'] ?? '1234567890' }} &middot; a.n. {{ $settings['bank_holder'] ?? ($settings['company_name'] ?? 'ALKONEKbill') }}</strong>
                 </div>
             </div>
 
             <div class="footer-section">
                 <small>{{ $settings['invoice_footer'] ?? 'Terima kasih atas kepercayaan Anda.' }}</small>
-                <small class="powered">{{ $settings['company_name'] ?? 'ALKONEK' }} Billing System</small>
+                <small class="powered">{{ $settings['company_name'] ?? 'ALKONEKbill' }} Billing System</small>
             </div>
         </div>
 

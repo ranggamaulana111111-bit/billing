@@ -281,7 +281,7 @@ class VoucherController extends Controller
 
         ActivityLog::log('Cetak Cepat Voucher', 'Membuat '.count($vouchers).' voucher WiFi ('.$hours.' jam) dari dashboard');
 
-        $companyName = Setting::get('company_name', 'ALKONEK');
+        $companyName = Setting::get('company_name', 'ALKONEKbill');
 
         return view('vouchers.print-batch', compact('vouchers', 'companyName'));
     }
@@ -294,7 +294,7 @@ class VoucherController extends Controller
             return response($html)->header('Content-Type', 'text/html');
         }
 
-        $companyName = Setting::get('company_name', 'ALKONEK');
+        $companyName = Setting::get('company_name', 'ALKONEKbill');
 
         return view('vouchers.print', compact('voucher', 'companyName'));
     }
@@ -335,7 +335,7 @@ class VoucherController extends Controller
             return response($html)->header('Content-Type', 'text/html');
         }
 
-        $companyName = Setting::get('company_name', 'ALKONEK');
+        $companyName = Setting::get('company_name', 'ALKONEKbill');
 
         return view('vouchers.print-batch', compact('vouchers', 'companyName'));
     }
@@ -349,7 +349,7 @@ class VoucherController extends Controller
             : $hours.' Jam';
 
         $map = [
-            '{COMPANY}' => Setting::get('company_name', 'ALKONEK'),
+            '{COMPANY}' => Setting::get('company_name', 'ALKONEKbill'),
             '{USERNAME}' => $voucher->username,
             '{PASSWORD}' => $voucher->password,
             '{DURATION}' => $durationText,

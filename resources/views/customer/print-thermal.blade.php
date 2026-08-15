@@ -120,7 +120,7 @@
 </head>
 <body>
     <div class="header">
-        <div class="company">{{ $settings['company_name'] ?? 'ALKONEK' }}</div>
+        <div class="company">{{ $settings['company_name'] ?? 'ALKONEKbill' }}</div>
         <div class="sub">{{ $settings['company_address'] ?? 'Internet Service Provider' }}</div>
         <div class="sub">{{ $settings['company_phone'] ?? '' }}</div>
         <div class="title">FORMULIR PENDAFTARAN PELANGGAN BARU</div>
@@ -196,12 +196,12 @@
     <div class="bank-info">
         Pembayaran via Transfer:<br>
         <strong>{{ $settings['bank_name'] ?? 'Bank BCA' }}</strong><br>
-        {{ $settings['bank_account'] ?? '1234567890' }} &middot; a.n. {{ $settings['bank_holder'] ?? ($settings['company_name'] ?? 'ALKONEK') }}
+        {{ $settings['bank_account'] ?? '1234567890' }} &middot; a.n. {{ $settings['bank_holder'] ?? ($settings['company_name'] ?? 'ALKONEKbill') }}
     </div>
 
     <div class="footer">
         {{ $settings['invoice_footer'] ?? 'Terima kasih atas kepercayaan Anda.' }}<br>
-        {{ $settings['company_name'] ?? 'ALKONEK' }} &middot; Billing System
+        {{ $settings['company_name'] ?? 'ALKONEKbill' }} &middot; Billing System
     </div>
 
     <div class="action-bar no-print">

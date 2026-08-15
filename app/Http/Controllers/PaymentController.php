@@ -42,7 +42,7 @@ class PaymentController extends Controller
         $validated = $request->validate([
             'invoice_id' => 'required|exists:invoices,id',
             'amount' => 'required|numeric|min:1',
-            'payment_method' => 'required|in:cash,transfer,qris,midtrans',
+            'payment_method' => 'required|in:cash,transfer,qris,midtrans,xendit',
             'payment_date' => 'required|date',
             'notes' => 'nullable|string|max:500',
         ]);

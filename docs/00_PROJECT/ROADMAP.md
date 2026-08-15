@@ -1,6 +1,6 @@
-# Roadmap — RabegNet ISP Billing System
+# Roadmap — ALKONEK ISP Billing System
 
-> Versi: 1.1 | Status: Production Active
+> Versi: 1.2 | Status: Deployed to production
 
 ---
 
@@ -15,7 +15,7 @@
 | Tambah BelongsToTenant ke OdcPort & OdpPort | High | ⏳ Pending |
 | Proteksi reset_data.php | High | ⏳ Pending |
 | Hapus sensitive credentials dari git history | High | ⏳ Pending |
-| Testing coverage existing features | Medium | ✅ Selesai |
+| Testing coverage existing features | Medium | ⚠️ Sebagian — suite RED (68 failed / 74 passed), migrasi tenant gagal di SQLite |
 | Bug fixes dari production | High | 🔄 Ongoing |
 
 ---
@@ -57,7 +57,7 @@
 |------|-----------|
 | Topology mapping otomatis | High |
 | Real-time network health dashboard | High |
-| Alert & notification system (email/WA/telegram) | High |
+| Alert & notification system (email / aplikasi pelanggan Android) | High |
 | Integration dengan SNMP devices | Medium |
 | Network performance history & trending | Medium |
 

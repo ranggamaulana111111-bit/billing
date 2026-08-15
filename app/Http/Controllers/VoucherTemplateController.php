@@ -75,7 +75,7 @@ class VoucherTemplateController extends Controller
 
     public function preview(VoucherTemplate $template, ?string $page = null)
     {
-        $company = Setting::get('company_name', 'ALKONEK');
+        $company = Setting::get('company_name', 'ALKONEKbill');
         $page = $page ?: request('page', 'login');
 
         $content = $template->getPage($page);

@@ -11,12 +11,13 @@ class MikrotikRouter extends Model
     use BelongsToTenant, SoftDeletes;
 
     protected $fillable = [
-        'tenant_id', 'name', 'identity', 'host', 'port', 'ssh_port', 'api_ssl_port',
+        'tenant_id', 'name', 'identity', 'host', 'local_ip', 'local_port', 'connection_mode', 'port', 'ssh_port', 'api_ssl_port',
         'username', 'password', 'hotspot_server', 'type',
         'routeros_version', 'model', 'architecture', 'serial_number',
         'site', 'location', 'timezone', 'latitude', 'longitude',
         'management_vlan', 'management_interface', 'connection_type', 'status',
         'last_seen', 'last_connected', 'timeout', 'notes', 'tags', 'is_active',
+        'user_stats', 'user_stats_updated_at',
     ];
 
     protected function casts(): array
@@ -24,6 +25,7 @@ class MikrotikRouter extends Model
         return [
             'is_active' => 'boolean',
             'ssh_port' => 'integer',
+            'local_port' => 'integer',
             'api_ssl_port' => 'integer',
             'management_vlan' => 'integer',
             'timeout' => 'integer',
@@ -33,7 +35,14 @@ class MikrotikRouter extends Model
             'last_connected' => 'datetime',
             'tags' => 'array',
             'password' => 'encrypted',
+            'user_stats' => 'array',
+            'user_stats_updated_at' => 'datetime',
         ];
+    }
+
+    public function scopeByConnectionMode($query, string $mode)
+    {
+        return $query->where('connection_mode', $mode);
     }
 
     public function scopeByType($query, string $type)
@@ -105,6 +114,22 @@ class MikrotikRouter extends Model
             'degraded' => 'Degraded',
             default => 'Unknown',
         };
+    }
+
+    /**
+     * Candidate hosts untuk koneksi, urut dari utama (host) ke fallback (local_ip).
+     */
+    public function getConnectionHosts(): array
+    {
+        return array_values(array_filter(array_unique([
+            $this->host,
+            $this->local_ip,
+        ])));
+    }
+
+    public function hasLocalIpFallback(): bool
+    {
+        return filled($this->local_ip) && $this->local_ip !== $this->host;
     }
 
     public function vouchers()

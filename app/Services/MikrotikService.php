@@ -12,6 +12,14 @@ class MikrotikService
 {
     protected ?string $host;
 
+    protected ?string $localIp = null;
+
+    protected ?string $activeHost = null;
+
+    protected ?int $localPort = null;
+
+    protected bool $localMode = false;
+
     protected ?string $user;
 
     protected ?string $pass;
@@ -28,6 +36,9 @@ class MikrotikService
     {
         if ($router instanceof MikrotikRouter) {
             $this->host = $router->host;
+            $this->localIp = $router->local_ip;
+            $this->localPort = $router->local_port ? (int) $router->local_port : null;
+            $this->localMode = ($router->connection_mode ?? 'tunnel') === 'local_ip';
             $this->user = $router->username;
             $this->pass = $router->password;
             $this->port = (int) $router->port;
@@ -39,6 +50,9 @@ class MikrotikService
             $router = MikrotikRouter::find($router);
             if ($router) {
                 $this->host = $router->host;
+                $this->localIp = $router->local_ip;
+                $this->localPort = $router->local_port ? (int) $router->local_port : null;
+                $this->localMode = ($router->connection_mode ?? 'tunnel') === 'local_ip';
                 $this->user = $router->username;
                 $this->pass = $router->password;
                 $this->port = (int) $router->port;
@@ -51,6 +65,9 @@ class MikrotikService
             $router = MikrotikRouter::where('is_active', true)->first();
             if ($router) {
                 $this->host = $router->host;
+                $this->localIp = $router->local_ip;
+                $this->localPort = $router->local_port ? (int) $router->local_port : null;
+                $this->localMode = ($router->connection_mode ?? 'tunnel') === 'local_ip';
                 $this->user = $router->username;
                 $this->pass = $router->password;
                 $this->port = (int) $router->port;
@@ -85,9 +102,24 @@ class MikrotikService
 
     protected function restUrl(string $path): string
     {
-        $scheme = $this->port === 443 ? 'https' : 'http';
+        $isLocal = $this->localMode || $this->activeHost !== null;
+        $port = $isLocal ? ($this->localPort ?? 80) : $this->port;
+        $scheme = $port === 443 ? 'https' : 'http';
+        $host = $this->activeHost ?? $this->host;
 
-        return "{$scheme}://{$this->host}:{$this->port}/rest{$path}";
+        return "{$scheme}://{$host}:{$port}/rest{$path}";
+    }
+
+    protected function switchToLocalIp(): bool
+    {
+        if (! $this->localIp || $this->localIp === $this->host || $this->activeHost === $this->localIp) {
+            return false;
+        }
+
+        $this->activeHost = $this->localIp;
+        Log::warning('MikroTik fallback ke IP lokal: '.$this->localIp);
+
+        return true;
     }
 
     protected function initSsh(MikrotikRouter $router): void
@@ -117,7 +149,23 @@ class MikrotikService
         try {
             return $this->client()->get($this->restUrl($path), $query)->json();
         } catch (\Exception $e) {
+            if ($this->switchToLocalIp()) {
+                return $this->retryGet($path, $query);
+            }
+
             $this->lastError = 'MikroTik GET '.$path.' gagal: '.$e->getMessage();
+            Log::error($this->lastError);
+
+            return [];
+        }
+    }
+
+    protected function retryGet(string $path, array $query): array
+    {
+        try {
+            return $this->client()->get($this->restUrl($path), $query)->json();
+        } catch (\Exception $e) {
+            $this->lastError = 'MikroTik GET '.$path.' gagal (fallback IP lokal): '.$e->getMessage();
             Log::error($this->lastError);
 
             return [];
@@ -188,9 +236,30 @@ class MikrotikService
                 'message' => 'Terhubung ke '.($res['board-name'] ?? 'MikroTik'),
             ];
         } catch (\Exception $e) {
+            if ($this->switchToLocalIp()) {
+                return $this->retryTestConnection();
+            }
+
             return [
                 'success' => false,
                 'message' => 'Gagal: '.$e->getMessage(),
+            ];
+        }
+    }
+
+    protected function retryTestConnection(): array
+    {
+        try {
+            $res = $this->client()->get($this->restUrl('/system/resource'))->json();
+
+            return [
+                'success' => true,
+                'message' => 'Terhubung ke '.($res['board-name'] ?? 'MikroTik').' (via IP lokal)',
+            ];
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'Gagal via IP lokal: '.$e->getMessage(),
             ];
         }
     }
@@ -521,6 +590,35 @@ class MikrotikService
     public function getPppActive(): array
     {
         return $this->safeGet('/ppp/active');
+    }
+
+    /**
+     * Ambil ringkasan jumlah user PPPoE & hotspot (online/offline) dari router.
+     *
+     * @return array{pppoe_online: int, pppoe_offline: int, hotspot_online: int, hotspot_offline: int}
+     */
+    public function getUserStats(): array
+    {
+        if (! $this->isConfigured()) {
+            return [];
+        }
+
+        $pppActive = $this->getPppActive();
+        $pppSecrets = $this->getPppSecrets();
+        $hotspotActive = $this->getActiveHotspotSessions();
+        $hotspotUsers = $this->getHotspotUsers();
+
+        $pppoeOnline = count($pppActive);
+        $pppoeTotal = count($pppSecrets);
+        $hotspotOnline = count($hotspotActive);
+        $hotspotTotal = count($hotspotUsers);
+
+        return [
+            'pppoe_online' => $pppoeOnline,
+            'pppoe_offline' => max($pppoeTotal - $pppoeOnline, 0),
+            'hotspot_online' => $hotspotOnline,
+            'hotspot_offline' => max($hotspotTotal - $hotspotOnline, 0),
+        ];
     }
 
     public function getActivePppSessionByUsername(string $username): ?array

@@ -15,7 +15,7 @@ class Olt extends Model
         'jump_host', 'jump_port', 'jump_username', 'jump_password',
         'snmp_community', 'snmp_version', 'snmp_port',
         'location', 'latitude', 'longitude', 'status', 'notes',
-        'last_polled_at',
+        'connection_status', 'last_polled_at',
     ];
 
     protected function casts(): array

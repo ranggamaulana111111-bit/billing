@@ -41,7 +41,7 @@
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
                         <div style="font-size:0.65rem;opacity:0.8;text-transform:uppercase;letter-spacing:0.5px;">Total Download</div>
-                        <div style="font-size:1.7rem;font-weight:800;line-height:1.1;" id="wan-rx">—</div>
+                        <div style="font-size:1.2rem;font-weight:800;line-height:1.1;" id="wan-rx">—</div>
                     </div>
                     <div style="width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;">
                         <i class="fa-solid fa-arrow-down" style="font-size:0.9rem;"></i>
@@ -57,7 +57,7 @@
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
                         <div style="font-size:0.65rem;opacity:0.8;text-transform:uppercase;letter-spacing:0.5px;">Total Upload</div>
-                        <div style="font-size:1.7rem;font-weight:800;line-height:1.1;" id="wan-tx">—</div>
+                        <div style="font-size:1.2rem;font-weight:800;line-height:1.1;" id="wan-tx">—</div>
                     </div>
                     <div style="width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;">
                         <i class="fa-solid fa-arrow-up" style="font-size:0.9rem;"></i>
@@ -73,7 +73,7 @@
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
                         <div style="font-size:0.65rem;opacity:0.8;text-transform:uppercase;letter-spacing:0.5px;">ONU PPP Aktif</div>
-                        <div style="font-size:1.7rem;font-weight:800;line-height:1.1;" id="onu-ppp-count">{{ $onuStats['ppp']['online'] }}</div>
+                        <div style="font-size:1.2rem;font-weight:800;line-height:1.1;" id="onu-ppp-count">{{ $onuStats['ppp']['online'] }}</div>
                     </div>
                     <div style="width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;">
                         <i class="fa-solid fa-tower-cell" style="font-size:0.9rem;"></i>
@@ -89,7 +89,7 @@
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
                         <div style="font-size:0.65rem;opacity:0.8;text-transform:uppercase;letter-spacing:0.5px;">ONU Hotspot Aktif</div>
-                        <div style="font-size:1.7rem;font-weight:800;line-height:1.1;" id="onu-hs-count">{{ $onuStats['hotspot']['online'] }}</div>
+                        <div style="font-size:1.2rem;font-weight:800;line-height:1.1;" id="onu-hs-count">{{ $onuStats['hotspot']['online'] }}</div>
                     </div>
                     <div style="width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;">
                         <i class="fa-solid fa-wifi" style="font-size:0.9rem;"></i>
@@ -147,8 +147,8 @@
                             @forelse($onuPpps as $onu)
                             <tr>
                                 <td>
-                                    <span class="fw-semibold">{{ $onu->customer->name ?? '-' }}</span>
-                                    <div class="mon-sub">{{ $onu->customer->customer_code ?? '' }}</div>
+                                    <span class="fw-semibold">{{ $onu->customer->name ?? 'Unlinked' }}</span>
+                                    <div class="mon-sub">{{ $onu->customer->customer_code ?? ($onu->serial_number ?? $onu->onu_id ?? '') }}</div>
                                 </td>
                                 <td><code class="mon-code">{{ $onu->serial_number ?? '-' }}</code></td>
                                 <td class="mon-muted">{{ $onu->oltPort?->olt?->name ?? '-' }}</td>
@@ -195,8 +195,8 @@
                             @forelse($onuHotspots as $onu)
                             <tr>
                                 <td>
-                                    <span class="fw-semibold">{{ $onu->customer->name ?? '-' }}</span>
-                                    <div class="mon-sub">{{ $onu->customer->customer_code ?? '' }}</div>
+                                    <span class="fw-semibold">{{ $onu->customer->name ?? 'Unlinked' }}</span>
+                                    <div class="mon-sub">{{ $onu->customer->customer_code ?? ($onu->serial_number ?? $onu->onu_id ?? '') }}</div>
                                 </td>
                                 <td><code class="mon-code">{{ $onu->serial_number ?? '-' }}</code></td>
                                 <td class="mon-muted">{{ $onu->oltPort?->olt?->name ?? '-' }}</td>
@@ -629,7 +629,7 @@
         }
         buildChart();
         fetchLive();
-        setInterval(fetchLive, 3000);
+        setInterval(fetchLive, 10000);
     }
 
     if (document.readyState === 'loading') {

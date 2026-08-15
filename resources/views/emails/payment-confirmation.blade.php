@@ -22,7 +22,7 @@
     <div class="container">
         <div class="header">
             @if(!empty($settings['company_logo']))
-                <img src="{{ asset('storage/' . $settings['company_logo']) }}" alt="{{ $settings['company_name'] ?? 'ALKONEK' }}">
+                <img src="{{ asset('storage/' . $settings['company_logo']) }}" alt="{{ $settings['company_name'] ?? 'ALKONEKbill' }}">
             @endif
             <h1>✅ Pembayaran Diterima</h1>
         </div>
@@ -44,7 +44,7 @@
             <p>Nikmati layanan internet Anda. Terima kasih telah melakukan pembayaran tepat waktu!</p>
         </div>
         <div class="footer">
-            <p>{{ $settings['company_name'] ?? 'ALKONEK' }} &mdash; {{ $settings['company_address'] ?? '' }}</p>
+            <p>{{ $settings['company_name'] ?? 'ALKONEKbill' }} &mdash; {{ $settings['company_address'] ?? '' }}</p>
             <p>Email ini dikirim otomatis oleh sistem billing.</p>
         </div>
     </div>

@@ -44,6 +44,7 @@
                                 $colors = [
                                     'admin' => ['#2563eb','#6366f1'],
                                     'teknisi' => ['#059669','#10b981'],
+                                    'noc' => ['#7c3aed','#a855f7'],
                                 ];
                                 $c = $colors[$user->role] ?? ['#64748b','#94a3b8'];
                             @endphp
@@ -69,6 +70,10 @@
                                         <span class="badge" style="background:linear-gradient(135deg,#fef3c7,#fff7e6);color:#d97706;font-weight:600;font-size:0.7rem;padding:4px 10px;border-radius:999px;border:1px solid rgba(217,119,6,0.12);">
                                             <i class="fa-solid fa-crown" style="font-size:0.6rem;margin-right:3px;"></i>Admin
                                         </span>
+                                    @elseif($user->role === 'noc')
+                                        <span class="badge" style="background:linear-gradient(135deg,#ede9fe,#f3e8ff);color:#7c3aed;font-weight:600;font-size:0.7rem;padding:4px 10px;border-radius:999px;border:1px solid rgba(124,58,237,0.12);">
+                                            <i class="fa-solid fa-satellite-dish" style="font-size:0.6rem;margin-right:3px;"></i>NOC
+                                        </span>
                                     @else
                                         <span class="badge" style="background:linear-gradient(135deg,#f0fdf4,#ecfdf5);color:#059669;font-weight:600;font-size:0.7rem;padding:4px 10px;border-radius:999px;border:1px solid rgba(5,150,105,0.12);">
                                             <i class="fa-solid fa-wrench" style="font-size:0.6rem;margin-right:3px;"></i>Teknisi
@@ -77,6 +82,9 @@
                                 </td>
                                 <td style="color:var(--text-muted);font-size:0.8rem;">{{ $user->created_at->format('d M Y') }}</td>
                                 <td class="text-center">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary px-2" data-bs-toggle="modal" data-bs-target="#detailModal{{ $user->id }}" title="Detail">
+                                        <i class="fa-solid fa-eye"></i>
+                                    </button>
                                     <button type="button" class="btn btn-sm btn-outline-primary px-2" data-bs-toggle="modal" data-bs-target="#editModal{{ $user->id }}">
                                         <i class="fa-solid fa-pen"></i>
                                     </button>
@@ -285,6 +293,16 @@
                                             <p>Mengelola jaringan, OLT, dan perangkat MikroTik.</p>
                                         </div>
                                     </label>
+                                    <label class="uc-role-card {{ old('role') === 'noc' ? 'selected' : '' }}" onclick="ucSelectRole(this,'noc')">
+                                        <input type="radio" name="role" value="noc" {{ old('role') === 'noc' ? 'checked' : '' }}>
+                                        <div class="uc-role-icon" style="background:linear-gradient(135deg,#2563eb,#60a5fa);">
+                                            <i class="fa-solid fa-satellite-dish"></i>
+                                        </div>
+                                        <div class="uc-role-info">
+                                            <h6>NOC</h6>
+                                            <p>Memantau jaringan, OLT, router, dan insiden secara real-time.</p>
+                                        </div>
+                                    </label>
                                 </div>
                                 @error('role') <div class="uc-field-msg msg-err" style="margin-top:10px;"><i class="fa-solid fa-circle-exclamation"></i>{{ $message }}</div> @enderror
                             </div>
@@ -442,6 +460,7 @@
                         <select name="role" class="form-select" required>
                             <option value="teknisi" {{ $user->role === 'teknisi' ? 'selected' : '' }}>Teknisi</option>
                             <option value="admin" {{ $user->role === 'admin' ? 'selected' : '' }}>Admin</option>
+                            <option value="noc" {{ $user->role === 'noc' ? 'selected' : '' }}>NOC</option>
                         </select>
                     </div>
                     <div class="mb-3">
@@ -458,6 +477,50 @@
                     <button type="submit" class="btn btn-primary">Simpan</button>
                 </div>
             </form>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="detailModal{{ $user->id }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Detail Akun</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Nama Lengkap</label>
+                    <div class="form-control bg-light">{{ $user->name }}</div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Email</label>
+                    <div class="form-control bg-light">{{ $user->email }}</div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Role</label>
+                    <div class="form-control bg-light">{{ $user->role === 'noc' ? 'NOC' : ucfirst($user->role) }}</div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Terdaftar</label>
+                    <div class="form-control bg-light">{{ $user->created_at->format('d M Y') }}</div>
+                </div>
+                <div class="mb-0">
+                    <label class="form-label fw-semibold">Password <small class="text-muted">(klik mata untuk melihat password asli)</small></label>
+                    <div class="input-group">
+                        <input type="password" class="form-control" id="pwOriginal{{ $user->id }}" value="••••••••••" data-url="{{ route('settings.users.password', $user) }}" data-loaded="0" readonly>
+                        <button type="button" class="btn btn-outline-secondary" onclick="revealPw({{ $user->id }})" title="Tampilkan Password Asli">
+                            <i class="fa-solid fa-eye" id="pwEye{{ $user->id }}"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-primary" onclick="copyPwOriginal({{ $user->id }})" title="Salin">
+                            <i class="fa-solid fa-copy"></i>
+                        </button>
+                    </div>
+                    <small class="text-muted" id="pwHint{{ $user->id }}">Password asli hanya bisa dilihat untuk akun yang dibuat/diubah setelah fitur ini aktif.</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+            </div>
         </div>
     </div>
 </div>
@@ -523,13 +586,15 @@
         const roleEl = document.getElementById('ucPreviewRole');
         if (role === 'admin') {
             roleEl.innerHTML = '<span class="badge" style="background:linear-gradient(135deg,#fef3c7,#fff7e6);color:#d97706;font-weight:600;font-size:0.68rem;padding:3px 10px;border-radius:999px;border:1px solid rgba(217,119,6,0.12);"><i class="fa-solid fa-crown" style="font-size:0.55rem;margin-right:2px;"></i>Administrator</span>';
+        } else if (role === 'noc') {
+            roleEl.innerHTML = '<span class="badge" style="background:linear-gradient(135deg,#ede9fe,#f3e8ff);color:#7c3aed;font-weight:600;font-size:0.68rem;padding:3px 10px;border-radius:999px;border:1px solid rgba(124,58,237,0.12);"><i class="fa-solid fa-satellite-dish" style="font-size:0.55rem;margin-right:2px;"></i>NOC</span>';
         } else {
             roleEl.innerHTML = '<span class="badge" style="background:linear-gradient(135deg,#f0fdf4,#ecfdf5);color:#059669;font-weight:600;font-size:0.68rem;padding:3px 10px;border-radius:999px;border:1px solid rgba(5,150,105,0.12);"><i class="fa-solid fa-wrench" style="font-size:0.55rem;margin-right:2px;"></i>Teknisi</span>';
         }
         /* Review */
         document.getElementById('ucRevName').textContent = name || '-';
         document.getElementById('ucRevEmail').textContent = email || '-';
-        document.getElementById('ucRevRole').textContent = role === 'admin' ? 'Administrator' : 'Teknisi';
+        document.getElementById('ucRevRole').textContent = role === 'admin' ? 'Administrator' : (role === 'noc' ? 'NOC' : 'Teknisi');
         /* Step completion */
         if (name && email) ucSetStep(Math.max(currentStep, 1));
     };
@@ -666,6 +731,47 @@
         document.getElementById('ucPwStrength').style.display = 'none';
         ucUpdatePreview();
         ucSetStep(1);
+    };
+    /* ─── Detail Modal: Reveal Original Password (AJAX) & Copy ─── */
+    window.revealPw = function(id) {
+        const input = document.getElementById('pwOriginal' + id);
+        if (!input) return;
+        const eye = document.getElementById('pwEye' + id);
+        const hint = document.getElementById('pwHint' + id);
+        if (input.dataset.loaded === '1') {
+            const isPassword = input.type === 'password';
+            input.type = isPassword ? 'text' : 'password';
+            eye.classList.toggle('fa-eye', !isPassword);
+            eye.classList.toggle('fa-eye-slash', isPassword);
+            return;
+        }
+        input.value = 'Memuat...';
+        fetch(input.dataset.url)
+            .then(r => r.json())
+            .then(data => {
+                input.dataset.loaded = '1';
+                if (data.password) {
+                    input.value = data.password;
+                    input.type = 'text';
+                    eye.classList.replace('fa-eye', 'fa-eye-slash');
+                    if (hint) hint.textContent = 'Password asli untuk akun ini.';
+                } else {
+                    input.value = data.message || 'Tidak tersedia';
+                    eye.classList.replace('fa-eye', 'fa-eye-slash');
+                }
+            })
+            .catch(() => {
+                input.value = 'Gagal memuat password';
+            });
+    };
+    window.copyPwOriginal = function(id) {
+        const input = document.getElementById('pwOriginal' + id);
+        if (!input) return;
+        const btn = input.parentElement.querySelector('button:last-child');
+        navigator.clipboard.writeText(input.value).then(() => {
+            btn.innerHTML = '<i class="fa-solid fa-check"></i>';
+            setTimeout(() => { btn.innerHTML = '<i class="fa-solid fa-copy"></i>'; }, 1500);
+        });
     };
     /* ─── Auto-show create mode if there are validation errors on name/email ─── */
     @error('name') showCreateMode(); @enderror
