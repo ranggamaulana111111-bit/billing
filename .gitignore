@@ -24,8 +24,7 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 
-# Sensitive
-vercel.json
+# Sensitive (vercel.json is committed WITHOUT secrets; secrets live in Vercel Env Vars)
 checker.md
 _check.php
 check_cols.php
