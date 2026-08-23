@@ -42,7 +42,7 @@ class FeaturesController extends Controller
         $user = auth()->user();
         $role = $user->role;
         $perms = (array) ($user->permissions ?? []);
-        $hasPanelFtth = in_array($role, ['admin', 'teknisi']) || ! empty($perms['panel_ftth']);
+        $hasPanelFtth = in_array($role, ['admin', 'superadmin', 'teknisi', 'noc']) || ! empty($perms['panel_ftth']);
         abort_unless($hasPanelFtth, 403);
 
         $routers = MikrotikRouter::where('is_active', true)->get();
