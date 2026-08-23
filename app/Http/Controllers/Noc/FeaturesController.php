@@ -2075,7 +2075,17 @@ class FeaturesController extends Controller
             }
         }
 
-        return $device->status ?? 'offline';
+        /* Perangkat tanpa parent OLT terpoll (ditambah manual di peta, mis. OLT/OTB/ODC
+           yang belum punya backend Olt) dianggap ONLINE secara default, bukan offline.
+           Untuk tipe OLT, cek model Olt bila ada agar konsisten dengan card Sync OLT. */
+        if (strtolower($device->type) === 'olt') {
+            $oltModel = Olt::where('name', $device->name)->first();
+            if ($oltModel) {
+                return $oltModel->connection_status === 'offline' ? 'offline' : 'online';
+            }
+        }
+
+        return $device->status ?? 'online';
     }
 
     public function odcStats(int $id): JsonResponse
