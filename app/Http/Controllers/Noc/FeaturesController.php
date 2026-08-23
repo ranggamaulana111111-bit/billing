@@ -850,7 +850,7 @@ class FeaturesController extends Controller
         }
 
         $olt = $this->resolveOltModelForDevice($device);
-        $online = $olt !== null && $olt->connection_status === 'online';
+        $online = $olt !== null && $olt->connection_status !== 'offline';
 
         $bwDown = null;
         $bwUp = null;
@@ -1776,7 +1776,7 @@ class FeaturesController extends Controller
         }
         $oltStatusMap = [];
         foreach (Olt::all() as $olt) {
-            $oltStatusMap[$olt->name] = $olt->connection_status === 'online';
+            $oltStatusMap[$olt->name] = $olt->connection_status;
         }
 
         $allDevices->each(function ($m) use (&$markers, $allDevicesByName, $oltStatusMap) {
@@ -1872,7 +1872,7 @@ class FeaturesController extends Controller
         }
         $oltStatusMapDev = [];
         foreach (Olt::all() as $oo) {
-            $oltStatusMapDev[$oo->name] = $oo->connection_status === 'online';
+            $oltStatusMapDev[$oo->name] = $oo->connection_status;
         }
         /* Index device ONU per pppoe_user & nama ternormalisasi: pelanggan
            (PPPoE maupun hotspot) yang ONU-nya sudah ada di peta mengikuti
@@ -2041,10 +2041,14 @@ class FeaturesController extends Controller
             if ($parentType === 'olt') {
                 /* Check olts table first, then devices table */
                 if (isset($oltStatusMap[$parentName])) {
-                    return $oltStatusMap[$parentName] ? 'online' : 'offline';
+                    /* Only an explicitly confirmed 'offline' means down;
+                       'unknown'/unpolled or 'online' are treated reachable so
+                       dependents (ODC/ODP/ONU) stay consistent with the live
+                       traffic that flows on-demand via MikroTik. */
+                    return $oltStatusMap[$parentName] === 'offline' ? 'offline' : 'online';
                 }
                 if (isset($allDevicesByName[$parentName]) && $allDevicesByName[$parentName]->type === 'olt') {
-                    return $allDevicesByName[$parentName]->status === 'online' ? 'online' : 'offline';
+                    return $allDevicesByName[$parentName]->status === 'offline' ? 'offline' : 'online';
                 }
 
                 /* Not found → OLT assumed online (if not explicitly tracked) */
@@ -2314,7 +2318,7 @@ class FeaturesController extends Controller
         }
         $oltStatusMap = [];
         foreach (Olt::all() as $olt) {
-            $oltStatusMap[$olt->name] = $olt->connection_status === 'online';
+            $oltStatusMap[$olt->name] = $olt->connection_status;
         }
         $resolvedStatus = self::resolveDeviceStatus($device, $allDevicesByName, $oltStatusMap);
 
@@ -2455,7 +2459,7 @@ class FeaturesController extends Controller
         }
         $oltStatusMap = [];
         foreach (Olt::all() as $olt) {
-            $oltStatusMap[$olt->name] = $olt->connection_status === 'online';
+            $oltStatusMap[$olt->name] = $olt->connection_status;
         }
         $resolvedStatus = self::resolveDeviceStatus($device, $allDevicesByName, $oltStatusMap);
 
