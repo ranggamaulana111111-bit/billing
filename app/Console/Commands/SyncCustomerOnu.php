@@ -73,6 +73,7 @@ class SyncCustomerOnu extends Command
                         'slot_number' => $port->slot_number,
                         'port_number' => $port->port_number,
                         'last_seen_at' => $session ? now() : null,
+                        'odp_port_id' => $customer->odp_port_id,
                     ]
                 );
 
@@ -85,7 +86,11 @@ class SyncCustomerOnu extends Command
                         ->first();
 
                     if ($oltOnu) {
-                        $oltOnu->update(['customer_id' => $customer->id]);
+                        $updateData = ['customer_id' => $customer->id];
+                        if ($customer->odp_port_id) {
+                            $updateData['odp_port_id'] = $customer->odp_port_id;
+                        }
+                        $oltOnu->update($updateData);
                         $linked++;
                     }
                 }

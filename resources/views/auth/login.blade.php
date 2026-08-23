@@ -81,22 +81,22 @@
                 @csrf
 
                 <div class="auth-field">
-                    <label for="email">Email</label>
+                    <label for="username">Username</label>
                     <div class="auth-input-wrap">
-                        <i class="fa-solid fa-envelope auth-input-icon"></i>
+                        <i class="fa-solid fa-user auth-input-icon"></i>
                         <input
-                            type="email"
-                            name="email"
-                            id="email"
-                            class="auth-input @error('email') is-invalid @enderror"
-                            value="{{ old('email') }}"
-                            placeholder="admin@alkonek.net"
+                            type="text"
+                            name="username"
+                            id="username"
+                            class="auth-input @error('username') is-invalid @enderror"
+                            value="{{ old('username') }}"
+                            placeholder="admin"
                             required
                             autofocus
                             autocomplete="username"
                         >
                     </div>
-                    @error('email')
+                    @error('username')
                         <div class="auth-error"><i class="fa-solid fa-circle-exclamation"></i> {{ $message }}</div>
                     @enderror
                 </div>

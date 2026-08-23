@@ -55,6 +55,11 @@ class Customer extends Model
         return $this->hasMany(Onu::class);
     }
 
+    public function mikrotikOnus()
+    {
+        return $this->hasMany(Onu::class)->where('onu_id', 'like', 'mikrotik-%');
+    }
+
     public function getActiveInvoiceAttribute(): ?Invoice
     {
         return $this->invoices()->where('payment_status', 'unpaid')->latest()->first();

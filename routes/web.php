@@ -295,17 +295,23 @@ Route::middleware(['auth', 'teknisi'])->group(function () {
     // Route::get('/noc/traffic-analyzer', [NocController::class, 'trafficAnalyzer'])->name('noc.traffic-analyzer');
 
     // ── NOC DASHBOARD ──
-    Route::middleware(['auth', 'noc'])->group(function () {
+    Route::middleware(['auth', 'teknisi'])->group(function () {
         Route::get('/noc/dashboard', [NocDashboardController::class, 'index'])->name('noc.dashboard');
         Route::get('/noc/features/map', [FeaturesController::class, 'map'])->name('noc.features.map');
         Route::get('/noc/features/map/search', [FeaturesController::class, 'search'])->name('noc.features.map.search');
         Route::get('/noc/features/map/mikrotik', [FeaturesController::class, 'mikrotikList'])->name('noc.features.map.mikrotik');
+        Route::get('/noc/features/map/mikrotik/wan-traffic', [FeaturesController::class, 'mikrotikWanTraffic'])->name('noc.features.map.mikrotik.wan-traffic');
+        Route::get('/noc/features/map/hotspot-tower-traffic', [FeaturesController::class, 'hotspotTowerTraffic'])->name('noc.features.map.hotspot-tower-traffic');
         Route::post('/noc/features/map/mikrotik/save', [FeaturesController::class, 'mikrotikSave'])->name('noc.features.map.mikrotik.save');
         Route::post('/noc/features/map/mikrotik/connect', [FeaturesController::class, 'mikrotikConnect'])->name('noc.features.map.mikrotik.connect');
         Route::post('/noc/features/map/mikrotik/sync-all', [FeaturesController::class, 'mikrotikSyncAll'])->name('noc.features.map.mikrotik.sync-all');
         Route::get('/noc/features/map/mikrotik/pppoe', [FeaturesController::class, 'mikrotikPppoe'])->name('noc.features.map.mikrotik.pppoe');
+        Route::get('/noc/features/map/mikrotik/pppoe-session', [FeaturesController::class, 'pppoeSession'])->name('noc.features.map.mikrotik.pppoe-session');
+        Route::get('/noc/features/map/hotspot', [FeaturesController::class, 'hotspotList'])->name('noc.features.map.hotspot');
         Route::post('/noc/features/map/mikrotik/delete', [FeaturesController::class, 'mikrotikDelete'])->name('noc.features.map.mikrotik.delete');
         Route::get('/noc/features/map/olt', [FeaturesController::class, 'oltList'])->name('noc.features.map.olt');
+        Route::get('/noc/features/map/olt/pon-traffic', [FeaturesController::class, 'oltPonTraffic'])->name('noc.features.map.olt.pon-traffic');
+        Route::get('/noc/features/map/olt-live/{id}', [FeaturesController::class, 'oltLive'])->name('noc.features.map.olt-live');
         Route::post('/noc/features/map/olt/save', [FeaturesController::class, 'oltSave'])->name('noc.features.map.olt.save');
         Route::post('/noc/features/map/olt/connect', [FeaturesController::class, 'oltConnect'])->name('noc.features.map.olt.connect');
         Route::post('/noc/features/map/olt/sync-all', [FeaturesController::class, 'oltSyncAll'])->name('noc.features.map.olt.sync-all');
@@ -316,6 +322,10 @@ Route::middleware(['auth', 'teknisi'])->group(function () {
 
         Route::get('/noc/features/map/notif/config', [FeaturesController::class, 'notifConfig'])->name('noc.features.map.notif.config');
         Route::post('/noc/features/map/notif/save', [FeaturesController::class, 'notifSave'])->name('noc.features.map.notif.save');
+
+        Route::get('/noc/features/map/users', [FeaturesController::class, 'usersConfig'])->name('noc.features.map.users');
+        Route::post('/noc/features/map/users/save', [FeaturesController::class, 'usersSave'])->name('noc.features.map.users.save');
+        Route::post('/noc/features/map/users/delete', [FeaturesController::class, 'usersDelete'])->name('noc.features.map.users.delete');
 
         Route::get('/noc/features/map/backup/config', [FeaturesController::class, 'backupConfig'])->name('noc.features.map.backup.config');
 
@@ -336,24 +346,36 @@ Route::middleware(['auth', 'teknisi'])->group(function () {
         Route::get('/noc/features/map/markers', [FeaturesController::class, 'mapMarkers'])->name('noc.features.map.markers');
 
         Route::get('/noc/features/map/device', [FeaturesController::class, 'deviceList'])->name('noc.features.map.device');
+        Route::get('/noc/features/map/odc-stats/{id}', [FeaturesController::class, 'odcStats'])->name('noc.features.map.odc-stats');
+        Route::get('/noc/features/map/odp-stats/{id}', [FeaturesController::class, 'odpStats'])->name('noc.features.map.odp-stats');
 
         Route::get('/noc/features/map/device/parents', [FeaturesController::class, 'deviceParents'])->name('noc.features.map.device.parents');
 
         Route::post('/noc/features/map/device/save', [FeaturesController::class, 'deviceSave'])->name('noc.features.map.device.save');
 
+        Route::post('/noc/features/map/device/cable', [FeaturesController::class, 'deviceCableSave'])->name('noc.features.map.device.cable');
+
         Route::post('/noc/features/map/device/status', [FeaturesController::class, 'deviceStatus'])->name('noc.features.map.device.status');
 
         Route::post('/noc/features/map/device/delete', [FeaturesController::class, 'deviceDelete'])->name('noc.features.map.device.delete');
+        Route::post('/noc/features/map/device/delete-all', [FeaturesController::class, 'deviceDeleteAll'])->name('noc.features.map.device.delete-all');
+        Route::post('/noc/features/map/customer/delete', [FeaturesController::class, 'customerDelete'])->name('noc.features.map.customer.delete');
+        Route::post('/noc/features/map/customer/delete-all', [FeaturesController::class, 'customerDeleteAll'])->name('noc.features.map.customer.delete-all');
 
         Route::get('/noc/features/map/customer/detail', [FeaturesController::class, 'customerDetail'])->name('noc.features.map.customer.detail');
 
         Route::post('/noc/features/map/customer/ping', [FeaturesController::class, 'customerPing'])->name('noc.features.map.customer.ping');
 
         Route::post('/noc/features/map/customer/acs', [FeaturesController::class, 'customerAcs'])->name('noc.features.map.customer.acs');
+        Route::post('/noc/features/map/customer/acs/set', [FeaturesController::class, 'customerAcsSet'])->name('noc.features.map.customer.acs.set');
 
         Route::post('/noc/features/map/customer/duplicate', [FeaturesController::class, 'customerDuplicate'])->name('noc.features.map.customer.duplicate');
 
         Route::post('/noc/features/map/onu/reboot', [FeaturesController::class, 'onuReboot'])->name('noc.features.map.onu.reboot');
+
+        Route::get('/noc/features/map/onu-table', [FeaturesController::class, 'onuTable'])->name('noc.features.map.onu-table');
+        Route::get('/noc/features/map/onu-table/print', [FeaturesController::class, 'onuTablePrint'])->name('noc.features.map.onu-table.print');
+        Route::get('/noc/features/map/onu-table/export', [FeaturesController::class, 'onuTableExport'])->name('noc.features.map.onu-table.export');
     });
 
     // ── GENIEACS (hidden per request, MikroTik-related) ──

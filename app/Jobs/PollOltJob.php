@@ -174,7 +174,10 @@ class PollOltJob implements ShouldQueue
                 continue;
             }
 
-            $onu->update(['customer_id' => $customer->id]);
+            $onu->update([
+                'customer_id' => $customer->id,
+                'odp_port_id' => $onu->odp_port_id ?? $customer->odp_port_id,
+            ]);
             $linked++;
         }
 
@@ -431,6 +434,7 @@ class PollOltJob implements ShouldQueue
                         'slot_number' => $firstPort->slot_number,
                         'port_number' => $firstPort->port_number,
                         'last_seen_at' => now(),
+                        'odp_port_id' => $customer->odp_port_id,
                     ]
                 );
 

@@ -57,6 +57,7 @@
         <div class="v4-hero-right">
             <a href="{{ route('customer.create') }}" class="v4-btn v4-btn-primary"><i class="fa-solid fa-user-plus"></i> Pasang Baru</a>
             <a href="{{ route('invoices.create') }}" class="v4-btn v4-btn-success"><i class="fa-solid fa-file-invoice"></i> Buat Tagihan</a>
+            <a href="{{ route('noc.features.map') }}" class="v4-btn v4-btn-ghost" title="Panel FTTH"><i class="fa-solid fa-map-location-dot"></i> Panel FTTH</a>
             <button type="button" class="v4-btn v4-btn-ghost" onclick="window.location.reload()" title="Refresh"><i class="fa-solid fa-arrows-rotate"></i></button>
             <a href="{{ route('customers.index') }}" class="v4-btn v4-btn-ghost" title="Pelanggan"><i class="fa-solid fa-users"></i></a>
             {{-- <a href="{{ route('noc.mikrotik.dashboard') }}" class="v4-btn v4-btn-ghost" title="Monitoring"><i class="fa-solid fa-network-wired"></i></a> --}}

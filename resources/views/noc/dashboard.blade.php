@@ -76,6 +76,7 @@
     </div>
     <div style="display:flex;align-items:center;gap:10px;">
         <span class="noc-live"><span class="noc-dot ping" style="background:#22c55e;"></span> Real-time Monitoring Aktif</span>
+        <a href="{{ route('noc.features.map') }}" class="btn btn-sm btn-light"><i class="fa-solid fa-map-location-dot me-1"></i>Panel FTTH</a>
         <button type="button" class="btn btn-sm btn-light" onclick="window.location.reload()"><i class="fa-solid fa-arrows-rotate me-1"></i>Refresh</button>
     </div>
 </div>

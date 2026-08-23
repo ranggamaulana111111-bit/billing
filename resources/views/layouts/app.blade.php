@@ -568,43 +568,40 @@
             </div>
 
             <div class="sidebar-footer" style="display:flex;flex-direction:column;">
-                @auth
-                <div style="display:flex;align-items:center;gap:10px;color:rgba(255,255,255,0.6);text-decoration:none;font-size:12px;padding:8px 0;">
-                    <div style="width:28px;height:28px;background:var(--primary);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                        <i class="fa-solid fa-user" style="color:#fff;font-size:11px;"></i>
-                    </div>
-                    <div style="flex:1;min-width:0;">
-                        <div style="font-weight:600;color:rgba(255,255,255,0.85);">{{ Auth::user()->name }}</div>
-                        <div style="font-size:10px;color:rgba(255,255,255,0.35);">{{ Auth::user()->email }}</div>
-                    </div>
-                    <form method="POST" action="{{ route('logout') }}" style="margin:0;">
-                        @csrf
-                        <button type="submit" style="background:none;border:none;color:rgba(255,255,255,0.35);padding:4px;" title="Keluar">
-                            <i class="fa-solid fa-right-from-bracket"></i>
-                        </button>
-                    </form>
-                </div>
                 <div class="dev-credit" style="text-align:center;font-size:9px;color:rgba(255,255,255,0.35);padding-top:8px;margin-top:auto;line-height:1.6;white-space:nowrap;overflow:hidden;text-overflow:clip;">
                     Developed by: <a href="https://www.instagram.com/rangga.mrw" target="_blank" rel="noopener" style="color:var(--primary);font-weight:600;text-decoration:none;">Rangga</a>
                     <span style="color:rgba(255,255,255,0.25);"> · Refactor: </span><a href="https://www.instagram.com/faisal_alqodar/" target="_blank" rel="noopener" style="color:var(--primary);font-weight:400;text-decoration:none;">Alko</a>
                 </div>
-                @else
-                <div style="display:flex;gap:8px;">
-                    <a href="{{ route('login') }}" style="flex:1;text-align:center;padding:8px;border-radius:8px;background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.6);text-decoration:none;font-size:12px;font-weight:500;">
-                        <i class="fa-solid fa-right-to-bracket me-1"></i>Masuk
-                    </a>
-                    <a href="{{ route('register') }}" style="flex:1;text-align:center;padding:8px;border-radius:8px;background:var(--primary);color:#fff;text-decoration:none;font-size:12px;font-weight:500;">
-                        <i class="fa-solid fa-user-plus me-1"></i>Daftar
-                    </a>
-                </div>
-                @endauth
             </div>
             <div class="sidebar-resizer" id="sidebarResizer" title="Geser untuk mengubah lebar sidebar"></div>
         </nav>
         @endif
 
-        <div id="content">
-            @yield('content')
+        <div class="content-area">
+            @auth
+            <div class="top-navbar">
+                <div class="top-navbar-right">
+                    <div class="top-navbar-user">
+                        <div class="top-navbar-avatar">
+                            <i class="fa-solid fa-user"></i>
+                        </div>
+                        <div class="top-navbar-info">
+                            <span class="top-navbar-name">{{ Auth::user()->name }}</span>
+                            <span class="top-navbar-role">{{ ucfirst(Auth::user()->role) }}</span>
+                        </div>
+                    </div>
+                    <form method="POST" action="{{ route('logout') }}" style="margin:0;">
+                        @csrf
+                        <button type="submit" class="top-navbar-logout" title="Keluar">
+                            <i class="fa-solid fa-right-from-bracket"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+            @endauth
+            <div id="content">
+                @yield('content')
+            </div>
         </div>
     </div>
 

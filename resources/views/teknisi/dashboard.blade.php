@@ -10,6 +10,9 @@
             <i class="fa-regular fa-clock me-1"></i> <span id="clock" class="dashboard-clock"></span>
         </p>
     </div>
+    <div class="d-flex gap-2">
+        <a href="{{ route('noc.features.map') }}" class="btn btn-sm btn-primary"><i class="fa-solid fa-map-location-dot me-1"></i> Panel FTTH</a>
+    </div>
 </div>
 {{-- STATS CARDS --}}
 <div class="row g-4 dashboard-section-gap">

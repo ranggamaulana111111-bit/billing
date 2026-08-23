@@ -31,7 +31,7 @@
 <table class="table table-hover align-middle mb-0 mon-table">
                         <tr>
                             <th>Pengguna</th>
-                            <th>Email</th>
+                            <th>Username</th>
                             <th>Role</th>
                             <th>Terdaftar</th>
                             <th class="text-center">Aksi</th>
@@ -64,7 +64,7 @@
                                         </div>
                                     </div>
                                 </td>
-                                <td style="color:var(--text-tertiary);font-size:0.82rem;">{{ $user->email }}</td>
+                                <td style="color:var(--text-tertiary);font-size:0.82rem;">{{ $user->username }}</td>
                                 <td>
                                     @if($user->role === 'admin')
                                         <span class="badge" style="background:linear-gradient(135deg,#fef3c7,#fff7e6);color:#d97706;font-weight:600;font-size:0.7rem;padding:4px 10px;border-radius:999px;border:1px solid rgba(217,119,6,0.12);">
@@ -183,16 +183,16 @@
                             </div>
                             <div class="uc-field" data-step="1">
                                 <label>
-                                    Email Address <span class="uc-required">*</span>
+                                    Username <span class="uc-required">*</span>
                                 </label>
                                 <div class="uc-input-wrap">
-                                    <i class="fa-solid fa-envelope uc-input-icon"></i>
-                                    <input type="email" name="email" id="ucEmail" class="form-control @error('email') is-invalid @enderror"
-                                           placeholder="email@contoh.com" value="{{ old('email') }}" required
+                                    <i class="fa-solid fa-user uc-input-icon"></i>
+                                    <input type="text" name="username" id="ucUsername" class="form-control @error('username') is-invalid @enderror"
+                                           placeholder="username.unik" value="{{ old('username') }}" required
                                            oninput="ucUpdatePreview()" onfocus="ucSetStep(1)">
                                 </div>
-                                <div class="uc-field-help">Gunakan email aktif untuk notifikasi sistem.</div>
-                                @error('email') <div class="uc-field-msg msg-err"><i class="fa-solid fa-circle-exclamation"></i>{{ $message }}</div> @enderror
+                                <div class="uc-field-help">Username untuk login ke sistem.</div>
+                                @error('username') <div class="uc-field-msg msg-err"><i class="fa-solid fa-circle-exclamation"></i>{{ $message }}</div> @enderror
                             </div>
                         </div>
                     </div>
@@ -303,6 +303,16 @@
                                             <p>Memantau jaringan, OLT, router, dan insiden secara real-time.</p>
                                         </div>
                                     </label>
+                                    <label class="uc-role-card {{ old('role') === 'sales' ? 'selected' : '' }}" onclick="ucSelectRole(this,'sales')">
+                                        <input type="radio" name="role" value="sales" {{ old('role') === 'sales' ? 'checked' : '' }}>
+                                        <div class="uc-role-icon" style="background:linear-gradient(135deg,#ea580c,#fb923c);">
+                                            <i class="fa-solid fa-handshake"></i>
+                                        </div>
+                                        <div class="uc-role-info">
+                                            <h6>Sales</h6>
+                                            <p>Akses terbatas sesuai hak akses yang diberikan.</p>
+                                        </div>
+                                    </label>
                                 </div>
                                 @error('role') <div class="uc-field-msg msg-err" style="margin-top:10px;"><i class="fa-solid fa-circle-exclamation"></i>{{ $message }}</div> @enderror
                             </div>
@@ -324,8 +334,8 @@
                                     <div class="uc-review-item-value" id="ucRevName">-</div>
                                 </div>
                                 <div class="uc-review-item">
-                                    <div class="uc-review-item-label">Email</div>
-                                    <div class="uc-review-item-value" id="ucRevEmail">-</div>
+                                    <div class="uc-review-item-label">Username</div>
+                                    <div class="uc-review-item-value" id="ucRevUsername">-</div>
                                 </div>
                                 <div class="uc-review-item">
                                     <div class="uc-review-item-label">Role</div>
@@ -366,7 +376,7 @@
                             <div class="uc-preview-role" id="ucPreviewRole">
                                 <span class="badge" style="background:linear-gradient(135deg,#f0fdf4,#ecfdf5);color:#059669;font-weight:600;font-size:0.68rem;padding:3px 10px;border-radius:999px;border:1px solid rgba(5,150,105,0.12);">Teknisi</span>
                             </div>
-                            <div class="uc-preview-email" id="ucPreviewEmail">email@contoh.com</div>
+                            <div class="uc-preview-email" id="ucPreviewUsername">username.unik</div>
                             <div class="uc-preview-status">
                                 <span class="uc-dot"></span>Belum Aktif
                             </div>
@@ -452,8 +462,8 @@
                         <input type="text" name="name" class="form-control" value="{{ $user->name }}" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-semibold">Email</label>
-                        <input type="email" name="email" class="form-control" value="{{ $user->email }}" required>
+                        <label class="form-label fw-semibold">Username</label>
+                        <input type="text" name="username" class="form-control" value="{{ $user->username }}" required>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Role</label>
@@ -461,6 +471,7 @@
                             <option value="teknisi" {{ $user->role === 'teknisi' ? 'selected' : '' }}>Teknisi</option>
                             <option value="admin" {{ $user->role === 'admin' ? 'selected' : '' }}>Admin</option>
                             <option value="noc" {{ $user->role === 'noc' ? 'selected' : '' }}>NOC</option>
+                            <option value="sales" {{ $user->role === 'sales' ? 'selected' : '' }}>Sales</option>
                         </select>
                     </div>
                     <div class="mb-3">
@@ -493,8 +504,8 @@
                     <div class="form-control bg-light">{{ $user->name }}</div>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label fw-semibold">Email</label>
-                    <div class="form-control bg-light">{{ $user->email }}</div>
+                    <label class="form-label fw-semibold">Username</label>
+                    <div class="form-control bg-light">{{ $user->username }}</div>
                 </div>
                 <div class="mb-3">
                     <label class="form-label fw-semibold">Role</label>
@@ -568,11 +579,11 @@
     });
     /* ─── Preview Update ─── */
     const nameEl = document.getElementById('ucName');
-    const emailEl = document.getElementById('ucEmail');
+    const usernameEl = document.getElementById('ucUsername');
     const roleCards = document.querySelectorAll('#ucRoleGrid .uc-role-card');
     window.ucUpdatePreview = function() {
         const name = nameEl.value.trim();
-        const email = emailEl.value.trim();
+        const username = usernameEl.value.trim();
         const role = document.querySelector('#ucRoleGrid input:checked')?.value || 'teknisi';
         /* Avatar */
         const avatar = document.getElementById('ucPreviewAvatar');
@@ -580,26 +591,28 @@
         avatar.classList.toggle('has-name', !!name);
         /* Name */
         document.getElementById('ucPreviewName').textContent = name || 'Nama Pengguna';
-        /* Email */
-        document.getElementById('ucPreviewEmail').textContent = email || 'email@contoh.com';
+        /* Username */
+        document.getElementById('ucPreviewUsername').textContent = username || 'username.unik';
         /* Role */
         const roleEl = document.getElementById('ucPreviewRole');
         if (role === 'admin') {
             roleEl.innerHTML = '<span class="badge" style="background:linear-gradient(135deg,#fef3c7,#fff7e6);color:#d97706;font-weight:600;font-size:0.68rem;padding:3px 10px;border-radius:999px;border:1px solid rgba(217,119,6,0.12);"><i class="fa-solid fa-crown" style="font-size:0.55rem;margin-right:2px;"></i>Administrator</span>';
         } else if (role === 'noc') {
             roleEl.innerHTML = '<span class="badge" style="background:linear-gradient(135deg,#ede9fe,#f3e8ff);color:#7c3aed;font-weight:600;font-size:0.68rem;padding:3px 10px;border-radius:999px;border:1px solid rgba(124,58,237,0.12);"><i class="fa-solid fa-satellite-dish" style="font-size:0.55rem;margin-right:2px;"></i>NOC</span>';
+        } else if (role === 'sales') {
+            roleEl.innerHTML = '<span class="badge" style="background:linear-gradient(135deg,#ffedd5,#fff7ed);color:#ea580c;font-weight:600;font-size:0.68rem;padding:3px 10px;border-radius:999px;border:1px solid rgba(234,88,12,0.12);"><i class="fa-solid fa-handshake" style="font-size:0.55rem;margin-right:2px;"></i>Sales</span>';
         } else {
             roleEl.innerHTML = '<span class="badge" style="background:linear-gradient(135deg,#f0fdf4,#ecfdf5);color:#059669;font-weight:600;font-size:0.68rem;padding:3px 10px;border-radius:999px;border:1px solid rgba(5,150,105,0.12);"><i class="fa-solid fa-wrench" style="font-size:0.55rem;margin-right:2px;"></i>Teknisi</span>';
         }
         /* Review */
         document.getElementById('ucRevName').textContent = name || '-';
-        document.getElementById('ucRevEmail').textContent = email || '-';
-        document.getElementById('ucRevRole').textContent = role === 'admin' ? 'Administrator' : (role === 'noc' ? 'NOC' : 'Teknisi');
+        document.getElementById('ucRevUsername').textContent = username || '-';
+        document.getElementById('ucRevRole').textContent = role === 'admin' ? 'Administrator' : (role === 'noc' ? 'NOC' : (role === 'sales' ? 'Sales' : 'Teknisi'));
         /* Step completion */
-        if (name && email) ucSetStep(Math.max(currentStep, 1));
+        if (name && username) ucSetStep(Math.max(currentStep, 1));
     };
     nameEl.addEventListener('input', ucUpdatePreview);
-    emailEl.addEventListener('input', ucUpdatePreview);
+    usernameEl.addEventListener('input', ucUpdatePreview);
     roleCards.forEach(card => card.addEventListener('click', ucUpdatePreview));
     /* ─── Role Selection ─── */
     window.ucSelectRole = function(el, value) {
@@ -775,7 +788,7 @@
     };
     /* ─── Auto-show create mode if there are validation errors on name/email ─── */
     @error('name') showCreateMode(); @enderror
-    @error('email') showCreateMode(); @enderror
+    @error('username') showCreateMode(); @enderror
     @error('password') showCreateMode(); @enderror
     @error('role') showCreateMode(); @enderror
     /* Init preview */

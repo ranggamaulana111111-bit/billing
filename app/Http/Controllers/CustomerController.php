@@ -906,6 +906,8 @@ class CustomerController extends Controller
             'odp_id' => $odp->id,
             'odp_port_id' => $port->id,
         ]);
+
+        $customer->onus()->whereNotNull('customer_id')->update(['odp_port_id' => $port->id]);
     }
 
     public function printThermal(Customer $customer)

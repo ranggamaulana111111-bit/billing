@@ -20,20 +20,21 @@ class RegisterController extends Controller
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
+            'username' => ['required', 'string', 'max:60', 'unique:users'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
 
         $user = User::create([
             'name' => $data['name'],
-            'email' => $data['email'],
+            'username' => $data['username'],
+            'email' => null,
             'password' => Hash::make($data['password']),
             'password_plain' => $data['password'],
         ]);
 
         Auth::login($user->fresh());
 
-        ActivityLog::log('Register', 'User '.$user->email.' terdaftar dan masuk');
+        ActivityLog::log('Register', 'User '.$user->username.' terdaftar dan masuk');
 
         $dashboard = match (auth()->user()->role) {
             'teknisi' => '/teknisi/dashboard',

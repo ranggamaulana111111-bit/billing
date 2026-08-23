@@ -17,13 +17,13 @@ class LoginController extends Controller
     public function login(Request $request)
     {
         $credentials = $request->validate([
-            'email' => ['required', 'string', 'email'],
+            'username' => ['required', 'string'],
             'password' => ['required', 'string'],
         ]);
 
         if (Auth::attempt($credentials, $request->boolean('remember'))) {
             $request->session()->regenerate();
-            ActivityLog::log('Login', 'User '.Auth::user()->email.' masuk');
+            ActivityLog::log('Login', 'User '.Auth::user()->username.' masuk');
 
             $dashboard = match (Auth::user()->role) {
                 'teknisi' => '/teknisi/dashboard',
@@ -35,8 +35,8 @@ class LoginController extends Controller
         }
 
         return back()->withErrors([
-            'email' => 'Email atau kata sandi salah.',
-        ])->onlyInput('email');
+            'username' => 'Username atau kata sandi salah.',
+        ])->onlyInput('username');
     }
 
     public function logout(Request $request)

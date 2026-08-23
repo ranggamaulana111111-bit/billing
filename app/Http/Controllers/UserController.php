@@ -20,20 +20,24 @@ class UserController extends Controller
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
+            'username' => ['required', 'string', 'max:60', 'unique:users'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'role' => ['required', 'in:admin,teknisi,noc'],
+            'role' => ['required', 'in:admin,teknisi,noc,sales'],
         ]);
 
         User::create([
             'name' => $data['name'],
-            'email' => $data['email'],
+            'username' => $data['username'],
+            'email' => null,
             'password' => Hash::make($data['password']),
             'password_plain' => $data['password'],
             'role' => $data['role'],
+            'permissions' => in_array($data['role'], ['admin', 'teknisi', 'noc'])
+                ? ['edit_map' => true, 'sync_mikrotik' => true, 'sync_olt' => true, 'sync_genieacs' => true, 'ganti_wifi' => true, 'import_export' => true]
+                : ['edit_map' => false, 'sync_mikrotik' => false, 'sync_olt' => false, 'sync_genieacs' => false, 'ganti_wifi' => false, 'import_export' => false],
         ]);
 
-        ActivityLog::log('Tambah User', 'User '.$data['email'].' ditambahkan sebagai '.$data['role']);
+        ActivityLog::log('Tambah User', 'User '.$data['username'].' ditambahkan sebagai '.$data['role']);
 
         return redirect()->route('settings.users')->with('success', 'Akun '.$data['role'].' berhasil ditambahkan.');
     }
@@ -42,14 +46,14 @@ class UserController extends Controller
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email,'.$user->id],
-            'role' => ['required', 'in:admin,teknisi,noc'],
+            'username' => ['required', 'string', 'max:60', 'unique:users,username,'.$user->id],
+            'role' => ['required', 'in:admin,teknisi,noc,sales'],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
         ]);
 
         $updateData = [
             'name' => $data['name'],
-            'email' => $data['email'],
+            'username' => $data['username'],
             'role' => $data['role'],
         ];
 
@@ -60,7 +64,7 @@ class UserController extends Controller
 
         $user->update($updateData);
 
-        ActivityLog::log('Ubah User', 'User '.$user->email.' diperbarui');
+        ActivityLog::log('Ubah User', 'User '.$user->username.' diperbarui');
 
         return redirect()->route('settings.users')->with('success', 'Akun berhasil diperbarui.');
     }
@@ -79,7 +83,7 @@ class UserController extends Controller
             return back()->with('error', 'Tidak dapat menghapus akun sendiri.');
         }
 
-        $email = $user->email;
+        $email = $user->username;
         $user->delete();
 
         ActivityLog::log('Hapus User', 'User '.$email.' dihapus');

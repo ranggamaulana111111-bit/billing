@@ -310,6 +310,77 @@ class CDataConnector implements OltConnector
     }
 
     /**
+     * Counter trafik interface PON (byte kumulatif) untuk grafik live.
+     * Perintah statistik hanya tersedia di dalam konteks
+     * `config -> interface gpon {frame}/{slot}`: `show statistics port {pon}`.
+     *
+     * @return array{rx_bytes: int, tx_bytes: int}|array{}
+     */
+    public function getPonTraffic(int $pon): array
+    {
+        try {
+            $this->enterConfigMode();
+            $this->sendCommand('interface gpon 0/0');
+            $this->inGponInterface = true;
+
+            $output = $this->sendCommand("show statistics port {$pon}");
+            $clean = $this->cleanOutput($output);
+
+            $this->logCli('GET_PON_TRAFFIC', $clean, [
+                'command' => "show statistics port {$pon}",
+                'pon' => $pon,
+            ]);
+
+            if ($clean === '' || preg_match('/(invalid|unrecognized|incomplete|%Error|no matched)/i', $clean)) {
+                return [];
+            }
+
+            $rx = null;
+            $tx = null;
+
+            // Pola berlabel: "Rx octets", "In bytes", "Received octets", dll.
+            if (preg_match('/(?:rx|in(?:put)?|received)[^\d]{0,24}(\d{4,})\s*(?:bytes|octets)/i', $clean, $m)) {
+                $rx = (int) $m[1];
+            }
+            if (preg_match('/(?:tx|out(?:put)?|sent|transmit\w*)[^\d]{0,24}(\d{4,})\s*(?:bytes|octets)/i', $clean, $m)) {
+                $tx = (int) $m[1];
+            }
+
+            // Pola tabel dua kolom angka besar (kolom pertama RX, kedua TX)
+            if ($rx === null && preg_match('/octets?\D{0,60}(\d{4,})\D{1,60}(\d{4,})/is', $clean, $m)) {
+                $rx = (int) $m[1];
+                $tx = (int) $m[2];
+            }
+            if (($rx === null || $tx === null) && preg_match('/(\d{6,})\D{1,40}(\d{6,})/', $clean, $m)) {
+                $rx = $rx ?? (int) $m[1];
+                $tx = $tx ?? (int) $m[2];
+            }
+
+            return ($rx !== null || $tx !== null)
+                ? ['rx_bytes' => $rx ?? 0, 'tx_bytes' => $tx ?? 0]
+                : [];
+        } catch (Exception $e) {
+            Log::error("C-Data getPonTraffic({$pon}) failed: {$e->getMessage()}");
+
+            return [];
+        } finally {
+            /* Selalu keluar dari konteks agar sesi bersih untuk poll berikutnya */
+            try {
+                if ($this->inGponInterface) {
+                    $this->sendCommand('exit');
+                    $this->inGponInterface = false;
+                }
+                if ($this->inConfigMode) {
+                    $this->sendCommand('exit');
+                    $this->inConfigMode = false;
+                }
+            } catch (\Throwable $e) {
+                // ignore cleanup errors
+            }
+        }
+    }
+
+    /**
      * Get optical power via config-gpon bulk query.
      *
      * Enters config → interface gpon {slot}/0 → show ont optical-info {port} all

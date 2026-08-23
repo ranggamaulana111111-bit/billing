@@ -18,6 +18,7 @@ class User extends Authenticatable
     protected $fillable = [
         'tenant_id',
         'name',
+        'username',
         'email',
         'password',
         'password_plain',
@@ -25,6 +26,7 @@ class User extends Authenticatable
         'provider_id',
         'avatar',
         'role',
+        'permissions',
     ];
 
     protected $hidden = [
@@ -39,7 +41,13 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'password_plain' => 'encrypted',
+            'permissions' => 'array',
         ];
+    }
+
+    public function username(): string
+    {
+        return 'username';
     }
 
     public function tenant(): BelongsTo
