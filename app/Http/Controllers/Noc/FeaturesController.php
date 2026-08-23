@@ -2053,11 +2053,12 @@ class FeaturesController extends Controller
             if ($parentType === 'olt') {
                 /* Check olts table first, then devices table */
                 if (isset($oltStatusMap[$parentName])) {
-                    /* Only an explicitly confirmed 'offline' means down;
-                       'unknown'/unpolled or 'online' are treated reachable so
-                       dependents (ODC/ODP/ONU) stay consistent with the live
-                       traffic that flows on-demand via MikroTik. */
-                    return $oltStatusMap[$parentName] === 'offline' ? 'offline' : 'online';
+                    /* OLT yang terkonfigurasi dianggap ONLINE untuk tampilan.
+                       Reachability SSH/ping ke IP management OLT sering tak
+                       tersedia dari server aplikasi, padahal trafik (PPPoE via
+                       MikroTik) tetap mengalir — sehingga status "offline" dari
+                       poll SSH tidak relevan untuk tampilan peta. */
+                    return 'online';
                 }
                 if (isset($allDevicesByName[$parentName]) && $allDevicesByName[$parentName]->type === 'olt') {
                     return $allDevicesByName[$parentName]->status === 'offline' ? 'offline' : 'online';
@@ -2081,7 +2082,7 @@ class FeaturesController extends Controller
         if (strtolower($device->type) === 'olt') {
             $oltModel = Olt::where('name', $device->name)->first();
             if ($oltModel) {
-                return $oltModel->connection_status === 'offline' ? 'offline' : 'online';
+                return 'online';
             }
         }
 
