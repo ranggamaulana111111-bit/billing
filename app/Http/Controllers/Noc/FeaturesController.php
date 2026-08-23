@@ -851,6 +851,7 @@ class FeaturesController extends Controller
 
         $olt = $this->resolveOltModelForDevice($device);
         $online = $olt !== null && $olt->connection_status !== 'offline';
+        $mikrotikUp = false;
 
         $bwDown = null;
         $bwUp = null;
@@ -874,6 +875,7 @@ class FeaturesController extends Controller
                     $cmd = new RouterCommandService($router);
                     $res = $cmd->getInterfaces();
                     if ($res->isSuccess() && is_array($res->getData())) {
+                        $mikrotikUp = true;
                         $inBytes = 0;
                         $outBytes = 0;
                         foreach ($res->getData() as $if) {
@@ -905,6 +907,16 @@ class FeaturesController extends Controller
                 Cache::forget($lockKey);
             }
             $rate = Cache::get($rateKey);
+        }
+
+        /* Status OLT mengikuti trafik live: bila MikroTik reachable dan PPPoE
+           mengalir, OLT dianggap ONLINE meski poll SSH/ping management IP gagal
+           (IP management OLT sering tak reachable dari server aplikasi). */
+        if ($mikrotikUp) {
+            $online = true;
+            if ($olt && $olt->connection_status !== 'online') {
+                $olt->update(['connection_status' => 'online', 'last_polled_at' => now()]);
+            }
         }
 
         /* Fallback: metrik kolektor bila live tidak tersedia */
