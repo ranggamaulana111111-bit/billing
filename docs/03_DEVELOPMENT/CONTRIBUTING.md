@@ -37,9 +37,9 @@ npm run build
 php artisan serve
 ```
 
-**Note:** PHP CLI default = 8.1 (tidak cukup). Gunakan Laragon's PHP 8.2:
+**Note:** PHP CLI default = 8.1 (tidak cukup). Gunakan Laragon's PHP 8.3:
 ```
-C:\laragon\bin\php\php-8.2.31-Win32-vs16-x64\php.exe artisan {command}
+C:\laragon\bin\php\php-8.3.31-Win32-vs16-x64 (1)\php.exe artisan {command}
 ```
 
 ---

@@ -66,7 +66,7 @@ Manual / legacy: `hotspot:import`, `mikrotik:setup-isolir`, `olt:batch-link`, `q
 
 ## Architecture
 
-Monolith Laravel besar: 22 commands, 59 controllers (39 root + 3 Api + 3 Auth + 14 Noc), 40 models + 2 traits, 100 migrations, 172 views, ~546 routes (web.php).
+Monolith Laravel besar: 22 commands, 58 controllers (38 root + 3 Api + 3 Auth + 14 Noc), 40 models + 2 traits, 100 migrations (48 tables), 172 views, ~546 routes (web.php).
 
 ### Multi-Tenancy
 - **`BelongsToTenant` trait** (`app/Models/Traits/`) — global scope `tenant_id` pada 31 model; `Tenant` sebagai root, `User` belongsTo `Tenant`
@@ -105,7 +105,7 @@ Monolith Laravel besar: 22 commands, 59 controllers (39 root + 3 Api + 3 Auth + 
 - PSR-4: `App\` → `app/`, `Database\Factories\`, `Database\Seeders\`, `Tests\`; **modul tambahan di `app/Modules/`** (mis. GenieACS)
 - `.env` gitignored — copy `.env.example` + `key:generate` pada fresh clone
 - Local `.env` variance dari default: `QUEUE_CONNECTION=database`, `DB_CONNECTION=mysql` (session/cache pakai `file`)
-- **Docs:** `docs/` (lihat `docs/INDEX.md`) punya detail arsitektur, tapi **angka & tabelnya ketinggalan zaman** (contoh: `docs/03_DEVELOPMENT/TESTING.md` masih pakai count 55 test methods & path PHP 8.2; `docs/04_AI/AGENTS.md` sudah disinkronkan dengan file ini) — percaya kode & root `AGENTS.md` ini di atas angka di docs.
+- **Docs:** `docs/` (lihat `docs/INDEX.md`) punya detail arsitektur, tapi **sebagian angka & tabelnya ketinggalan zaman** — percaya kode & root `AGENTS.md` ini di atas angka di docs.
 
 ## Security Notes
 

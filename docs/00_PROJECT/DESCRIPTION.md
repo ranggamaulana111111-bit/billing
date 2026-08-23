@@ -123,23 +123,23 @@ Dokumen ini kuat di sisi domain & implementasi, namun **requirement bisnis billi
 │  routes/console.php (17 schedules)              │
 ├─────────────────────────────────────────────────┤
 │              Controller Layer                   │
-│  59 Controllers (39 root + 14 Noc + Api/Auth)   │
+│  58 Controllers (38 root + 14 Noc + Api/Auth)   │
 │  Middleware: IsAdmin, IsTeknisiOrAdmin, IsNoc   │
 ├─────────────────────────────────────────────────┤
 │               Service Layer                     │
-│  MikrotikService, Payment/, Olt/ (Driver),        │
-│  Monitoring/, Automation/, SmartQos, GenieACS     │
+│  MikrotikService, Payment/, Olt/ (Driver),       │
+│  Monitoring/, Automation/, SmartQos, GenieACS    │
 │    └─ Drivers: Zte, Huawei, FiberHome, CData,  │
 │       ChineseOlt, Global, Hioso, Hsgq, Vsol    │
 │    └─ Decorators: JumpHost, MikrotikSshProxy    │
 ├─────────────────────────────────────────────────┤
 │                Model Layer                      │
-│  39 Models + 2 Traits                           │
+│  40 Models + 2 Traits                           │
 │  BelongsToTenant (Global Scope, 30 model)       │
 ├─────────────────────────────────────────────────┤
 │              Database Layer                     │
 │  MySQL (production), SQLite (testing)           │
-│  47 tables, 98 migrations                       │
+│  48 tables, 100 migrations                       │
 ├─────────────────────────────────────────────────┤
 │         External Integration Layer              │
 │  Midtrans Snap API, MikroTik REST API,          │
@@ -351,6 +351,22 @@ Sistem masih **monolith tunggal**; *bounded context* belum dienkapsulasi formal.
 - **Controllers:** 14 controller di `app/Http/Controllers/Noc/` (namespace `Noc\`) — Automation, ConfigModule, ConfigRepository, Dashboard, Features, Genieacs, InterfaceCenter, InternetService, MikrotikDashboard, MikrotikDevice, NetworkConfig, SecurityPolicy, SyncDashboard, TrafficEngineering
 - **Middleware:** `IsNoc` — semua route di bawah `/noc/*`
 
+### 8.18b Live FTTH Map Screen (NOC Features Map)
+
+- **Route:** `/noc/features/map` (`Noc\FeaturesController`)
+- **View:** `resources/views/noc/features/map.blade.php` — peta interaktif berbasis Leaflet dalam satu halaman
+- **Tujuan:** Satu peta FTTH yang menampilkan seluruh infrastruktur (OLT, ODC, ODP, ONU, MikroTik, pelanggan) lengkap dengan **monitoring trafik real-time** langsung dari perangkat.
+- **Fitur utama:**
+  - **Marker perangkat** berwarna berdasarkan tipe & status (online/offline); klik membuka *detail card*.
+  - **Live trafik ONU / PPPoE pelanggan** — rate Rx/Tx dihitung dari *delta* counter PPPoE MikroTik antar poll (akurat vs MikroTik, tidak nol/spike). Index sesi di-cache 3 detik (`built_at` dipakai sebagai timestamp sampel).
+  - **Live trafik Tower Hotspot** — agregat sesi aktif per *hotspot server* (aware server bersama / *shared*). Badge menampilkan `Server: <nama>`; daftar klien di-cap (maks 50) agar tidak membanjiri kartu saat ribuan pelanggan.
+  - **Live trafik WAN-ISP MikroTik** — grafik Rx/Tx real-time pada card *Sync Mikrotik* (berada di bawah tombol *Sync All Saved Routes*, di atas daftar router).
+  - **Live trafik PON OLT** — agregat trafik PON per OLT (poll ~3 detik, berbasis timestamp `microtime` bukan cache statis 10 detik).
+  - **Card Sync MikroTik / OLT** — input IP/Port/User/Pass (satu baris via `ftth-form-grid2`), tombol Simpan/Konek/Sync, grafik trafik live, daftar perangkat terhubung.
+  - **Topologi & kabel** — ODC→ODP→ONU, edit kabel, ukur jarak, dll.
+- **Performa:** caching terarah (hotspot active 10 detik, index ONU 3 detik, rate OLT ~3 detik) + *locking* agar tidak ada poll duplikat; data trafik tetap di-sample di latar meski card ditutup.
+- **Stack:** Leaflet (peta) + Chart.js (grafik, CDN `defer`) + custom CSS design system (`resources/css/app.css`).
+
 ### 8.19 GenieACS (TR-069)
 - **Module:** `app/Modules/GenieACS/` — Contracts, Exceptions, Repositories, Services, Support (`GenieacsServiceProvider`)
 - **Controller:** `Noc\GenieacsController` — routes di bawah `/noc/genieacs`
@@ -547,11 +563,11 @@ e-billing/
 ├── app/
 │   ├── Console/Commands/      # 22 Artisan commands
 │   ├── Http/
-│   │   ├── Controllers/       # 59 controllers (39 root + 3 Api + 3 Auth + 14 Noc)
+│   │   ├── Controllers/       # 58 controllers (38 root + 3 Api + 3 Auth + 14 Noc)
 │   │   └── Middleware/        # IsAdmin, IsTeknisiOrAdmin, IsNoc
 │   ├── Jobs/                  # PollOltJob
 │   ├── Mail/                  # InvoiceReminder, PaymentConfirmation
-│   ├── Models/                # 39 models + 2 traits
+│   ├── Models/                # 40 models + 2 traits
 │   ├── Modules/               # GenieACS (TR-069)
 │   └── Services/              # Payment/, Mikrotik/, Olt/ (drivers), Monitoring/, Automation/, SmartQos/
 │
@@ -559,7 +575,7 @@ e-billing/
 ├── config/                    # Konfigurasi Laravel
 ├── database/
 │   ├── factories/             # 5 factories
-│   ├── migrations/            # 98 migrations (47 tables)
+│   ├── migrations/            # 100 migrations (48 tables)
 │   └── seeders/               # 5 seeders
 │
 ├── public/
@@ -729,7 +745,7 @@ vercel --prod
 
 | Aspek | Status | Catatan |
 |-------|--------|---------|
-| Testing (142 tests) | ⚠️ Partial | 17 file (7 feature + 10 unit); **suite saat ini RED** (68 failed / 74 passed) — migrasi tenant memakai `DROP CONSTRAINT IF EXISTS` yang gagal di SQLite; belum ada coverage %, integration/load/UI test |
+| Testing (142 tests) | ⚠️ Partial | 17 file (7 feature + 10 unit); **suite saat ini RED** — migrasi `2026_06_22_000004_add_tenant_id_to_business_tables.php` memakai `DROP CONSTRAINT IF EXISTS` (sintaks MySQL/Postgres) yang gagal di SQLite `:memory:`, sehingga semua test `RefreshDatabase` error; belum ada coverage %, integration/load/UI test |
 | Security | ⚠️ Partial | Password MikroTik plaintext, SSL verify disabled (lihat 16.3) |
 | Multi-tenant | ⚠️ Partial | `BelongsToTenant` global scope aktif, tapi `OdcPort`/`OdpPort` belum ter-cover |
 | Error Handling | ⚠️ Partial | Try-catch di service layer; belum ada error architecture terpusat (16.5) |

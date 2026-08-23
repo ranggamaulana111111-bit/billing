@@ -1,6 +1,6 @@
 # Database — ALKONEK ISP Billing System
 
-> 39 model tables + 8 framework tables | 98 Migrations | MySQL (Prod/Local) / SQLite (Test)
+> 40 model tables + 8 framework tables | 100 Migrations | MySQL (Prod/Local) / SQLite (Test)
 
 ---
 

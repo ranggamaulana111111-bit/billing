@@ -1,6 +1,6 @@
 # Models — ALKONEK ISP Billing System
 
-> 39 Models + 2 Traits | `App\Models\` namespace
+> 40 Models + 2 Traits | `App\Models\` namespace
 
 ---
 

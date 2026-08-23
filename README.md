@@ -240,7 +240,7 @@ e-billing/
 │   │   ├── InvoiceReminder.php
 │   │   └── PaymentConfirmation.php
 │   │
-│   ├── Models/                             # 39 model + 2 traits
+│   ├── Models/                             # 40 model + 2 traits
 │   │   ├── Traits/
 │   │   │   ├── BelongsToTenant.php         # Aktif — global scope tenant_id (30 model)
 │   │   │   └── BelongsToUser.php           # LEGACY — dead code (tidak dipakai)
@@ -773,6 +773,22 @@ tenants ── users ──┬── customers ───────┬── in
 - **Automation:** `Noc\AutomationController`
 - **GenieACS:** `Noc\GenieacsController`
 - Banyak route di bawah `/noc/*` masih commented-out (menunggu implementasi penuh); lihat `routes/web.php`
+
+### 9.26b Live FTTH Map Screen (NOC Features Map)
+
+- **Route:** `/noc/features/map` (`Noc\FeaturesController`)
+- **View:** `resources/views/noc/features/map.blade.php` — peta interaktif berbasis Leaflet dalam satu halaman
+- **Tujuan:** Satu peta FTTH yang menampilkan seluruh infrastruktur (OLT, ODC, ODP, ONU, MikroTik, pelanggan) lengkap dengan **monitoring trafik real-time** langsung dari perangkat.
+- **Fitur utama:**
+  - **Marker perangkat** berwarna berdasarkan tipe & status (online/offline); klik membuka *detail card*.
+  - **Live trafik ONU / PPPoE pelanggan** — rate Rx/Tx dihitung dari *delta* counter PPPoE MikroTik antar poll (akurat vs MikroTik, tidak nol/spike). Index sesi di-cache 3 detik (`built_at` dipakai sebagai timestamp sampel).
+  - **Live trafik Tower Hotspot** — agregat sesi aktif per *hotspot server* (aware server bersama / *shared*). Badge menampilkan `Server: <nama>`; daftar klien di-cap (maks 50) agar tidak membanjiri kartu saat ribuan pelanggan.
+  - **Live trafik WAN-ISP MikroTik** — grafik Rx/Tx real-time pada card *Sync Mikrotik* (berada di bawah tombol *Sync All Saved Routes*, di atas daftar router).
+  - **Live trafik PON OLT** — agregat trafik PON per OLT (poll ~3 detik, berbasis timestamp `microtime` bukan cache statis 10 detik).
+  - **Card Sync MikroTik / OLT** — input IP/Port/User/Pass (satu baris via `ftth-form-grid2`), tombol Simpan/Konek/Sync, grafik trafik live, daftar perangkat terhubung.
+  - **Topologi & kabel** — ODC→ODP→ONU, edit kabel, ukur jarak, dll.
+- **Performa:** caching terarah (hotspot active 10 detik, index ONU 3 detik, rate OLT ~3 detik) + *locking* agar tidak ada poll duplikat; data trafik tetap di-sample di latar meski card ditutup.
+- **Stack:** Leaflet (peta) + Chart.js (grafik, CDN `defer`) + custom CSS design system (`resources/css/app.css`).
 
 ### 9.27 GenieACS (TR-069)
 - **Modul:** `app/Modules/GenieACS/` (Contracts, DTO, Exceptions, Repositories, Services, Support)
@@ -1364,7 +1380,7 @@ Lihat `.env.example` dan `vercel.json` untuk daftar lengkap environment variable
   - Unit `Services/`: Billing (InvoiceGenerator, CustomerCodeGenerator), Payment (Midtrans, Xendit, PaymentService), GenieACS (Client, DTO, Repository), Olt (ChineseOltParser)
 - **Factory:** `UserFactory` default role `teknisi` + `admin()` state
 - **Command:** `php artisan test` atau `./vendor/bin/phpunit`
-- **⚠️ KNOWN ISSUE:** suite saat ini RED (68 failed / 74 passed). Penyebab utama: migrasi `2026_06_22_000004_add_tenant_id_to_business_tables.php` memakai `DROP CONSTRAINT IF EXISTS` (sintaks MySQL/Postgres) yang gagal di SQLite. Lihat `AGENTS.md`.
+- **⚠️ KNOWN ISSUE:** suite saat ini RED (sebagian besar test `RefreshDatabase` error akibat migrasi tenant). Penyebab utama: migrasi `2026_06_22_000004_add_tenant_id_to_business_tables.php` memakai `DROP CONSTRAINT IF EXISTS` (sintaks MySQL/Postgres) yang gagal di SQLite. Lihat `AGENTS.md`.
 
 ---
 

@@ -1,6 +1,6 @@
 # Controllers — ALKONEK ISP Billing System
 
-> 59 Controllers | 39 Root + 3 API + 3 Auth + 14 Noc | `App\Http\Controllers\` namespace
+> 58 Controllers | 38 Root + 3 API + 3 Auth + 14 Noc | `App\Http\Controllers\` namespace
 
 ---
 

@@ -20,7 +20,7 @@ ALKONEK menggunakan arsitektur **Monolithic dengan pemisahan Controller → Serv
 │   routes/console.php (17 schedules)                  │
 ├──────────────────────────────────────────────────────┤
 │                 Controller Layer                      │
-│   59 Controllers (39 root + 3 Api + 3 Auth + 14 Noc)│
+│   58 Controllers (38 root + 3 Api + 3 Auth + 14 Noc)│
 │   Middleware: IsAdmin, IsTeknisiOrAdmin, IsNoc       │
 ├──────────────────────────────────────────────────────┤
 │                  Service Layer                        │
@@ -33,12 +33,12 @@ ALKONEK menggunakan arsitektur **Monolithic dengan pemisahan Controller → Serv
 │   Automation/ + SmartQos/ + Monitoring/              │
 ├──────────────────────────────────────────────────────┤
 │                   Model Layer                         │
-│   39 Models + 2 Traits                               │
+│   40 Models + 2 Traits                               │
 │   BelongsToTenant (Global Scope)                     │
 ├──────────────────────────────────────────────────────┤
 │                 Database Layer                        │
 │   MySQL (local/prod Aiven), SQLite (testing)         │
-│   98 migrations, ~47 tabel                           │
+│   100 migrations, ~48 tabel                          │
 ├──────────────────────────────────────────────────────┤
 │          External Integration Layer                   │
 │   Midtrans Snap, Xendit, MikroTik REST/SSH,          │

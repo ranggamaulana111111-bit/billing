@@ -47,12 +47,12 @@
 
 | Dokumen | Deskripsi |
 |---------|-----------|
-| [MODELS.md](05_IMPLEMENTATION/MODELS.md) | 39 model: atribut, casts, relationships |
+| [MODELS.md](05_IMPLEMENTATION/MODELS.md) | 40 model: atribut, casts, relationships |
 | [DATABASE_SCHEMA.md](05_IMPLEMENTATION/DATABASE_SCHEMA.md) | Kolom per kolom |
 | [MIGRATIONS.md](05_IMPLEMENTATION/MIGRATIONS.md) | 98 migrasi: kronologi skema |
 | [SEEDERS.md](05_IMPLEMENTATION/SEEDERS.md) | 5 seeder: data, dependensi |
 | [SERVICES.md](05_IMPLEMENTATION/SERVICES.md) | 55 service: method, parameter, flow |
-| [CONTROLLERS.md](05_IMPLEMENTATION/CONTROLLERS.md) | 59 controller: route, validasi, flow |
+| [CONTROLLERS.md](05_IMPLEMENTATION/CONTROLLERS.md) | 58 controller: route, validasi, flow |
 | [JOBS_MAIL.md](05_IMPLEMENTATION/JOBS_MAIL.md) | 2 jobs + 2 mail: trigger, behavior |
 
 ## AI
