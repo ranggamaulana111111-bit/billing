@@ -853,6 +853,9 @@ class FeaturesController extends Controller
         $online = $olt !== null && $olt->connection_status !== 'offline';
         $mikrotikUp = false;
 
+        $router = MikrotikRouter::where('is_active', true)->orderBy('id')->first();
+        $cmd = $router ? new RouterCommandService($router) : null;
+
         $bwDown = null;
         $bwUp = null;
         $collectedAt = null;
@@ -870,9 +873,7 @@ class FeaturesController extends Controller
         if ((time() - $lastT) >= 3 && ! Cache::has($lockKey)) {
             Cache::put($lockKey, 1, 20);
             try {
-                $router = MikrotikRouter::where('is_active', true)->orderBy('id')->first();
-                if ($router) {
-                    $cmd = new RouterCommandService($router);
+                if ($cmd) {
                     $res = $cmd->getInterfaces();
                     if ($res->isSuccess() && is_array($res->getData())) {
                         $mikrotikUp = true;
@@ -909,13 +910,19 @@ class FeaturesController extends Controller
             $rate = Cache::get($rateKey);
         }
 
-        /* Status OLT mengikuti trafik live: bila MikroTik reachable dan PPPoE
-           mengalir, OLT dianggap ONLINE meski poll SSH/ping management IP gagal
-           (IP management OLT sering tak reachable dari server aplikasi). */
-        if ($mikrotikUp) {
-            $online = true;
-            if ($olt && $olt->connection_status !== 'online') {
-                $olt->update(['connection_status' => 'online', 'last_polled_at' => now()]);
+        /* Status fisik OLT REAL: MikroTik melakukan ICMP ping ke IP management
+           OLT. Reply => OLT fisik hidup (ONLINE), timeout => OLT fisik mati
+           (OFFLINE). Ini status sebenarnya — menggantikan 'offline' dari poll
+           SSH yang tak relevan karena IP management OLT tak reachable dari
+           server aplikasi. */
+        $oltIp = $olt?->ip_address ?? $device->ip_address;
+        if ($cmd && $oltIp) {
+            $pingStatus = $this->pingOltStatus($cmd, $oltIp, "olt_ping_live_{$device->id}");
+            if ($pingStatus !== null) {
+                $online = $pingStatus === 'online';
+                if ($olt && $olt->connection_status !== $pingStatus) {
+                    $olt->update(['connection_status' => $pingStatus, 'last_polled_at' => now()]);
+                }
             }
         }
 
@@ -991,6 +998,79 @@ class FeaturesController extends Controller
         }
 
         return null;
+    }
+
+    /**
+     * Refresh status fisik OLT secara REAL untuk semua OLT (model Olt maupun
+     * Device type=olt yang ditambah manual) dengan melakukan ICMP ping dari
+     * MikroTik ke IP management OLT. Hasil ditulis ke Olt.connection_status /
+     * Device.status agar konsisten di seluruh peta.
+     */
+    private function refreshAllOltRealStatus(array $allDevices): void
+    {
+        $router = MikrotikRouter::where('is_active', true)->orderBy('id')->first();
+        if (! $router) {
+            return;
+        }
+
+        $cmd = new RouterCommandService($router);
+
+        /* OLT terdaftar (model Olt) */
+        foreach (Olt::all() as $olt) {
+            $ip = trim((string) ($olt->ip_address ?? ''));
+            if ($ip === '') {
+                continue;
+            }
+            $status = $this->pingOltStatus($cmd, $ip, "olt_real_{$olt->id}");
+            if ($status !== null && $olt->connection_status !== $status) {
+                $olt->update(['connection_status' => $status, 'last_polled_at' => now()]);
+            }
+        }
+
+        /* OLT yang ditambah manual di peta (tanpa model Olt terpadan) */
+        foreach ($allDevices as $d) {
+            if (strtolower((string) $d->type) !== 'olt') {
+                continue;
+            }
+            if ($this->resolveOltModelForDevice($d)) {
+                continue;
+            }
+            $ip = trim((string) ($d->ip_address ?? ''));
+            if ($ip === '') {
+                continue;
+            }
+            $status = $this->pingOltStatus($cmd, $ip, "olt_dev_real_{$d->id}");
+            if ($status !== null && (string) ($d->status ?? '') !== $status) {
+                $d->update(['status' => $status]);
+            }
+        }
+    }
+
+    /**
+     * Ping IP dari MikroTik dan kembalikan 'online'/'offline' (null bila tak bisa
+     * ditentukan). Hasil di-cache 30s agar tak membebani MikroTik tiap request.
+     */
+    private function pingOltStatus(RouterCommandService $cmd, string $ip, string $cacheKey): ?string
+    {
+        if (Cache::has($cacheKey)) {
+            return Cache::get($cacheKey);
+        }
+
+        $status = null;
+        try {
+            $ping = $cmd->pingHost($ip, 3, '1s');
+            if ($ping->isSuccess()) {
+                $status = ! empty($ping->getData()['reachable']) ? 'online' : 'offline';
+            }
+        } catch (\Throwable) {
+            $status = null;
+        }
+
+        if ($status !== null) {
+            Cache::put($cacheKey, $status, 30);
+        }
+
+        return $status;
     }
 
     public function oltSave(Request $request): JsonResponse
@@ -1786,6 +1866,14 @@ class FeaturesController extends Controller
         foreach ($allDevices as $d) {
             $allDevicesByName[$d->name] = $d;
         }
+
+        /* Refresh status fisik OLT secara REAL: MikroTik (satu‑satunya perangkat
+           yang terhubung ke OLT) melakukan ICMP ping ke IP management OLT.
+           Reply => ONLINE (fisik hidup), timeout => OFFLINE (fisik mati).
+           Hasil di-cache 30s dan ditulis ke Olt.connection_status / Device.status
+           agar konsisten dengan kartu peta & card Sync OLT. */
+        $this->refreshAllOltRealStatus($allDevices);
+
         $oltStatusMap = [];
         foreach (Olt::all() as $olt) {
             $oltStatusMap[$olt->name] = $olt->connection_status;
@@ -2051,14 +2139,13 @@ class FeaturesController extends Controller
             $parentName = trim($parts[1]);
 
             if ($parentType === 'olt') {
-                /* Check olts table first, then devices table */
+                /* Check olts table first, then devices table.
+                   oltStatusMap diisi dari Olt.connection_status yang SUDAH
+                   direfresh secara REAL (ICMP ping dari MikroTik ke IP OLT)
+                   di buildMapMarkers — sehingga 'offline' di sini berarti OLT
+                   fisik benar-benar mati / tidak reply ping. */
                 if (isset($oltStatusMap[$parentName])) {
-                    /* OLT yang terkonfigurasi dianggap ONLINE untuk tampilan.
-                       Reachability SSH/ping ke IP management OLT sering tak
-                       tersedia dari server aplikasi, padahal trafik (PPPoE via
-                       MikroTik) tetap mengalir — sehingga status "offline" dari
-                       poll SSH tidak relevan untuk tampilan peta. */
-                    return 'online';
+                    return $oltStatusMap[$parentName] === 'offline' ? 'offline' : 'online';
                 }
                 if (isset($allDevicesByName[$parentName]) && $allDevicesByName[$parentName]->type === 'olt') {
                     return $allDevicesByName[$parentName]->status === 'offline' ? 'offline' : 'online';
@@ -2078,11 +2165,11 @@ class FeaturesController extends Controller
 
         /* Perangkat tanpa parent OLT terpoll (ditambah manual di peta, mis. OLT/OTB/ODC
            yang belum punya backend Olt) dianggap ONLINE secara default, bukan offline.
-           Untuk tipe OLT, cek model Olt bila ada agar konsisten dengan card Sync OLT. */
+           Untuk tipe OLT, cek model Olt bila ada (status sudah direfresh REAL via ping). */
         if (strtolower($device->type) === 'olt') {
             $oltModel = Olt::where('name', $device->name)->first();
             if ($oltModel) {
-                return 'online';
+                return $oltModel->connection_status === 'offline' ? 'offline' : 'online';
             }
         }
 

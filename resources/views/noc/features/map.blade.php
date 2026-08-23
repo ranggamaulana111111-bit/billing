@@ -8972,6 +8972,9 @@
                     '<input type="text" id="ftthDevIp" placeholder="e.g. 192.168.1.5" autocomplete="off"></div>' +
                     '<div class="ftth-df"><label>' + ftthT('device.user_pppoe') + ' <button type="button" class="ftth-pppoe-edit" id="ftthPppoeToggle" title="' + ftthT('detail.edit_btn') + ' User PPPoE" onclick="ftthTogglePppoeField()"><i class="fa-solid fa-pen"></i></button></label>' +
                     '<input type="text" id="ftthDevPppoe" placeholder="e.g. alk-001" autocomplete="off" hidden></div>';
+            } else if (type === 'olt') {
+                extra.innerHTML = '<div class="ftth-df"><label>IP Management OLT</label>' +
+                    '<input type="text" id="ftthDevIp" placeholder="e.g. 172.10.10.2" autocomplete="off"></div>';
             } else if (type === 'htb') {
                 extra.innerHTML = '<div class="ftth-df"><label>User PPPoE</label>' +
                     '<input type="text" id="ftthDevPppoe" placeholder="e.g. alk-001" autocomplete="off"></div>';
@@ -9190,7 +9193,7 @@
             if (type === 'odc' || type === 'odp') {
                 var cap = document.getElementById('ftthDevCapacity');
                 capacity = (cap && cap.value.trim()) ? cap.value.trim() : null;
-            } else if (type === 'onu' || type === 'htb') {
+            } else if (type === 'onu' || type === 'htb' || type === 'olt') {
                 var ipEl = document.getElementById('ftthDevIp');
                 ip = (ipEl && ipEl.value.trim()) ? ipEl.value.trim() : null;
                 var ppEl = document.getElementById('ftthDevPppoe');

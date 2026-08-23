@@ -91,6 +91,53 @@ class RouterCommandService
     }
 
     /**
+     * Ping a host FROM the MikroTik router (source = router, target = host).
+     *
+     * Used to determine the REAL reachability of devices that are not directly
+     * reachable from the application server (e.g. the OLT management IP lives on
+     * a network only the MikroTik can reach). The ICMP echo is sent to the OLT
+     * itself — the MikroTik is merely the source because the app server is remote.
+     *
+     * @param  string  $address  Target IP (e.g. OLT management IP)
+     * @param  int  $count  Number of echo requests
+     * @param  string  $interval  Interval between requests (RouterOS format, e.g. "1s")
+     * @return RouterResult ok with ['reachable'=>bool,'replies'=>int,'sent'=>int]
+     */
+    public function pingHost(string $address, int $count = 3, string $interval = '1s'): RouterResult
+    {
+        $result = $this->api->get('/ping', [
+            'address' => $address,
+            'count' => (string) $count,
+            'interval' => $interval,
+        ]);
+
+        if (! $result->isSuccess()) {
+            return $result;
+        }
+
+        $data = $result->toArray();
+        $replies = 0;
+        $sent = 0;
+
+        foreach ($data as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $sent++;
+            $status = (string) ($row['status'] ?? '');
+            if ($status === 'reply' || isset($row['time'])) {
+                $replies++;
+            }
+        }
+
+        return RouterResult::ok('', [
+            'reachable' => $replies > 0,
+            'replies' => $replies,
+            'sent' => $sent,
+        ]);
+    }
+
+    /**
      * Get system identity (router name).
      */
     public function getSystemIdentity(): RouterResult
