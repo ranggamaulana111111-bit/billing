@@ -6,13 +6,15 @@ class SitemapController extends Controller
 {
     public function index()
     {
+        $base = rtrim((string) config('app.url'), '/');
+
         $urls = [
-            ['loc' => url('/'), 'priority' => '1.0', 'changefreq' => 'weekly'],
-            ['loc' => route('portal.index'), 'priority' => '0.8', 'changefreq' => 'daily'],
-            ['loc' => route('vouchers.public.index'), 'priority' => '0.6', 'changefreq' => 'weekly'],
-            ['loc' => route('vouchers.public.check'), 'priority' => '0.6', 'changefreq' => 'weekly'],
-            ['loc' => route('register'), 'priority' => '0.4', 'changefreq' => 'monthly'],
-            ['loc' => route('login'), 'priority' => '0.3', 'changefreq' => 'monthly'],
+            ['loc' => $base.'/', 'priority' => '1.0', 'changefreq' => 'weekly'],
+            ['loc' => $base.'/portal', 'priority' => '0.8', 'changefreq' => 'daily'],
+            ['loc' => $base.'/vouchers/public', 'priority' => '0.6', 'changefreq' => 'weekly'],
+            ['loc' => $base.'/vouchers/check', 'priority' => '0.6', 'changefreq' => 'weekly'],
+            ['loc' => $base.'/register', 'priority' => '0.4', 'changefreq' => 'monthly'],
+            ['loc' => $base.'/login', 'priority' => '0.3', 'changefreq' => 'monthly'],
         ];
 
         $xml = "<?xml"; // dipisah agar tidak di-parse sebagai tag PHP saat compile Blade

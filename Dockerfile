@@ -27,6 +27,7 @@ RUN apt-get update && apt-get install -y \
         --with-jpeg \
     && docker-php-ext-install -j$(nproc) \
         pdo \
+        pdo_mysql \
         pdo_pgsql \
         pgsql \
         mbstring \
