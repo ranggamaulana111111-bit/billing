@@ -9,6 +9,7 @@ use App\Modules\GenieACS\Services\GenieACSClient;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 class GenieACSClientTest extends TestCase
@@ -18,6 +19,11 @@ class GenieACSClientTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        Schema::create('settings', function ($table) {
+            $table->string('key')->primary();
+            $table->text('value')->nullable();
+        });
 
         config([
             'genieacs.base_url' => 'http://localhost:7557',

@@ -1,4 +1,4 @@
-User-agent: * 
-Disallow:
+User-agent: *
+Allow: /
 
-Sitemap: https://rabegnet.vercel.app/sitemap.xml
+Sitemap: https://billing.alkonek.online/sitemap.xml

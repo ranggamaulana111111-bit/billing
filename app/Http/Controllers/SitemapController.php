@@ -8,9 +8,11 @@ class SitemapController extends Controller
     {
         $urls = [
             ['loc' => url('/'), 'priority' => '1.0', 'changefreq' => 'weekly'],
-            ['loc' => route('login'), 'priority' => '0.5', 'changefreq' => 'monthly'],
-            ['loc' => route('register'), 'priority' => '0.4', 'changefreq' => 'monthly'],
             ['loc' => route('portal.index'), 'priority' => '0.8', 'changefreq' => 'daily'],
+            ['loc' => route('vouchers.public.index'), 'priority' => '0.6', 'changefreq' => 'weekly'],
+            ['loc' => route('vouchers.public.check'), 'priority' => '0.6', 'changefreq' => 'weekly'],
+            ['loc' => route('register'), 'priority' => '0.4', 'changefreq' => 'monthly'],
+            ['loc' => route('login'), 'priority' => '0.3', 'changefreq' => 'monthly'],
         ];
 
         return response()

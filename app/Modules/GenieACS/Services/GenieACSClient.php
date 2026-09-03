@@ -35,8 +35,8 @@ class GenieACSClient implements IGenieACSClient
     {
         $settingBase = Setting::get('genieacs_base_url');
         $this->baseUrl = rtrim((string) ($settingBase ?: (config('genieacs.base_url') ?: 'http://localhost:7557')), '/');
-        $this->username = (string) (config('genieacs.username') ?? '');
-        $this->password = (string) (config('genieacs.password') ?? '');
+        $this->username = (string) (Setting::get('genieacs_username') ?: config('genieacs.username') ?? '');
+        $this->password = (string) (Setting::get('genieacs_password') ?: config('genieacs.password') ?? '');
         $this->timeout = (int) config('genieacs.timeout', 30);
     }
 
@@ -112,6 +112,50 @@ class GenieACSClient implements IGenieACSClient
         $devices = $this->sendRequest('GET', '/devices', $params);
 
         return is_array($devices) && count($devices) > 0 ? $devices[0] : null;
+    }
+
+    /**
+     * Find a single GenieACS device by its serial number (case-insensitive).
+     *
+     * Performs a regex match against _deviceId.SerialNumber with a short
+     * timeout so the map card stays responsive during on-demand detection.
+     */
+    public function findBySerial(string $serial, int $timeout = 8): ?array
+    {
+        $query = ['_deviceId.SerialNumber' => ['$regex' => '^'.preg_quote($serial, '/').'$', '$options' => 'i']];
+        $projection = implode(',', [
+            '_id', '_deviceId', '_lastInform', '_tags',
+            'InternetGatewayDevice.DeviceInfo.Manufacturer',
+            'InternetGatewayDevice.DeviceInfo.ProductClass',
+            'InternetGatewayDevice.DeviceInfo.HardwareVersion',
+            'InternetGatewayDevice.DeviceInfo.SoftwareVersion',
+            'InternetGatewayDevice.ManagementServer.ConnectionRequestURL',
+        ]);
+
+        try {
+            $http = Http::timeout($timeout)->baseUrl($this->baseUrl);
+            if ($this->username !== '' && $this->password !== '') {
+                $http = $http->withBasicAuth($this->username, $this->password);
+            }
+            $http = $http->withHeaders([
+                'Accept' => 'application/json',
+                'Content-Type' => 'application/json',
+            ]);
+
+            $response = $http->get('/devices', ['query' => json_encode($query), 'projection' => $projection]);
+
+            if ($response->failed()) {
+                return null;
+            }
+
+            $devices = $response->json();
+
+            return is_array($devices) && count($devices) > 0 ? $devices[0] : null;
+        } catch (\Exception $e) {
+            Log::warning('GenieACS findBySerial gagal', ['serial' => $serial, 'error' => $e->getMessage()]);
+
+            return null;
+        }
     }
 
     /**

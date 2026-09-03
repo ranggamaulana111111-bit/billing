@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Noc;
 
 use App\Http\Controllers\Controller;
+use App\Models\Setting;
 use App\Modules\GenieACS\Contracts\IGenieACSClient;
 use App\Modules\GenieACS\Exceptions\GenieACSAuthenticationException;
 use App\Modules\GenieACS\Exceptions\GenieACSConnectionException;
@@ -96,10 +97,42 @@ class GenieacsController extends Controller
     public function settings(): View
     {
         return view('noc.genieacs.settings', [
-            'baseUrl' => config('genieacs.base_url', ''),
-            'username' => config('genieacs.username', ''),
-            'hasPassword' => config('genieacs.password', '') !== '',
+            'baseUrl' => Setting::get('genieacs_base_url') ?: config('genieacs.base_url', ''),
+            'username' => Setting::get('genieacs_username') ?: config('genieacs.username', ''),
+            'hasPassword' => filled(Setting::get('genieacs_password')) || filled(config('genieacs.password')),
             'timeout' => config('genieacs.timeout', 30),
+        ]);
+    }
+
+    /**
+     * Save GenieACS connection settings (AJAX POST).
+     */
+    public function saveSettings(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'base_url' => ['nullable', 'string', 'max:255'],
+            'username' => ['nullable', 'string', 'max:255'],
+            'password' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $url = trim((string) ($data['base_url'] ?? ''));
+        if ($url !== '' && ! preg_match('#^https?://#i', $url)) {
+            return response()->json(['ok' => false, 'message' => 'URL harus diawali http:// atau https://'], 422);
+        }
+
+        Setting::set('genieacs_base_url', $url !== '' ? $url : null);
+
+        $username = trim((string) ($data['username'] ?? ''));
+        Setting::set('genieacs_username', $username !== '' ? $username : null);
+
+        if (array_key_exists('password', $data)) {
+            $password = trim((string) ($data['password'] ?? ''));
+            Setting::set('genieacs_password', $password !== '' ? $password : null);
+        }
+
+        return response()->json([
+            'ok' => true,
+            'message' => 'Konfigurasi GenieACS tersimpan',
         ]);
     }
 

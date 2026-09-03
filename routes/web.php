@@ -372,6 +372,10 @@ Route::middleware(['auth', 'teknisi'])->group(function () {
         Route::post('/noc/features/map/customer/duplicate', [FeaturesController::class, 'customerDuplicate'])->name('noc.features.map.customer.duplicate');
 
         Route::post('/noc/features/map/onu/reboot', [FeaturesController::class, 'onuReboot'])->name('noc.features.map.onu.reboot');
+        Route::get('/noc/features/map/onu/lookup', [FeaturesController::class, 'onuLookup'])->name('noc.features.map.onu.lookup');
+        Route::get('/noc/features/map/onu/search', [FeaturesController::class, 'searchOnu'])->name('noc.features.map.onu.search');
+        Route::post('/noc/features/map/onu/link', [FeaturesController::class, 'linkOnu'])->name('noc.features.map.onu.link');
+        Route::post('/noc/features/map/onu/delete', [FeaturesController::class, 'onuDelete'])->name('noc.features.map.onu.delete');
 
         Route::get('/noc/features/map/onu-table', [FeaturesController::class, 'onuTable'])->name('noc.features.map.onu-table');
         Route::get('/noc/features/map/onu-table/print', [FeaturesController::class, 'onuTablePrint'])->name('noc.features.map.onu-table.print');
@@ -384,8 +388,9 @@ Route::middleware(['auth', 'teknisi'])->group(function () {
     // Route::get('/noc/genieacs/devices/{deviceId}', [GenieacsController::class, 'deviceDetail'])->name('noc.genieacs.device-detail');
     // Route::get('/noc/genieacs/presets', [GenieacsController::class, 'presets'])->name('noc.genieacs.presets');
     // Route::get('/noc/genieacs/faults', [GenieacsController::class, 'faults'])->name('noc.genieacs.faults');
-    // Route::get('/noc/genieacs/settings', [GenieacsController::class, 'settings'])->name('noc.genieacs.settings');
-    // Route::post('/noc/genieacs/test-connection', [GenieacsController::class, 'testConnection'])->name('noc.genieacs.test-connection');
+    Route::get('/noc/genieacs/settings', [GenieacsController::class, 'settings'])->name('noc.genieacs.settings');
+    Route::post('/noc/genieacs/settings', [GenieacsController::class, 'saveSettings'])->name('noc.genieacs.save-settings');
+    Route::post('/noc/genieacs/test-connection', [GenieacsController::class, 'testConnection'])->name('noc.genieacs.test-connection');
     // Route::post('/noc/genieacs/{deviceId}/reboot', [GenieacsController::class, 'reboot'])->name('noc.genieacs.reboot');
     // Route::post('/noc/genieacs/{deviceId}/factory-reset', [GenieacsController::class, 'factoryReset'])->name('noc.genieacs.factory-reset');
     // Route::post('/noc/genieacs/{deviceId}/refresh', [GenieacsController::class, 'refreshObject'])->name('noc.genieacs.refresh');

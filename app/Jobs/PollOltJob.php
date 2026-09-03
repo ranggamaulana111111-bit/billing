@@ -16,6 +16,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -41,6 +42,12 @@ class PollOltJob implements ShouldQueue
         }
 
         $this->olt->update(['last_polled_at' => now()]);
+
+        /* Paksa cache marker peta FTTH diperbarui agar status ONU (online/offline)
+           langsung terlihat REAL di peta setelah poll, tanpa menunggu kadaluarsa. */
+        $tenantId = $this->olt->tenant_id ?? 0;
+        Cache::forget("ftth_map_markers_v1_t{$tenantId}");
+        Cache::forget('ftth_map_markers_v1_t0');
     }
 
     private function scanFromOlt(): int
@@ -73,6 +80,7 @@ class PollOltJob implements ShouldQueue
 
         $ports = $this->olt->ports;
         $totalOnus = 0;
+        $seenKeys = [];
 
         foreach ($ports as $port) {
             try {
@@ -130,6 +138,7 @@ class PollOltJob implements ShouldQueue
                     );
 
                     $totalOnus++;
+                    $seenKeys[] = $port->id.'|'.$onuData['onu_id'];
                 }
             } catch (\Exception $e) {
                 Log::error("PollOlt port {$port->slot_number}/{$port->port_number} gagal: {$e->getMessage()}");
@@ -138,12 +147,28 @@ class PollOltJob implements ShouldQueue
 
         $connector->disconnect();
 
+        /* Rekonsiliasi: ONU yang sebelumnya terdeteksi (pernah online) namun TIDAK
+           muncul lagi di hasil scan OLT harus ditandai OFFLINE agar status di peta
+           (yang mengikuti tabel onus) tetap REAL — tidak nyangkut di "online" saat
+           ONU fisik sudah mati/dicabut dari OLT. */
+        if ($totalOnus > 0 && $seenKeys !== []) {
+            $portIds = $ports->pluck('id')->all();
+            $staleOnus = Onu::whereIn('olt_port_id', $portIds)
+                ->where('status', 'online')
+                ->get();
+            foreach ($staleOnus as $onu) {
+                if (! in_array($onu->olt_port_id.'|'.$onu->onu_id, $seenKeys, true)) {
+                    $onu->update(['status' => 'offline']);
+                }
+            }
+        }
+
         return $totalOnus;
     }
 
     private function linkOnusToCustomers(): void
     {
-        $unlinkedOnus = Onu::where('olt_port_id', $this->olt->ports()->pluck('id'))
+        $unlinkedOnus = Onu::whereIn('olt_port_id', $this->olt->ports()->pluck('id'))
             ->whereNull('customer_id')
             ->whereNotNull('serial_number')
             ->get();

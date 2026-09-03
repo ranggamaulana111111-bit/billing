@@ -29,6 +29,14 @@ interface IGenieACSClient
     public function device(string $deviceId, array $projection = []): ?array;
 
     /**
+     * Find a single device by its serial number (case-insensitive).
+     *
+     * Used for on-demand ACS detection from the map card without waiting
+     * for the scheduled sync. Returns the raw GenieACS device array or null.
+     */
+    public function findBySerial(string $serial, int $timeout = 8): ?array;
+
+    /**
      * Get pending tasks for a specific device.
      */
     public function tasks(string $deviceId): array;
