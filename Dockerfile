@@ -70,6 +70,13 @@ RUN mkdir -p storage/logs \
     && chown -R www-data:www-data storage bootstrap/cache \
     && chmod -R 775 storage bootstrap/cache
 
+# Ensure a writable system temp dir so Blade/view compilation (tempnam) does not
+# fall back and raise "tempnam(): file created in the system's temporary directory"
+RUN mkdir -p /tmp \
+    && chmod 1777 /tmp \
+    && printf 'sys_temp_dir=/tmp\n' > /usr/local/etc/php/conf.d/zz-temp.ini \
+    && rm -rf /tmp/* 2>/dev/null || true
+
 EXPOSE 9000
 
 CMD ["php-fpm"]
