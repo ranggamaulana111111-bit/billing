@@ -2,3 +2,4 @@ User-agent: *
 Allow: /
 
 Sitemap: https://billing.alkonek.online/sitemap.xml
+Sitemap: https://alkonek.online/sitemap.xml

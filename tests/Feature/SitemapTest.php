@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Http\Controllers\SitemapController;
+use Illuminate\Http\Request;
 use Tests\TestCase;
 
 class SitemapTest extends TestCase
@@ -18,13 +20,25 @@ class SitemapTest extends TestCase
         $response->assertSee('</urlset>', false);
     }
 
-    public function test_sitemap_contains_public_urls()
+    public function test_billing_sitemap_contains_app_urls()
     {
-        $response = $this->get('/sitemap.xml');
+        $request = Request::create('https://billing.alkonek.online/sitemap.xml', 'GET');
+        $controller = new SitemapController;
+        $response = $controller->index($request);
 
-        $response->assertSee(url('/'), false);
-        $response->assertSee(route('login'), false);
-        $response->assertSee(route('register'), false);
-        $response->assertSee(route('portal.index'), false);
+        $this->assertStringContainsString(route('portal.index'), $response->getContent());
+        $this->assertStringContainsString(route('register'), $response->getContent());
+        $this->assertStringContainsString(route('login'), $response->getContent());
+    }
+
+    public function test_landing_sitemap_only_contains_welcome()
+    {
+        $request = Request::create('https://alkonek.online/sitemap.xml', 'GET');
+        $controller = new SitemapController;
+        $response = $controller->index($request);
+
+        $this->assertStringContainsString('https://alkonek.online/', $response->getContent());
+        $this->assertStringNotContainsString('https://alkonek.online/portal', $response->getContent());
+        $this->assertStringNotContainsString('https://alkonek.online/login', $response->getContent());
     }
 }
