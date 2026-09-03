@@ -15,8 +15,20 @@ class SitemapController extends Controller
             ['loc' => route('login'), 'priority' => '0.3', 'changefreq' => 'monthly'],
         ];
 
-        return response()
-            ->view('sitemap', ['urls' => $urls])
-            ->header('Content-Type', 'application/xml; charset=utf-8');
+        $xml = "<?xml"; // dipisah agar tidak di-parse sebagai tag PHP saat compile Blade
+        $xml .= ' version="1.0" encoding="UTF-8"?>'."\n";
+        $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'."\n";
+
+        foreach ($urls as $url) {
+            $xml .= '    <url>'."\n";
+            $xml .= '        <loc>'.htmlspecialchars($url['loc'], ENT_XML1, 'UTF-8').'</loc>'."\n";
+            $xml .= '        <priority>'.$url['priority'].'</priority>'."\n";
+            $xml .= '        <changefreq>'.$url['changefreq'].'</changefreq>'."\n";
+            $xml .= '    </url>'."\n";
+        }
+
+        $xml .= '</urlset>'."\n";
+
+        return response($xml)->header('Content-Type', 'application/xml; charset=utf-8');
     }
 }
