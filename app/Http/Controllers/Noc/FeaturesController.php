@@ -1502,6 +1502,12 @@ class FeaturesController extends Controller
             $serial = is_array($deviceId) && filled($deviceId['_SerialNumber'] ?? null)
                 ? (string) $deviceId['_SerialNumber']
                 : ($this->genieacsValue($dev, 'InternetGatewayDevice.DeviceInfo.SerialNumber') ?? null);
+
+            if (empty($serial) && !empty($devId)) {
+                $parts = explode('-', $devId);
+                $serial = end($parts);
+            }
+
             $lastInform = $dev['_lastInform'] ?? null;
             $isOnline = $lastInform !== null && ($now - strtotime((string) $lastInform)) < 600;
 
