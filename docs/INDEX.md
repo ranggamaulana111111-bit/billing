@@ -54,6 +54,7 @@
 | [SERVICES.md](05_IMPLEMENTATION/SERVICES.md) | 55 service: method, parameter, flow |
 | [CONTROLLERS.md](05_IMPLEMENTATION/CONTROLLERS.md) | 58 controller: route, validasi, flow |
 | [JOBS_MAIL.md](05_IMPLEMENTATION/JOBS_MAIL.md) | 2 jobs + 2 mail: trigger, behavior |
+| [GENIEACS_ONU_LINK.md](05_IMPLEMENTATION/GENIEACS_ONU_LINK.md) | Workflow link ONU GenieACS → map FTTH (hotspot) |
 
 ## AI
 

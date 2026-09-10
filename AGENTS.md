@@ -83,7 +83,7 @@ Monolith Laravel besar: 22 commands, 58 controllers (38 root + 3 Api + 3 Auth + 
 
 ### Modul Baru (tidak ada di docs lama)
 - **Noc controllers:** 14 controller di `app/Http/Controllers/Noc/` (namespace `Noc\`) — GenieACS, Automation, MikrotikDashboard, TrafficEngineering, dll; routes di bawah `/noc/*`
-- **GenieACS (TR-069):** `app/Modules/GenieACS/` (Contracts, Exceptions, Repositories, Services, Support — termasuk `Support/GenieacsServiceProvider`) + `Noc\GenieacsController` — routes di bawah `/noc/genieacs`
+- **GenieACS (TR-069):** `app/Modules/GenieACS/` (Contracts, Exceptions, Repositories, Services, Support — termasuk `Support/GenieacsServiceProvider`) + `Noc\GenieacsController` — routes di bawah `/noc/genieacs`. **Link ONU ke map FTTH:** `olt:poll` (scan OLT → populate `onus`) lalu Sync GenieACS (`FeaturesController::genieacsSync`). `customers:onu-sync` **hanya PPPoE** — hotspot via scan OLT. Serial fallback dari suffix `_id` (lihat `docs/05_IMPLEMENTATION/GENIEACS_ONU_LINK.md`).
 - **Incidents & SLA:** `Incident`, `IncidentNotification`, `IncidentNotificationService`, `incident:check-sla`
 - **Automation engine:** `AutomationJob/Trigger/Log` + `app/Services/Automation/` (scheduler + worker + trigger)
 - **Network metrics & QoS:** `NetworkMetric`, `app/Services/SmartQos/SmartQosService.php`, `qos:*`, `app/Services/Monitoring/` (HealthScore, PingMonitor, Diagnosis, SpeedTest, FiberTopology)
