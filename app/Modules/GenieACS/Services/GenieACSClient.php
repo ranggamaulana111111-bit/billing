@@ -216,7 +216,7 @@ class GenieACSClient implements IGenieACSClient
      */
     public function connectionRequest(string $deviceId): array
     {
-        return $this->sendRequest('POST', "/devices/{$deviceId}/tasks?connection_request", [
+        return $this->sendRequest('POST', $this->deviceUrl($deviceId).'?connection_request', [
             'name' => 'connectionRequest',
         ]);
     }
@@ -226,7 +226,7 @@ class GenieACSClient implements IGenieACSClient
      */
     public function reboot(string $deviceId): array
     {
-        return $this->sendRequest('POST', "/devices/{$deviceId}/tasks", [
+        return $this->sendRequest('POST', $this->deviceUrl($deviceId), [
             'name' => 'reboot',
         ]);
     }
@@ -236,7 +236,7 @@ class GenieACSClient implements IGenieACSClient
      */
     public function factoryReset(string $deviceId): array
     {
-        return $this->sendRequest('POST', "/devices/{$deviceId}/tasks", [
+        return $this->sendRequest('POST', $this->deviceUrl($deviceId), [
             'name' => 'factoryReset',
         ]);
     }
@@ -246,7 +246,7 @@ class GenieACSClient implements IGenieACSClient
      */
     public function downloadFirmware(string $deviceId, string $fileName): array
     {
-        return $this->sendRequest('POST', "/devices/{$deviceId}/tasks", [
+        return $this->sendRequest('POST', $this->deviceUrl($deviceId), [
             'name' => 'download',
             'file' => $fileName,
         ]);
@@ -257,7 +257,7 @@ class GenieACSClient implements IGenieACSClient
      */
     public function refreshObject(string $deviceId, string $objectName): array
     {
-        return $this->sendRequest('POST', "/devices/{$deviceId}/tasks", [
+        return $this->sendRequest('POST', $this->deviceUrl($deviceId), [
             'name' => 'refreshObject',
             'objectName' => $objectName,
         ]);
@@ -271,7 +271,7 @@ class GenieACSClient implements IGenieACSClient
      */
     public function setParameterValues(string $deviceId, array $parameterValues): array
     {
-        return $this->sendRequest('POST', "/devices/{$deviceId}/tasks", [
+        return $this->sendRequest('POST', $this->deviceUrl($deviceId), [
             'name' => 'setParameterValues',
             'parameterValues' => $parameterValues,
         ]);
@@ -284,10 +284,24 @@ class GenieACSClient implements IGenieACSClient
      */
     public function getParameterValues(string $deviceId, array $parameterNames): array
     {
-        return $this->sendRequest('POST', "/devices/{$deviceId}/tasks", [
+        return $this->sendRequest('POST', $this->deviceUrl($deviceId), [
             'name' => 'getParameterValues',
             'parameterNames' => $parameterNames,
         ]);
+    }
+
+    /**
+     * Build the device URL with the device ID properly percent-encoded for the
+     * URL path. GenieACS 1.21+ stores `_id` yang bisa mengandung karakter
+     * encoded (mis. produk "GM220-S" => "508CF5-GM220%2DS-ZICGA6981E86").
+     * Karena server me-decode path segment, ID harus di-encode SEKALI LAGI
+     * (rawurlencode) agar karakter "%2D" literal tetap utuh setelah decode.
+     * Contoh: D05FAF-FD511GW-... -> tidak berubah; 508CF5-GM220%2DS-... ->
+     * 508CF5-GM220%252DS-... (202, bukan 404 "No such device").
+     */
+    protected function deviceUrl(string $deviceId): string
+    {
+        return '/devices/'.rawurlencode($deviceId).'/tasks';
     }
 
     /**

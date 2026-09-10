@@ -11,7 +11,7 @@ class Onu extends Model
 
     protected $fillable = [
         'tenant_id', 'olt_port_id', 'odp_port_id', 'customer_id', 'onu_id', 'serial_number', 'caller_id',
-        'vendor', 'model', 'mac_address', 'status',
+        'ip_address', 'vendor', 'model', 'mac_address', 'status',
         'rx_power', 'tx_power', 'distance', 'uptime',
         'slot_number', 'port_number', 'notes', 'last_seen_at',
         'acs_device_id', 'acs_name', 'acs_status', 'acs_last_inform', 'acs_ip', 'acs_manufacturer',

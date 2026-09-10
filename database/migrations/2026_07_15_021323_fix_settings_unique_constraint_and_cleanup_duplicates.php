@@ -13,24 +13,24 @@ return new class extends Migration
 
         if ($driver === 'pgsql') {
 
-            DB::statement("
+            DB::statement('
                 DELETE FROM settings a
                 USING settings b
                 WHERE a.key = b.key
                   AND a.tenant_id = b.tenant_id
                   AND a.id < b.id
-            ");
+            ');
 
         } else {
 
-            DB::statement("
+            DB::statement('
                 DELETE s1
                 FROM settings s1
                 INNER JOIN settings s2
                     ON s1.key = s2.key
                    AND s1.tenant_id = s2.tenant_id
                 WHERE s1.id < s2.id
-            ");
+            ');
 
         }
 

@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\Customer;
 use App\Models\Incident;
+use App\Models\Odp;
 use App\Models\OdpPort;
 use App\Models\Olt;
 use App\Models\OltPort;
@@ -77,6 +78,19 @@ class PollOltJob implements ShouldQueue
         }
 
         $this->olt->update(['connection_status' => 'online']);
+
+        /* OLT tanpa port PON terdaftar: autoprovisi slot 0/port 1 (default
+           fisik C-Data) agar scan ONU berjalan, sejalan dengan connectOlt web. */
+        if (count($this->olt->ports) === 0) {
+            OltPort::create([
+                'olt_id' => $this->olt->id,
+                'slot_number' => 0,
+                'port_number' => 1,
+                'port_type' => 'gpon',
+                'status' => 'active',
+            ]);
+            $this->olt->unsetRelation('ports');
+        }
 
         $ports = $this->olt->ports;
         $totalOnus = 0;

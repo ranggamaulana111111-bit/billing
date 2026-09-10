@@ -308,6 +308,7 @@ Route::middleware(['auth', 'teknisi'])->group(function () {
         Route::get('/noc/features/map/mikrotik/pppoe', [FeaturesController::class, 'mikrotikPppoe'])->name('noc.features.map.mikrotik.pppoe');
         Route::get('/noc/features/map/mikrotik/pppoe-session', [FeaturesController::class, 'pppoeSession'])->name('noc.features.map.mikrotik.pppoe-session');
         Route::get('/noc/features/map/hotspot', [FeaturesController::class, 'hotspotList'])->name('noc.features.map.hotspot');
+        Route::post('/noc/features/map/hotspot/ip', [FeaturesController::class, 'hotspotIpSave'])->name('noc.features.map.hotspot.ip');
         Route::post('/noc/features/map/mikrotik/delete', [FeaturesController::class, 'mikrotikDelete'])->name('noc.features.map.mikrotik.delete');
         Route::get('/noc/features/map/olt', [FeaturesController::class, 'oltList'])->name('noc.features.map.olt');
         Route::get('/noc/features/map/olt/pon-traffic', [FeaturesController::class, 'oltPonTraffic'])->name('noc.features.map.olt.pon-traffic');
@@ -342,6 +343,10 @@ Route::middleware(['auth', 'teknisi'])->group(function () {
         Route::get('/noc/features/map/backup/kmz-export', [FeaturesController::class, 'kmzExport'])->name('noc.features.map.backup.kmz-export');
 
         Route::post('/noc/features/map/backup/kmz-import', [FeaturesController::class, 'kmzImport'])->name('noc.features.map.backup.kmz-import');
+
+        Route::get('/noc/features/map/backup/devices-export', [FeaturesController::class, 'devicesExport'])->name('noc.features.map.backup.devices-export');
+
+        Route::post('/noc/features/map/backup/devices-restore', [FeaturesController::class, 'devicesRestore'])->name('noc.features.map.backup.devices-restore');
 
         Route::get('/noc/features/map/markers', [FeaturesController::class, 'mapMarkers'])->name('noc.features.map.markers');
 

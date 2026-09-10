@@ -82,10 +82,10 @@ return new class extends Migration
                 'unpaid',
                 'paid',
                 'overdue',
-                'cancelled'
+                'cancelled',
             ])
-            ->default('unpaid')
-            ->after('period');
+                ->default('unpaid')
+                ->after('period');
 
         });
 
@@ -102,7 +102,7 @@ return new class extends Migration
 
             $ym = str_replace('-', '', $period);
 
-            if (!isset($counter[$ym])) {
+            if (! isset($counter[$ym])) {
                 $counter[$ym] = 0;
             }
 
@@ -111,8 +111,7 @@ return new class extends Migration
             DB::table('invoices')
                 ->where('id', $inv->id)
                 ->update([
-                    'invoice_number' =>
-                        'INV-'.$ym.'-'.str_pad($counter[$ym], 6, '0', STR_PAD_LEFT),
+                    'invoice_number' => 'INV-'.$ym.'-'.str_pad($counter[$ym], 6, '0', STR_PAD_LEFT),
 
                     'period' => $period,
 
@@ -142,10 +141,10 @@ return new class extends Migration
                 'pending',
                 'paid',
                 'failed',
-                'refunded'
+                'refunded',
             ])
-            ->default('pending')
-            ->after('gateway_order_id');
+                ->default('pending')
+                ->after('gateway_order_id');
 
             $table->timestamp('paid_at')
                 ->nullable()

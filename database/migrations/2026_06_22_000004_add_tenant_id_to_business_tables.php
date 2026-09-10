@@ -29,11 +29,11 @@ return new class extends Migration
     {
         foreach ($this->tables as $tableName) {
 
-            if (!Schema::hasColumn($tableName, 'user_id')) {
+            if (! Schema::hasColumn($tableName, 'user_id')) {
                 continue;
             }
 
-            if (!Schema::hasColumn($tableName, 'tenant_id')) {
+            if (! Schema::hasColumn($tableName, 'tenant_id')) {
                 Schema::table($tableName, function (Blueprint $table) {
                     $table->foreignId('tenant_id')
                         ->nullable()
@@ -48,7 +48,7 @@ return new class extends Migration
             DB::table($tableName)
                 ->whereNull('tenant_id')
                 ->update([
-                    'tenant_id' => DB::raw('user_id')
+                    'tenant_id' => DB::raw('user_id'),
                 ]);
 
             $defaultTenant = DB::table('users')->min('tenant_id') ?? 1;
@@ -56,7 +56,7 @@ return new class extends Migration
             DB::table($tableName)
                 ->whereNull('tenant_id')
                 ->update([
-                    'tenant_id' => $defaultTenant
+                    'tenant_id' => $defaultTenant,
                 ]);
 
             /*
@@ -100,7 +100,7 @@ return new class extends Migration
 
         if (Schema::hasColumn('activity_logs', 'user_id')) {
 
-            if (!Schema::hasColumn('activity_logs', 'tenant_id')) {
+            if (! Schema::hasColumn('activity_logs', 'tenant_id')) {
 
                 Schema::table('activity_logs', function (Blueprint $table) {
 
@@ -119,7 +119,7 @@ return new class extends Migration
             DB::table('activity_logs')
                 ->whereNull('tenant_id')
                 ->update([
-                    'tenant_id' => DB::raw('user_id')
+                    'tenant_id' => DB::raw('user_id'),
                 ]);
 
             $defaultTenant = DB::table('users')->min('tenant_id') ?? 1;
@@ -127,7 +127,7 @@ return new class extends Migration
             DB::table('activity_logs')
                 ->whereNull('tenant_id')
                 ->update([
-                    'tenant_id' => $defaultTenant
+                    'tenant_id' => $defaultTenant,
                 ]);
         }
     }
@@ -136,11 +136,11 @@ return new class extends Migration
     {
         foreach ($this->tables as $tableName) {
 
-            if (!Schema::hasColumn($tableName, 'tenant_id')) {
+            if (! Schema::hasColumn($tableName, 'tenant_id')) {
                 continue;
             }
 
-            if (!Schema::hasColumn($tableName, 'user_id')) {
+            if (! Schema::hasColumn($tableName, 'user_id')) {
 
                 Schema::table($tableName, function (Blueprint $table) {
 
@@ -157,7 +157,7 @@ return new class extends Migration
             DB::table($tableName)
                 ->whereNull('user_id')
                 ->update([
-                    'user_id' => DB::raw('tenant_id')
+                    'user_id' => DB::raw('tenant_id'),
                 ]);
 
             Schema::table($tableName, function (Blueprint $table) {

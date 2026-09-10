@@ -1626,7 +1626,7 @@
         #ftthMikrotikCard .ftth-modal-body { overflow: hidden; scrollbar-width: none; }
         #ftthMikrotikCard .ftth-modal-body::-webkit-scrollbar { display: none; }
         #ftthOltCard { height: auto; }
-        #ftthOltCard .ftth-modal-body { overflow: hidden; scrollbar-width: none; }
+        #ftthOltCard .ftth-modal-body { overflow-y: auto; scrollbar-width: none; }
         #ftthOltCard .ftth-modal-body::-webkit-scrollbar { display: none; }
         .ftth-mt-wan {
             margin-top: 10px;
@@ -1699,8 +1699,8 @@
         @keyframes ftth-dots { 0%,20% { content: '.'; } 40% { content: '..'; } 60%,100% { content: '...'; } }
         .ftth-syncing-dots::after { content: '.'; animation: ftth-dots 1.5s steps(1,end) infinite; }
 
-        /* ── Sync OLT card: lebih tinggi & tanpa scrollbar ── */
-        #ftthOltCard { height: 470px; }
+        /* ── Sync OLT card: tinggi menyesuaikan seluruh isi & tanpa scrollbar ── */
+        #ftthOltCard { height: auto; max-height: 85vh; }
         #ftthOltCard .ftth-modal-body,
         #ftthOltCard .ftth-router-list {
             scrollbar-width: none;
@@ -1736,9 +1736,11 @@
         }
 
         /* ── Card Daftar PPPoE ── */
-        #ftthQueueCard { width: 380px; height: 460px; }
+        #ftthQueueCard { width: 320px; height: 400px; }
         #ftthQueueCard .ftth-modal-body { padding: 0; gap: 0; }
         #ftthQueueCard .ftth-modal-body::-webkit-scrollbar { display: none; }
+        #ftthQueueCard .ftth-modal-head,
+        #ftthHotspotCard .ftth-modal-head { padding: 7px 10px; font-size: 12px; }
 
         /* ── Dropdown Queue (PPPoE / Hotspot) ── */
         #ftthQueueCard, #ftthHotspotCard { background: #0a1426; }
@@ -1784,57 +1786,57 @@
         .ftth-dropdown-item.ftth-dd-hotspot:hover { background: #c2410c; border-color: #fb923c; color: #fff; }
 
         /* ── Card Daftar Hotspot ── */
-        #ftthHotspotCard { width: 380px; height: 460px; }
+        #ftthHotspotCard { width: 320px; height: 400px; }
         #ftthHotspotCard .ftth-modal-body { padding: 0; gap: 0; }
         #ftthHotspotCard .ftth-modal-body::-webkit-scrollbar { display: none; }
         .ftth-queue-toolbar {
             display: flex;
             align-items: center;
-            gap: 8px;
-            padding: 10px 12px;
+            gap: 6px;
+            padding: 7px 9px;
             border-bottom: 1px solid rgba(96,165,250,0.2);
             flex-shrink: 0;
         }
         .ftth-queue-toolbar input {
             flex: 1;
             min-width: 0;
-            padding: 6px 10px;
-            border-radius: 8px;
+            padding: 4px 8px;
+            border-radius: 7px;
             border: 1px solid rgba(96,165,250,0.3);
             background: rgba(7,17,31,0.7);
             color: #fff;
-            font-size: 12px;
+            font-size: 11px;
             outline: none;
             box-sizing: border-box;
         }
         .ftth-queue-toolbar input:focus { border-color: #60a5fa; }
-        .ftth-queue-toolbar .ftth-modal-btn { padding: 6px 12px; }
+        .ftth-queue-toolbar .ftth-modal-btn { padding: 4px 9px; font-size: 10.5px; }
         .ftth-queue-list-wrap {
             flex: 1;
             overflow-y: auto;
-            padding: 10px 12px;
+            padding: 8px 9px;
             scrollbar-width: thin;
             scrollbar-color: rgba(96,165,250,0.4) transparent;
         }
         .ftth-queue-item {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
             background: rgba(15,23,42,0.6);
             border: 1px solid rgba(51,65,85,0.7);
-            border-radius: 10px;
-            padding: 9px 12px;
-            margin-bottom: 8px;
+            border-radius: 8px;
+            padding: 6px 9px;
+            margin-bottom: 5px;
             transition: transform .18s ease, border-color .18s ease, background .18s ease;
         }
         .ftth-queue-item:hover { transform: translateX(4px); background: rgba(30,41,59,0.75); border-color: rgba(96,165,250,0.45); }
         .ftth-queue-item-main { flex: 1 1 auto; min-width: 0; }
         .ftth-queue-item-name {
-            font-size: 12.5px; font-weight: 700; color: #93c5fd;
+            font-size: 11.5px; font-weight: 700; color: #93c5fd;
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
         .ftth-queue-item-ip {
-            font-size: 11px; color: #94a3b8;
+            font-size: 10px; color: #94a3b8;
             font-family: ui-monospace, SFMono-Regular, Consolas, Menlo, monospace;
             margin-top: 2px;
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -1844,9 +1846,9 @@
             background: rgba(45,212,191,0.16);
             border: 1px solid rgba(45,212,191,0.4);
             color: #5eead4;
-            padding: 6px 14px;
-            border-radius: 8px;
-            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 10px;
             font-weight: 800;
             letter-spacing: .04em;
             cursor: pointer;
@@ -1854,21 +1856,47 @@
             white-space: nowrap;
         }
         .ftth-queue-item-add:hover { background: rgba(45,212,191,0.32); color: #fff; }
+        .ftth-hs-ip {
+            width: 82px;
+            padding: 1px 5px;
+            border-radius: 5px;
+            border: 1px solid rgba(148,163,184,0.3);
+            background: rgba(7,17,31,0.7);
+            color: #5eead4;
+            font-family: ui-monospace, SFMono-Regular, Consolas, Menlo, monospace;
+            font-size: 10px;
+            outline: none;
+            box-sizing: border-box;
+        }
+        .ftth-hs-ip:focus { border-color: #60a5fa; }
+        .ftth-ip-save {
+            margin-left: 3px;
+            padding: 1px 6px;
+            border-radius: 5px;
+            border: 1px solid rgba(45,212,191,0.35);
+            background: rgba(45,212,191,0.12);
+            color: #5eead4;
+            font-size: 9px;
+            cursor: pointer;
+            vertical-align: middle;
+        }
+        .ftth-ip-save:hover { background: rgba(45,212,191,0.3); color: #fff; }
 
         /* ── Card Backup & Restore ── */
-        #ftthBackupCard { width: fit-content; max-width: 430px; height: auto; }
-        #ftthBackupCard .ftth-modal-body { overflow: visible; gap: 8px; }
-        .ftth-smtp-adv { margin-top: 2px; }
-        .ftth-smtp-adv summary { cursor: pointer; font-size: 11px; font-weight: 600; color: #94a3b8; padding: 4px 0; user-select: none; list-style: none; }
+        #ftthBackupCard { width: fit-content; max-width: 290px; height: auto; }
+        #ftthBackupCard .ftth-modal-body { overflow: visible; gap: 6px; padding: 7px 9px; }
+        #ftthBackupCard .ftth-bs-form input { width: 100%; min-width: 0; }
+        .ftth-smtp-adv { margin-top: 1px; }
+        .ftth-smtp-adv summary { cursor: pointer; font-size: 10px; font-weight: 600; color: #94a3b8; padding: 2px 0; user-select: none; list-style: none; }
         .ftth-smtp-adv summary::-webkit-details-marker { display: none; }
         .ftth-smtp-adv summary:hover, .ftth-smtp-adv[open] summary { color: #a78bfa; }
-        .ftth-smtp-adv .ftth-bs-form { margin-top: 6px; padding-top: 6px; border-top: 1px dashed rgba(148,163,184,0.25); }
+        .ftth-smtp-adv .ftth-bs-form { margin-top: 4px; padding-top: 4px; border-top: 1px dashed rgba(148,163,184,0.25); }
         .ftth-bs {
-            border-radius: 10px;
+            border-radius: 8px;
             border: 1px solid;
-            padding: 9px 11px;
+            padding: 6px 8px;
             display: grid;
-            gap: 8px;
+            gap: 5px;
         }
         .ftth-bs-1 { background: rgba(37,99,235,0.10); border-color: rgba(59,130,246,0.4); }
         .ftth-bs-2 { background: rgba(34,197,94,0.08); border-color: rgba(34,197,94,0.4); }
@@ -1877,35 +1905,38 @@
         .ftth-bs-head {
             display: flex;
             align-items: center;
-            gap: 7px;
-            font-size: 11.5px;
+            gap: 5px;
+            font-size: 10.5px;
             font-weight: 700;
         }
         .ftth-bs-1 .ftth-bs-head { color: #93c5fd; }
         .ftth-bs-2 .ftth-bs-head { color: #86efac; }
         .ftth-bs-3 .ftth-bs-head { color: #fdba74; }
         .ftth-bs-4 .ftth-bs-head { color: #d8b4fe; }
-        .ftth-bs-head i { font-size: 12px; }
+        .ftth-bs-head i { font-size: 11px; }
         .ftth-bs-tag {
-            font-size: 9px;
+            font-size: 8px;
             font-weight: 600;
-            padding: 1px 7px;
+            padding: 0 6px;
             border-radius: 999px;
             background: rgba(251,191,36,0.2);
             color: #fcd34d;
             margin-left: auto;
             white-space: nowrap;
         }
-        .ftth-bs-form { grid-template-columns: 1fr; gap: 7px; align-items: end; }
-        .ftth-bs-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+        /* Email penerima + Jam Backup sebaris (2 kolom) */
+        .ftth-bs-form { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; align-items: end; }
+        .ftth-bs-form label { font-size: 9.5px; }
+        .ftth-bs-form input { font-size: 11px; padding: 4px 7px; }
+        .ftth-bs-actions { display: flex; gap: 5px; flex-wrap: wrap; }
         .ftth-backup-btn {
             display: inline-flex;
             align-items: center;
-            gap: 6px;
-            padding: 6px 12px;
-            border-radius: 8px;
+            gap: 4px;
+            padding: 4px 9px;
+            border-radius: 7px;
             border: 1px solid;
-            font-size: 11px;
+            font-size: 9.5px;
             font-weight: 600;
             cursor: pointer;
             transition: all .15s;
@@ -2017,21 +2048,124 @@
             font-size: 9.5px; color: rgba(255,255,255,0.5);
         }
         .ftth-odp-est-detail b { color: rgba(255,255,255,0.82); font-weight: 700; }
+        .ftth-odp-est-mini { padding: 3px 7px; border-radius: 6px; margin-top: 3px; }
+        .ftth-odp-est-mini .ftth-odp-est-total { font-size: 8.5px; }
+        .ftth-odp-est-mini .ftth-odp-est-total b { font-size: 10.5px; }
+        .ftth-odp-est-mini .ftth-odp-est-detail { gap: 10px; margin-top: 2px; font-size: 8px; }
+        .ftth-switch {
+            position: relative; display: inline-flex; align-items: center;
+            width: 44px; height: 24px; cursor: pointer; user-select: none; flex-shrink: 0;
+        }
+        .ftth-switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+        .ftth-switch-track {
+            position: relative; width: 44px; height: 24px; border-radius: 999px;
+            background: rgba(148,163,184,0.32); border: 1px solid rgba(148,163,184,0.45);
+            transition: background .18s ease, border-color .18s ease;
+        }
+        .ftth-switch-thumb {
+            position: absolute; top: 2px; left: 2px; width: 18px; height: 18px;
+            border-radius: 50%; background: #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.45);
+            transition: transform .18s ease, background .18s ease;
+        }
+        .ftth-switch input:checked + .ftth-switch-track { background: #3b82f6; border-color: #3b82f6; }
+        .ftth-switch input:checked + .ftth-switch-track .ftth-switch-thumb {
+            transform: translateX(20px); background: #fff;
+        }
+        .ftth-switch input:focus-visible + .ftth-switch-track { outline: 2px solid #60a5fa; outline-offset: 2px; }
+        .ftth-switch:hover .ftth-switch-track { background: rgba(148,163,184,0.45); }
+        .ftth-switch input:checked:hover + .ftth-switch-track { background: #2563eb; }
+        .ftth-switch-sm { width: 24px; height: 14px; }
+        .ftth-switch-sm .ftth-switch-track { width: 24px; height: 14px; border-width: 1px; }
+        .ftth-switch-sm .ftth-switch-thumb { top: 1px; left: 1px; width: 10px; height: 10px; box-shadow: 0 1px 2px rgba(0,0,0,0.5); }
+        .ftth-switch-sm input:checked + .ftth-switch-track .ftth-switch-thumb { transform: translateX(10px); }
+        .ftth-odp-tgl-wrap {
+            display: inline-flex; align-items: center; gap: 5px; margin-left: auto;
+            padding: 1px 7px; border-radius: 999px;
+            background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.18);
+            white-space: nowrap;
+        }
+        .ftth-odp-tgl-label {
+            font-size: 7.5px; font-weight: 700; color: #93c5fd;
+            letter-spacing: .05em; text-transform: uppercase; white-space: nowrap;
+        }
+        .ftth-odc-est-src {
+            font-weight: 700; font-size: 10px; color: #fb923c;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+        }
+        .ftth-odc-est.ftth-odp-est { padding: 5px 9px; }
+        .ftth-odc-est .ftth-odp-est-total { font-size: 10.5px; }
+        .ftth-odc-est .ftth-odp-est-total b { font-size: 14px; }
+        .ftth-odc-est .ftth-odp-est-detail { margin-top: 3px; font-size: 9px; }
         .ftth-odp-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; }
         .ftth-odp-row > .ftth-df { margin-bottom: 0; }
         .ftth-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; }
         .ftth-row2 > .ftth-df { margin-bottom: 0; }
-        .ftth-pon-specs-sidebar input {
+        #ftthCoreFields .ftth-odp-row .ftth-df:last-child select { min-width: 120px; }
+        .ftth-add-odp .ftth-df > label { font-size: 9.5px; }
+        .ftth-add-odp .ftth-df > select,
+        .ftth-add-odp .ftth-df > input { padding: 5px 7px; font-size: 12px; }
+        .ftth-add-odp .ftth-odp-row { gap: 6px 8px; }
+        /* ── ODC: daftar Passive 1,2,3... dengan port passive sendiri ── */
+        .ftth-odc-passives {
+            display: grid; grid-template-columns: 1fr; gap: 5px; margin-top: 5px;
+            border: 1px dashed rgba(148,163,184,0.3); border-radius: 8px;
+            padding: 5px 8px; background: rgba(7,17,31,0.5);
+        }
+        .ftth-odc-passives-head {
+            display: flex; align-items: center; justify-content: flex-end;
+            gap: 6px;
+        }
+        .ftth-odc-passive-row {
+            display: grid;
+            grid-template-columns: auto 1fr 1fr 1fr auto;
+            gap: 7px; align-items: center; padding: 6px 8px;
+            border-bottom: 1px dashed rgba(148,163,184,0.15);
+        }
+        .ftth-odc-passive-row:last-child { border-bottom: none; }
+        .ftth-odc-pn {
+            font-size: 9.5px; font-weight: 700; color: #5eead4;
+            white-space: nowrap; transform: translateY(6px);
+        }
+        .ftth-odc-passive-row .ftth-df { margin-bottom: 0; gap: 2px; align-items: center; }
+        .ftth-odc-passive-row label { font-size: 9px; color: rgba(255,255,255,0.6); }
+        .ftth-odc-passive-row input, .ftth-odc-passive-row select { font-size: 11px; padding: 3px 6px; }
+        .ftth-odc-passive-del {
+            background: transparent; border: none; color: #f87171; cursor: pointer;
+            font-size: 12px; line-height: 1; padding: 4px 6px; border-radius: 6px;
+            align-self: center; transform: translateY(6px); transition: none;
+        }
+        .ftth-odc-passive-del:hover { background: rgba(248,113,113,0.15); }
+        .ftth-odc-add-passive {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 3px 8px; border-radius: 7px; border: 1px solid rgba(45,212,191,0.4);
+            background: rgba(45,212,191,0.12); color: #5eead4;
+            font-size: 9.5px; font-weight: 700; cursor: pointer; transition: none;
+        }
+        .ftth-odc-add-passive:hover { background: rgba(45,212,191,0.3); }
+        .ftth-odc-detail-passive-sel {
+            box-sizing: border-box; background: rgba(15,23,42,0.75);
+            border: 1px solid rgba(51,65,85,0.85); border-radius: 8px;
+            color: #e2e8f0; padding: 4px 8px; font-size: 11px; cursor: pointer;
+            min-width: 150px;
+        }
+        .ftth-odc-passive-sel-row { display: flex; align-items: center; gap: 6px; }
+        .ftth-odc-passive-sel-row .ftth-odc-info-label { flex: none; white-space: nowrap; }
+        .ftth-odc-passive-sel-row .ftth-odc-info-val { margin-left: auto; }
+        .ftth-pon-specs-sidebar input,
+        .ftth-pon-specs-sidebar select {
             width: 100%; padding: 3px 6px; font-size: 10px; color: #e2e8f0; background: #0b1220;
             border: 1px solid #233047; border-radius: 5px; outline: none; box-sizing: border-box;
-            height: 24px;
+            height: 24px; cursor: pointer;
         }
         .ftth-pon-specs-sidebar .ftth-pon-spec-row { margin-bottom: 3px !important; gap: 5px !important; }
         .ftth-pon-specs-sidebar .ftth-pon-spec-label { font-size: 9.5px !important; }
         .ftth-pon-specs-sidebar { margin-top: 2px; }
-        .ftth-pon-specs-sidebar input:focus { border-color: #38bdf8; }
-        body.ftth-light .ftth-pon-specs-sidebar input { background: #fff; color: #0f172a; border-color: #cbd5e1; }
-        body.ftth-light .ftth-pon-specs-sidebar input:focus { border-color: #38bdf8; }
+        .ftth-pon-specs-sidebar input:focus,
+        .ftth-pon-specs-sidebar select:focus { border-color: #38bdf8; }
+        body.ftth-light .ftth-pon-specs-sidebar input,
+        body.ftth-light .ftth-pon-specs-sidebar select { background: #fff; color: #0f172a; border-color: #cbd5e1; }
+        body.ftth-light .ftth-pon-specs-sidebar input:focus,
+        body.ftth-light .ftth-pon-specs-sidebar select:focus { border-color: #38bdf8; }
         body.ftth-light .ftth-pon-specs-sidebar .ftth-pon-spec-row span { color: #334155 !important; }
         body.ftth-light .ftth-pon-specs-sidebar .ftth-pon-specs-head { color: #d97706 !important; }
         .ftth-pon-specs-sidebar .ftth-pon-specs-head { color: #fb923c; }
@@ -2154,10 +2288,8 @@
         .ftth-ic .ftth-ic-i i.ftth-glow-odp { color: #facc15; text-shadow: 0 0 8px rgba(250,204,21,0.95), 0 0 18px rgba(250,204,21,0.55); }
         .ftth-ic .ftth-ic-i i.ftth-glow-customer { color: #3b82f6; text-shadow: 0 0 8px rgba(59,130,246,0.95), 0 0 18px rgba(59,130,246,0.55); }
         .ftth-ic.ftth-marker-active .ftth-ic-i {
-            border-color: #38bdf8 !important;
-            box-shadow: 0 0 0 2px rgba(56,189,248,0.6), 0 0 12px rgba(56,189,248,0.4);
-            transform: scale(1.18);
-            transition: all 0.15s ease;
+            border-color: transparent !important;
+            box-shadow: none;
         }
         .ftth-ic.ftth-marker-active .ftth-ic-i i { color: #fff !important; }
         /* stroke-width sengaja TIDAK di-set di CSS: biarkan atribut Leaflet (weight)
@@ -2167,8 +2299,8 @@
             stroke-linejoin: round;
             fill: none;
         }
-        /* Glow kabel global (toggle toolbar): kabel memancarkan cahaya warnanya */
-        .ftth-cables-glow .ftth-cable {
+        /* Glow kabel global (dropdown Matikan/hidupkan Animasi): kabel memancarkan cahaya warnanya */
+        body.ftth-global-glow .ftth-cable {
             filter: drop-shadow(0 0 2px var(--glowc, #38bdf8)) drop-shadow(0 0 7px var(--glowc, #38bdf8));
         }
         .ftth-cable-flow {
@@ -2220,6 +2352,63 @@
         .ftth-cable-props-actions .ftth-odc-btn-lg i { font-size: 9.5px; }
         .ftth-cable-cancel-btn { width: 100%; margin-top: 6px; padding: 6px 0; border: none; border-radius: 7px; background: #64748b; color: #fff; font-size: 9.5px; font-weight: 700; cursor: pointer; transition: background .15s; }
         .ftth-cable-cancel-btn:hover { background: #475569; }
+        .ftth-cable-finish-row { display: flex; gap: 6px; margin-top: 6px; }
+        .ftth-cable-finish-row .ftth-cable-cancel-btn { flex: 1; width: auto; margin-top: 0; }
+        .ftth-cable-finish-btn { flex: 1; padding: 6px 0; border: none; border-radius: 7px; background: #16a34a; color: #fff; font-size: 9.5px; font-weight: 700; cursor: pointer; transition: background .15s; }
+        .ftth-cable-finish-btn:hover { background: #15803d; }
+        /* Glow satu kabel saja (toggle "Aktif Glow Kabel" di card Edit Kabel) */
+        .ftth-cable-glow-on {
+            filter: drop-shadow(0 0 2px var(--glowc, #38bdf8)) drop-shadow(0 0 7px var(--glowc, #38bdf8));
+        }
+        /* Glow global (dropdown Matikan/hidupkan Animasi): kabel + ikon perangkat */
+        body.ftth-global-glow .ftth-cable {
+            filter: drop-shadow(0 0 2px var(--glowc, #38bdf8)) drop-shadow(0 0 7px var(--glowc, #38bdf8));
+        }
+        body.ftth-global-glow .ftth-ic i {
+            filter: drop-shadow(0 0 3px currentColor) drop-shadow(0 0 9px currentColor);
+        }
+        /* Dropdown tombol Matikan/hidupkan Animasi (Animasi & Glow) */
+        .ftth-anim-wrap { position: relative; flex-shrink: 0; display: inline-flex; }
+        .ftth-anim-menu {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            z-index: 10002;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            width: 200px;
+            padding: 6px;
+            background: rgba(7,17,31,0.97);
+            border: 1px solid rgba(163,230,53,0.35);
+            border-radius: 12px;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            opacity: 0;
+            transform: translateY(-6px);
+            pointer-events: none;
+            transition: opacity .2s ease, transform .2s ease;
+        }
+        .ftth-anim-menu.open { opacity: 1; transform: translateY(0); pointer-events: auto; }
+        .ftth-anim-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            width: 100%;
+            padding: 8px 10px;
+            border-radius: 9px;
+            border: 1px solid rgba(163,230,53,0.18);
+            background: rgba(7,17,31,0.9);
+            color: rgba(255,255,255,0.9);
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all .2s;
+        }
+        .ftth-anim-item:hover { background: rgba(163,230,53,0.12); border-color: rgba(163,230,53,0.45); }
+        .ftth-anim-label { display: flex; align-items: center; gap: 8px; min-width: 0; }
+        .ftth-anim-label i { color: #a3e635; width: 15px; text-align: center; flex: none; }
         /* Toggle geser Glow Kabel: klik geser kanan = aktif, kiri = mati */
         .ftth-glow-switch { position: relative; display: inline-block; width: 34px; height: 18px; flex: none; }
         .ftth-glow-switch input { position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none; }
@@ -2238,7 +2427,8 @@
             box-shadow: 0 12px 40px rgba(0,0,0,0.55);
         }
         .ftth-reposition-bar button { padding: 3px 9px; border-radius: 6px; border: none; cursor: pointer; font-size: 9.5px; font-weight: 800; color: #fff; flex: none; }
-        .ftth-reposition-bar .done { background: #64748b; }
+        .ftth-reposition-bar .done { background: #16a34a; }
+        .ftth-reposition-bar .done:hover { background: #15803d; }
         .ftth-reposition-bar .cancel { background: #64748b; }
         .ftth-cable-vx { background: none !important; border: none !important; }
         .ftth-cable-vx-i { width: 12px; height: 12px; border-radius: 50%; background: #fbbf24; border: 2px solid #0b1524; box-shadow: 0 0 6px rgba(0,0,0,0.5); cursor: move; }
@@ -2249,53 +2439,53 @@
         }
 
         /* ── List Perangkat ── */
-        .ftth-devices-list-card { width: 340px; top: 66px; transform: translateX(-50%); max-height: calc(100vh - 130px); }
-        .ftth-device-list { display: flex; flex-direction: column; gap: 3px; flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; padding-right: 6px; }
+        .ftth-devices-list-card { width: fit-content; min-width: 300px; max-width: 340px; max-height: 85vh; }
+        .ftth-device-list { display: flex; flex-direction: column; gap: 2px; flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; padding-right: 6px; }
         .ftth-device-row {
-            display: flex; align-items: center; gap: 4px;
+            display: flex; align-items: center; gap: 3px;
             background: rgba(15,23,42,0.6);
             border: 1px solid rgba(51,65,85,0.7);
-            border-radius: 8px;
-            padding: 3px 6px;
+            border-radius: 7px;
+            padding: 2px 5px;
             transition: transform .18s ease, border-color .18s ease, background .18s ease;
         }
         .ftth-device-row:hover { transform: translateX(5px); border-color: rgba(96,165,250,0.45); background: rgba(30,41,59,0.75); }
         .ftth-device-type-badge {
             flex: 0 0 auto;
-            font-size: 9px; font-weight: 800;
-            border-radius: 5px; padding: 3px 6px;
+            font-size: 8px; font-weight: 800;
+            border-radius: 4px; padding: 2px 5px;
             letter-spacing: .04em;
             color: #020617;
         }
         .ftth-device-row-main { flex: 1 1 auto; min-width: 0; }
         .ftth-device-row-name {
             display: block;
-            font-size: 11px; font-weight: 700; color: #f1f5f9;
+            font-size: 10px; font-weight: 700; color: #f1f5f9;
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-            padding-left: 7px;
+            padding-left: 6px;
             border-left: 3px solid var(--fc, #60a5fa);
         }
-        .ftth-device-row-sub { display: block; font-size: 9px; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .ftth-device-row-sub { display: block; font-size: 8px; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .ftth-device-row-del {
             flex: 0 0 auto;
-            width: 20px; height: 20px;
-            border-radius: 6px;
+            width: 17px; height: 17px;
+            border-radius: 5px;
             border: 1px solid rgba(239,68,68,0.5);
             background: rgba(239,68,68,0.12);
             color: #fca5a5;
-            font-size: 9px;
+            font-size: 8px;
             cursor: pointer;
             transition: all .15s;
         }
         .ftth-device-row-del:hover { background: rgba(239,68,68,0.35); color: #fff; }
         .ftth-device-row-edit {
             flex: 0 0 auto;
-            width: 20px; height: 20px;
-            border-radius: 6px;
+            width: 17px; height: 17px;
+            border-radius: 5px;
             border: 1px solid rgba(96,165,250,0.5);
             background: rgba(96,165,250,0.12);
             color: #93c5fd;
-            font-size: 9px;
+            font-size: 8px;
             cursor: pointer;
             transition: all .15s;
         }
@@ -2309,8 +2499,8 @@
         .ftth-device-row-status {
             flex: 0 0 auto;
             display: flex; align-items: center; gap: 3px;
-            font-size: 8.5px; font-weight: 800; letter-spacing: .03em;
-            padding: 2px 6px;
+            font-size: 7.5px; font-weight: 800; letter-spacing: .03em;
+            padding: 1px 4px;
             border-radius: 99px;
             border: 1px solid rgba(51,65,85,0.8);
             background: rgba(15,23,42,0.7);
@@ -2325,8 +2515,8 @@
         .ftth-device-row-acs {
             flex: 0 0 auto;
             display: inline-flex; align-items: center; gap: 3px;
-            font-size: 8.5px; font-weight: 800; letter-spacing: .03em;
-            padding: 2px 6px;
+            font-size: 7.5px; font-weight: 800; letter-spacing: .03em;
+            padding: 1px 4px;
             border-radius: 99px;
             color: #22d3ee; border: 1px solid rgba(34,211,238,0.55);
             background: rgba(34,211,238,0.12);
@@ -2335,23 +2525,23 @@
         .ftth-genieacs-dd {
             background: rgba(34,211,238,0.07);
             border: 1px solid rgba(34,211,238,0.35);
-            border-radius: 8px;
-            padding: 8px 9px;
-            margin-bottom: 8px;
+            border-radius: 7px;
+            padding: 6px 8px;
+            margin-bottom: 6px;
         }
         .ftth-genieacs-dd-label {
-            font-size: 10px; font-weight: 700; color: #67e8f9;
-            margin-bottom: 5px; display: flex; align-items: center; gap: 5px;
+            font-size: 9px; font-weight: 700; color: #67e8f9;
+            margin-bottom: 4px; display: flex; align-items: center; gap: 5px;
         }
         .ftth-genieacs-select {
             width: 100%;
-            padding: 7px 8px;
-            border-radius: 6px;
+            padding: 5px 7px;
+            border-radius: 5px;
             background: #0f172a; color: #e2e8f0;
             border: 1px solid rgba(34,211,238,0.4);
-            font-size: 11px;
+            font-size: 10px;
         }
-        .ftth-device-empty { text-align: center; color: #a78bfa; font-size: 12px; padding: 26px 10px; }
+        .ftth-device-empty { text-align: center; color: #a78bfa; font-size: 11px; padding: 16px 10px; }
         .ftth-onu-loading { background: rgba(10,20,38,0.97); }
         body.ftth-light .ftth-onu-loading { background: #f6f7f9; }
 
@@ -2421,15 +2611,15 @@
         ::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg, #7dd3fc, #c084fc); }
 
         /* ── Daftar Perangkat: kategori ── */
-        .ftth-device-cats { display: grid; grid-template-columns: 1fr; gap: 6px; padding-right: 6px; }
+        .ftth-device-cats { display: grid; grid-template-columns: 1fr; gap: 5px; padding-right: 6px; }
         .ftth-dev-cat {
             position: relative;
-            display: flex; align-items: center; gap: 8px;
+            display: flex; align-items: center; gap: 6px;
             background: rgba(15,23,42,0.6);
             border: 1px solid rgba(51,65,85,0.7);
             border-left: 4px solid var(--c, #94a3b8);
-            border-radius: 10px;
-            padding: 6px 10px;
+            border-radius: 8px;
+            padding: 4px 8px;
             cursor: pointer;
             overflow: hidden;
             transition: transform .2s ease, border-color .2s ease, background .2s ease, box-shadow .2s ease;
@@ -2447,54 +2637,54 @@
         .ftth-dev-cat:hover::before { transform: translateX(0); opacity: 1; }
         .ftth-dev-cat-ic {
             flex: 0 0 auto;
-            width: 30px; height: 30px; border-radius: 8px;
+            width: 24px; height: 24px; border-radius: 6px;
             display: flex; align-items: center; justify-content: center;
-            font-size: 15px; color: var(--c);
+            font-size: 13px; color: var(--c);
             background: rgba(148,163,184,0.12);
             background: color-mix(in srgb, var(--c) 14%, transparent);
         }
         .ftth-dev-cat-body { flex: 1 1 auto; min-width: 0; }
-        .ftth-dev-cat-name { font-size: 11px; font-weight: 800; color: #f1f5f9; }
-        .ftth-dev-cat-jelajahi { font-size: 10px; color: #94a3b8; }
+        .ftth-dev-cat-name { font-size: 10px; font-weight: 800; color: #f1f5f9; }
+        .ftth-dev-cat-jelajahi { font-size: 9px; color: #94a3b8; }
         .ftth-dev-cat-badge {
-            position: absolute; top: 6px; right: 6px;
-            min-width: 18px; height: 18px; padding: 0 5px;
+            position: absolute; top: 5px; right: 5px;
+            min-width: 16px; height: 16px; padding: 0 4px;
             border-radius: 99px;
             display: flex; align-items: center; justify-content: center;
             background: var(--c); color: #020617;
-            font-size: 10px; font-weight: 800;
+            font-size: 9px; font-weight: 800;
         }
 
         /* ── Daftar Perangkat: jelajahi data ── */
-        .ftth-device-browse { display: flex; flex-direction: column; gap: 8px; flex: 1 1 auto; min-height: 0; }
-        .ftth-browse-toolbar { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+        .ftth-device-browse { display: flex; flex-direction: column; gap: 6px; flex: 1 1 auto; min-height: 0; }
+        .ftth-browse-toolbar { display: flex; align-items: center; gap: 6px; flex: 0 0 auto; }
         .ftth-browse-search {
             flex: 1 1 auto;
-            display: flex; align-items: center; gap: 6px;
+            display: flex; align-items: center; gap: 5px;
             background: rgba(15,23,42,0.85);
-            border: 1px solid rgba(51,65,85,0.8); border-radius: 8px;
-            padding: 6px 10px;
+            border: 1px solid rgba(51,65,85,0.8); border-radius: 7px;
+            padding: 5px 8px;
         }
-        .ftth-browse-search i { font-size: 12px; color: #64748b; }
-        .ftth-browse-search input { flex: 1 1 auto; min-width: 0; background: none; border: none; outline: none; color: #e2e8f0; font-size: 12px; }
+        .ftth-browse-search i { font-size: 11px; color: #64748b; }
+        .ftth-browse-search input { flex: 1 1 auto; min-width: 0; background: none; border: none; outline: none; color: #e2e8f0; font-size: 11px; }
         .ftth-browse-search input::placeholder { color: #64748b; }
         .ftth-browse-delall {
             flex: 0 0 auto;
             border: 1px solid rgba(239,68,68,0.5);
             background: rgba(239,68,68,0.12);
             color: #fca5a5;
-            border-radius: 8px; padding: 7px 12px;
-            font-size: 11.5px; font-weight: 700; cursor: pointer;
+            border-radius: 7px; padding: 5px 9px;
+            font-size: 10.5px; font-weight: 700; cursor: pointer;
             transition: all .15s; white-space: nowrap;
         }
         .ftth-browse-delall:hover { background: rgba(239,68,68,0.35); color: #fff; }
         .ftth-browse-back {
             margin-left: auto;
-            display: inline-flex; align-items: center; gap: 6px;
+            display: inline-flex; align-items: center; gap: 5px;
             background: rgba(15,23,42,0.85);
-            border: 1px solid rgba(51,65,85,0.8); border-radius: 8px;
-            color: #e2e8f0; font-size: 11.5px; font-weight: 600; cursor: pointer;
-            padding: 6px 12px; transition: all .15s;
+            border: 1px solid rgba(51,65,85,0.8); border-radius: 7px;
+            color: #e2e8f0; font-size: 10.5px; font-weight: 600; cursor: pointer;
+            padding: 5px 9px; transition: all .15s;
         }
         .ftth-browse-back:hover { background: rgba(59,130,246,0.25); border-color: rgba(59,130,246,0.5); }
         .ftth-browse-close {
@@ -2503,8 +2693,8 @@
             border: 1px solid #475569;
             background: #64748b;
             color: #fff;
-            border-radius: 10px; padding: 9px;
-            font-size: 12.5px; font-weight: 700; cursor: pointer;
+            border-radius: 8px; padding: 6px;
+            font-size: 11.5px; font-weight: 700; cursor: pointer;
             transition: all .15s;
         }
         .ftth-browse-close:hover { background: #475569; color: #fff; }
@@ -2565,6 +2755,11 @@
             font-size: 11px;
         }
         .ftth-detail-row i { color: #60a5fa; margin-top: 2px; }
+        .ftth-coord-copy { background: none; border: none; color: #60a5fa; cursor: pointer; font-size: 12px; padding: 0; opacity: 0.6; transition: none; }
+        .ftth-coord-copy:hover { opacity: 1; }
+        .ftth-coord-group { display: inline-flex; align-items: center; gap: 8px; }
+        .ftth-coord-text { color: #60a5fa; }
+        .ftth-odc-info-val .ftth-coord-copy { color: inherit; }
         .ftth-detail-attrs { display: grid; gap: 4px; }
         .ftth-detail-attr {
             display: flex;
@@ -2676,7 +2871,7 @@
 
         /* ── ODC Detail Card ── */
         .ftth-detail-card.ftth-odc-card {
-            width: 260px; padding: 12px; border-radius: 14px;
+            width: 260px; padding: 10px; border-radius: 14px;
             background: rgba(10,18,36,0.97);
             border: 1px solid rgba(56,100,180,0.28);
             box-shadow: 0 12px 48px rgba(0,0,0,0.6), 0 0 0 1px rgba(56,100,180,0.12);
@@ -2688,13 +2883,13 @@
         }
         .ftth-detail-card.ftth-odc-card .ftth-detail-body::-webkit-scrollbar { display: none; }
         .ftth-odc-head {
-            display: flex; align-items: center; gap: 10px;
-            padding: 0 0 12px;
+            display: flex; align-items: center; gap: 8px;
+            padding: 0 0 8px;
             border-bottom: 1px solid rgba(255,255,255,0.06);
             cursor: grab; user-select: none; touch-action: none;
         }
         .ftth-odc-line {
-            width: 4px; height: 28px; border-radius: 4px; flex-shrink: 0;
+            width: 4px; height: 24px; border-radius: 4px; flex-shrink: 0;
             background: #22c55e;
         }
         .ftth-odc-line.offline { background: #ef4444; }
@@ -2721,18 +2916,19 @@
         body.ftth-light .ftth-odc-close { background: #64748b; color: #fff; }
         body.ftth-light .ftth-odc-close:hover { background: #475569; color: #fff; }
         .ftth-odc-topo {
-            display: flex; align-items: center; gap: 8px;
+            display: flex; align-items: center; justify-content: center; gap: 6px;
             background: rgba(8,16,30,0.7); border: 1px solid rgba(255,255,255,0.05);
-            border-radius: 8px; padding: 10px 12px; margin-top: 12px;
-            color: #475569; font-size: 12px;
+            border-radius: 6px; padding: 6px 9px; margin: 8px auto 0;
+            color: #475569; font-size: 11px;
+            width: fit-content;
         }
         body.ftth-light .ftth-odc-topo { background: rgba(230,233,239,0.7); border-color: rgba(96,165,250,0.15); color: #94a3b8; }
-        .ftth-odc-topo i { font-size: 13px; color: #475569; }
+        .ftth-odc-topo i { font-size: 11px; color: #475569; }
         body.ftth-light .ftth-odc-topo i { color: #94a3b8; }
         .ftth-odc-body { display: flex; flex-direction: column; gap: 0; }
         .ftth-odc-info-row {
             display: flex; align-items: center; justify-content: space-between;
-            padding: 9px 0; font-size: 12px;
+            padding: 6px 0; font-size: 12px;
         }
         .ftth-odc-info-row + .ftth-odc-info-row { border-top: 1px solid rgba(255,255,255,0.05); }
         body.ftth-light .ftth-odc-info-row + .ftth-odc-info-row { border-top-color: rgba(0,0,0,0.06); }
@@ -2743,16 +2939,27 @@
         .ftth-odc-info-val.green { color: #22c55e; }
         .ftth-odc-info-val.blue { color: #60a5fa; }
         .ftth-odc-info-val.cyan { color: #22d3ee; }
-        .ftth-odc-onu-section { padding: 8px 0; border-top: 1px solid rgba(255,255,255,0.05); }
+        /* ODP: baris redaman berwarna (biru = redaman, merah = terusan) */
+        .ftth-odc-red-row {
+            border-radius: 6px; padding: 5px 10px; margin-top: 4px;
+        }
+        .ftth-odc-red-row + .ftth-odc-red-row { margin-top: 4px; border-top: none; }
+        .ftth-odc-red-row-html-only .ftth-odc-info-row + .ftth-odc-info-row { border-top: none; }
+        .ftth-odc-red-row-blue { background: rgba(37,99,235,0.20); border: 1px solid rgba(59,130,246,0.35); }
+        .ftth-odc-red-row-red { background: rgba(220,38,38,0.20); border: 1px solid rgba(239,68,68,0.35); }
+        .ftth-odc-red-val { color: #ffffff !important; font-weight: 700; }
+        body.ftth-light .ftth-odc-red-row-blue { background: rgba(37,99,235,0.14); }
+        body.ftth-light .ftth-odc-red-row-red { background: rgba(220,38,38,0.12); }
+        .ftth-odc-onu-section { padding: 6px 0; border-top: 1px solid rgba(255,255,255,0.05); }
         body.ftth-light .ftth-odc-onu-section { border-top-color: rgba(0,0,0,0.06); }
         .ftth-odc-onu-title {
             font-size: 11px; font-weight: 600; color: #93c5fd;
-            margin-bottom: 6px; letter-spacing: .02em;
+            margin-bottom: 4px; letter-spacing: .02em;
         }
         body.ftth-light .ftth-odc-onu-title { color: #2563eb; }
         .ftth-odc-onu-item {
             display: flex; align-items: center; gap: 8px;
-            padding: 6px 0; font-size: 12px;
+            padding: 4px 0; font-size: 12px;
         }
         .ftth-odc-onu-item i { font-size: 12px; color: #3b82f6; width: 16px; text-align: center; }
         .ftth-odc-onu-name { color: #e2e8f0; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -2761,7 +2968,7 @@
         body.ftth-light .ftth-odc-onu-type { color: #94a3b8; background: rgba(96,165,250,0.08); }
         .ftth-odc-onu-count { font-weight: 600; color: #93c5fd; white-space: nowrap; }
         .ftth-odc-distance {
-            text-align: center; padding: 10px 0 6px; font-size: 15px; font-weight: 700; color: #64748b;
+            text-align: center; padding: 6px 0 4px; font-size: 14px; font-weight: 700; color: #64748b;
         }
         .ftth-odc-distance span { color: #e2e8f0; }
         body.ftth-light .ftth-odc-distance span { color: #1e293b; }
@@ -3122,7 +3329,9 @@
 
         body.ftth-light .ftth-measure-menu,
         body.ftth-light .ftth-notif-menu,
+        body.ftth-light .ftth-anim-menu,
         body.ftth-light .ftth-search-suggest { background: #f6f7f9; box-shadow: 0 10px 30px rgba(15,23,42,0.14); }
+        body.ftth-light .ftth-anim-item { background: #f6f7f9; color: #334155; }
         body.ftth-light .ftth-measure-item { background: #f6f7f9; color: #334155; }
         body.ftth-light .ftth-measure-item small { color: #64748b; }
         body.ftth-light .ftth-measure-item:hover { background: #16a34a; color: #fff; }
@@ -3585,9 +3794,21 @@
             <i class="fa-solid fa-users"></i>
         </button>
 
-        <button type="button" class="ftth-icon-btn ftth-ac-anim active" data-feature="anim" id="ftthAnimBtn" title="Matikan Animasi" onclick="ftthToggleAnim()">
-            <i class="fa-solid fa-circle-play" id="ftthAnimIcon"></i>
-        </button>
+        <span class="ftth-anim-wrap">
+            <button type="button" class="ftth-icon-btn ftth-ac-anim active" data-feature="anim" id="ftthAnimBtn" title="Matikan Animasi" onclick="ftthToggleAnimMenu()">
+                <i class="fa-solid fa-circle-play" id="ftthAnimIcon"></i>
+            </button>
+            <div class="ftth-anim-menu" id="ftthAnimMenu">
+                <div class="ftth-anim-item">
+                    <span class="ftth-anim-label"><i class="fa-solid fa-circle-play"></i> Animasi</span>
+                    <label class="ftth-glow-switch"><input type="checkbox" id="ftthAnimSwitch" onchange="ftthToggleAnim()"><span class="ftth-glow-slider"></span></label>
+                </div>
+                <div class="ftth-anim-item">
+                    <span class="ftth-anim-label"><i class="fa-solid fa-wand-magic-sparkles"></i> Glow</span>
+                    <label class="ftth-glow-switch"><input type="checkbox" id="ftthGlowSwitch" onchange="ftthToggleGlobalGlow()"><span class="ftth-glow-slider"></span></label>
+                </div>
+            </div>
+        </span>
 
         <span class="ftth-notif-wrap">
             <button type="button" class="ftth-icon-btn ftth-ac-notifications" id="ftthNotifBtn" data-feature="notifications" title="Notifikasi" data-i18n="btn.notifications" onclick="ftthToggleNotifMenu()">
@@ -3666,7 +3887,10 @@
             <button type="button" class="ftth-odc-btn-lg green-dark" onclick="ftthCableRepositionStart()"><i class="fa-solid fa-up-down-left-right"></i> Reposisi</button>
             <button type="button" class="ftth-odc-btn-lg red" title="Hapus kabel yang sudah ada dari peta (permanen)" onclick="ftthCablePropsDelete()"><i class="fa-solid fa-trash-can"></i> Hapus Kabel</button>
         </div>
-        <button type="button" class="ftth-cable-cancel-btn" onclick="ftthCablePropsCancel()">Batal Edit</button>
+        <div class="ftth-cable-finish-row">
+            <button type="button" class="ftth-cable-finish-btn" onclick="ftthCablePropsFinish()"><i class="fa-solid fa-check"></i> Selesai Edit</button>
+            <button type="button" class="ftth-cable-cancel-btn" onclick="ftthCablePropsCancel()">Batal Edit</button>
+        </div>
     </div>
 
     <div class="ftth-reposition-bar" id="ftthRepositionBar">
@@ -4322,7 +4546,16 @@
                     </div>
                 </div>
 
+                <div class="ftth-bs ftth-bs-5">
+                    <div class="ftth-bs-head"><i class="fa-solid fa-diagram-project"></i> <span data-i18n="backup.devices_section">Data Perangkat (Peta FTTH)</span></div>
+                    <div class="ftth-bs-actions">
+                        <button type="button" class="ftth-backup-btn ftth-bu-9" onclick="ftthRestoreDevices()"><i class="fa-solid fa-file-import"></i> Restore devices.json</button>
+                        <button type="button" class="ftth-backup-btn ftth-bu-10" onclick="ftthExportDevices()"><i class="fa-solid fa-file-export"></i> Export Data Devices</button>
+                    </div>
+                </div>
+
                 <input type="file" id="ftthRestoreFile" accept=".json,.txt" class="ftth-file-hidden" hidden>
+                <input type="file" id="ftthDevicesFile" accept=".json,.txt" class="ftth-file-hidden" hidden>
                 <input type="file" id="ftthExcelFile" accept=".csv,.txt" class="ftth-file-hidden" hidden>
                 <input type="file" id="ftthKmzFile" accept=".kml,.kmz" class="ftth-file-hidden" hidden>
 
@@ -4335,6 +4568,13 @@
             <div class="ftth-modal-head">
                 <span class="ftth-modal-title"> <span id="ftthAddDeviceTitle" data-i18n="device.add">Tambah Perangkat</span></span>
                 <span class="ftth-device-status" id="ftthDeviceStatus"></span>
+                <span class="ftth-odp-tgl-wrap" id="ftthNoSplitTglWrap" hidden>
+                    <span class="ftth-odp-tgl-label">Mode Rasio</span>
+                    <label class="ftth-switch ftth-switch-sm" title="Mode Rasio — geser kiri: rasio aktif (splitter), geser kanan: tanpa splitter">
+                        <input type="checkbox" id="ftthDevNoSplitter" onchange="ftthOdpModeChanged()">
+                        <span class="ftth-switch-track"><span class="ftth-switch-thumb"></span></span>
+                    </label>
+                </span>
                 <button type="button" class="ftth-modal-close" onclick="ftthCloseAddDevice()"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="ftth-modal-body">
@@ -4831,6 +5071,7 @@
             'backup.restore_db': 'Restore database.json', 'backup.restore_routers': 'Restore Routers.json',
             'backup.excel_section': 'Backup & Restore Data Excel',
             'backup.kmz_section': 'Sinkronisasi Google Earth (KMZ)',
+            'backup.devices_section': 'Data Perangkat (Peta FTTH)',
             /* device form */
             'device.placeholder': 'e.g. ODP Gang 5 / OLT MA5800',
             'device.edit': 'Edit Perangkat',
@@ -5260,6 +5501,7 @@
             'backup.restore_db': 'Restore database.json', 'backup.restore_routers': 'Restore Routers.json',
             'backup.excel_section': 'Excel Data Backup & Restore',
             'backup.kmz_section': 'Google Earth Sync (KMZ)',
+            'backup.devices_section': 'Map Devices (FTTH)',
             /* device form */
             'device.placeholder': 'e.g. ODP Gang 5 / OLT MA5800',
             'device.edit': 'Edit Device',
@@ -5589,6 +5831,7 @@
             var off = document.body.classList.toggle('ftth-anim-off');
             var btn = document.getElementById('ftthAnimBtn');
             var icon = document.getElementById('ftthAnimIcon');
+            var asw = document.getElementById('ftthAnimSwitch');
             if (btn) {
                 btn.classList.toggle('active', !off);
                 btn.setAttribute('title', off ? ftthT('msg.aktifkan_animasi') : ftthT('msg.matikan_animasi'));
@@ -5597,8 +5840,36 @@
                 icon.classList.toggle('fa-circle-play', !off);
                 icon.classList.toggle('fa-circle-pause', off);
             }
+            if (asw) asw.checked = !off;
             ftthToast(off ? ftthT('toast.anim_off') : ftthT('toast.anim_on'), 'info');
         };
+
+        /* ── Dropdown tombol animasi: toggle Animasi & Glow ── */
+        var animMenuOpen = false;
+        window.ftthToggleAnimMenu = function() {
+            ftthCloseAllCards();
+            ftthForceCloseQueue();
+            ftthForceCloseMeasure();
+            var menu = document.getElementById('ftthAnimMenu');
+            if (!menu) return;
+            animMenuOpen = !animMenuOpen;
+            menu.classList.toggle('open', animMenuOpen);
+            var asw = document.getElementById('ftthAnimSwitch');
+            if (asw) asw.checked = !document.body.classList.contains('ftth-anim-off');
+            var gsw = document.getElementById('ftthGlowSwitch');
+            if (gsw) gsw.checked = ftthGlowOn;
+            var btn = document.getElementById('ftthAnimBtn');
+            if (btn) btn.classList.toggle('active', animMenuOpen || !document.body.classList.contains('ftth-anim-off'));
+        };
+        document.addEventListener('click', function(e) {
+            if (!animMenuOpen) return;
+            if (e.target && e.target.closest && e.target.closest('.ftth-anim-wrap')) return;
+            animMenuOpen = false;
+            var menu = document.getElementById('ftthAnimMenu');
+            if (menu) menu.classList.remove('open');
+            var btn = document.getElementById('ftthAnimBtn');
+            if (btn) btn.classList.toggle('active', !document.body.classList.contains('ftth-anim-off'));
+        });
 
         /* ── Full Screen: sembunyikan fitur, zoom-in smooth, kembali saat off ── */
         var fsState = { active: false, center: null, zoom: null };
@@ -6202,7 +6473,6 @@
             if (!cableEdit.active) return;
             if (cableEdit.pts.length < 2) { ftthToast(ftthT('toast.need_points'), 'warn'); return; }
             ftthCableEditStop();
-            ftthRestorePreZoom();
             ftthCableEditSetStatus(ftthT('common.saving'));
             var m = cableEdit.m;
             mtApi('/noc/features/map/device/cable', 'POST', {
@@ -6210,17 +6480,21 @@
                 cable_path: cableEdit.pts,
                 cable_color: cableEdit.color,
                 cable_width: cableEdit.width,
-                cable_curve: cableEdit.curve ? 1 : 0
+                cable_curve: cableEdit.curve ? 1 : 0,
+                jarak_kabel: ftthCablePathDistance(cableEdit.pts)
             }).then(function(r) {
                 if (r.data && r.data.ok) {
                     ftthToast(ftthT('toast.cable_saved'), 'ok');
+                    ftthDiscardPreZoom();
                     loadMapMarkers();
                 } else {
                     ftthToast((r.data && r.data.error) || ftthT('toast.cable_save_fail'), 'fail');
+                    ftthRestorePreZoom();
                 }
                 ftthCableEditHideCard();
             }).catch(function() {
                 ftthToast(ftthT('toast.cable_save_fail'), 'fail');
+                ftthRestorePreZoom();
                 ftthCableEditHideCard();
             });
         }
@@ -6313,6 +6587,17 @@
             ftthFlyMap(ftthPreZoom.c, ftthPreZoom.z);
             ftthPreZoom = null;
         }
+        function ftthDiscardPreZoom() {
+            ftthPreZoom = null;
+        }
+        function ftthCablePathDistance(pts) {
+            if (!pts || pts.length < 2) return 0;
+            var dist = 0;
+            for (var i = 1; i < pts.length; i++) {
+                try { dist += map.distance(pts[i - 1], pts[i]); } catch (e) {}
+            }
+            return Math.round(dist);
+        }
         /* Terbang beranimasi (zoom in/out mulus, tanpa patah-patah):
            - map.stop(): matikan inersia drag sebelum mulai
            - class .ftth-flying: pause animasi CSS dekoratif selama terbang
@@ -6353,12 +6638,15 @@
             var info = document.getElementById('fcpInfo');
             var title = document.getElementById('fcpTitle');
             if (w) w.value = Number(a.cable_width) || 3;
-            if (c) c.value = ftthCableNormColor(a.cable_color);
+            var baseColor = ftthCableNormColor(a.cable_color || a.warna_core || ((String(m.type || '').toUpperCase() === 'ONU') ? '#3b82f6' : ftthDeviceColor(m.type)));
+            if (c) c.value = baseColor;
             var mc = document.getElementById('fcpMeteor');
-            if (mc) mc.value = ftthCableNormColor(a.cable_meteor_color);
+            if (mc) mc.value = ftthCableNormColor(a.cable_meteor_color || baseColor);
             if (an) an.value = a.cable_anim || '';
             if (wv) wv.textContent = Number(a.cable_width) || 3;
             if (title) title.textContent = 'Edit Kabel — ' + (m.label || '');
+            var gcb = document.getElementById('fcpGlow');
+            if (gcb) gcb.checked = !!a.cable_glow;
             if (info) info.textContent = (Array.isArray(a.cable_path) && a.cable_path.length >= 2)
                 ? 'Jalur kustom: ' + a.cable_path.length + ' titik'
                 : 'Jalur kustom: belum diatur (garis lurus)';
@@ -6409,6 +6697,7 @@
                 pl.setStyle({ color: color, weight: width });
                 var gel = pl.getElement ? pl.getElement() : null;
                 if (gel) gel.style.setProperty('--glowc', color);
+                if (gel) gel.classList.toggle('ftth-cable-glow-on', !!a.cable_glow);
                 pl.options._cableAnim = a.cable_anim || '';
                 pl.options._cableMeteor = a.cable_meteor_color || '';
                 document.querySelectorAll('g[data-ftth-meteor="' + pl._cableMarkerId + '"]').forEach(function(n) { n.remove(); });
@@ -6470,11 +6759,13 @@
             var c = document.getElementById('fcpColor');
             var an = document.getElementById('fcpAnim');
             var mc = document.getElementById('fcpMeteor');
+            var g = document.getElementById('fcpGlow');
             return {
                 width: w ? (Number(w.value) || 3) : 3,
                 color: c ? c.value : '#38bdf8',
                 anim: an ? an.value : '',
-                meteor: mc ? mc.value : '#38bdf8'
+                meteor: mc ? mc.value : '#38bdf8',
+                glow: g ? g.checked : false
             };
         }
 
@@ -6491,6 +6782,7 @@
                 var el = pl.getElement();
                 if (el) {
                     el.style.setProperty('--glowc', st.color);
+                    el.classList.toggle('ftth-cable-glow-on', st.glow);
                     el.classList.remove('ftth-cable-flow', 'ftth-cable-stop', 'ftth-cable-anim-dash', 'ftth-cable-anim-glow-fast', 'ftth-cable-anim-glow-slow');
                     var cls = ftthCableAnimClass(st.anim, pl.options._cableOnline);
                     if (cls) el.classList.add(cls);
@@ -6503,7 +6795,7 @@
         };
 
         window.ftthCablePropsSave = function() {
-            if (!cableProp.m) return;
+            if (!cableProp.m) return Promise.resolve(false);
             var st = ftthCablePropsRead();
             var a = (cableProp.m.attributes && typeof cableProp.m.attributes === 'object') ? cableProp.m.attributes : {};
             var payload = {
@@ -6512,19 +6804,32 @@
                 cable_width: st.width,
                 cable_curve: a.cable_curve ? 1 : 0,
                 cable_anim: st.anim || null,
-                cable_meteor_color: st.meteor
+                cable_meteor_color: st.meteor,
+                cable_glow: st.glow ? 1 : 0
             };
-            mtApi('/noc/features/map/device/cable', 'POST', payload).then(function(r) {
+            return mtApi('/noc/features/map/device/cable', 'POST', payload).then(function(r) {
                 if (r.data && r.data.ok) {
-                    cableProp.m.attributes = Object.assign({}, a, { cable_color: st.color, cable_width: st.width, cable_meteor_color: st.meteor });
+                    cableProp.m.attributes = Object.assign({}, a, { cable_color: st.color, cable_width: st.width, cable_meteor_color: st.meteor, cable_glow: st.glow ? 1 : 0 });
                     if (st.anim) cableProp.m.attributes.cable_anim = st.anim; else delete cableProp.m.attributes.cable_anim;
                     ftthToast(ftthT('toast.cable_saved'), 'ok');
-                    ftthRestorePreZoom();
+                    ftthDiscardPreZoom();
                     loadMapMarkers();
+                    return true;
                 } else {
                     ftthToast((r.data && r.data.error) || ftthT('toast.cable_save_fail'), 'fail');
+                    return false;
                 }
-            }).catch(function() { ftthToast(ftthT('toast.cable_save_fail'), 'fail'); });
+            }).catch(function() { ftthToast(ftthT('toast.cable_save_fail'), 'fail'); return false; });
+        };
+
+        /* Selesai Edit: simpan properti kabel lalu tutup semua card otomatis */
+        window.ftthCablePropsFinish = function() {
+            var r = ftthCablePropsSave();
+            if (r && typeof r.then === 'function') {
+                r.then(function(ok) { if (ok) ftthCloseAllCards(); });
+            } else {
+                ftthCloseAllCards();
+            }
         };
 
         window.ftthCablePropsDelete = function() {
@@ -6573,11 +6878,20 @@
         }
 
         /* Sinkronkan kabel inti di peta dengan titik yang sedang diseret */
-        function ftthCableReposSyncLive() {
-            if (!cableRepos.live || typeof cableRepos.live.setLatLngs !== 'function') return;
-
+        function ftthCableReposSyncLive(precomputed) {
+            if (!cableRepos.live) {
+                /* Fallback: cari ulang referensi kabel inti bila belum/belum ketemu */
+                if (cableRepos.m && typeof cableLayer !== 'undefined' && cableLayer) {
+                    cableLayer.eachLayer(function(l) {
+                        if (!cableRepos.live && l._cableMarkerId === cableRepos.m.id) cableRepos.live = l;
+                    });
+                }
+                if (!cableRepos.live || typeof cableRepos.live.setLatLngs !== 'function') return;
+            }
+            var next = precomputed || ftthCableReposLivePts(cableRepos.pts);
+            if (!next || !next.length) return;
             try {
-                cableRepos.live.setLatLngs(ftthCableReposLivePts(cableRepos.pts));
+                cableRepos.live.setLatLngs(next);
             } catch (e) {}
         }
 
@@ -6586,7 +6900,9 @@
             cableRepos.verts.forEach(function(v) { map.removeLayer(v); });
             cableRepos.verts = [];
             var st = ftthCablePropsRead();
-            cableRepos.line = L.polyline(cableRepos.pts, { color: st.color, weight: Math.max(3, st.width), opacity: 0.95 }).addTo(map);
+            /* Gambar garis reposisi dengan bentuk SAMA persis seperti kabel inti
+               (mengikuti kurva bila cable_curve aktif) supaya terlihat sinkron */
+            cableRepos.line = L.polyline(ftthCableReposLivePts(cableRepos.pts), { color: st.color, weight: Math.max(3, st.width), opacity: 0.95 }).addTo(map);
             cableRepos.line.on('click', function(e) {
                 L.DomEvent.stop(e);
                 if (!cableRepos.active) return;
@@ -6599,9 +6915,12 @@
                 var mk = L.marker(p, { icon: icon, draggable: true, zIndexOffset: 1000 }).addTo(map);
                 mk.on('drag', function(ev) {
                     cableRepos.pts[i] = [ev.latlng.lat, ev.latlng.lng];
-                    if (cableRepos.line) cableRepos.line.setLatLngs(cableRepos.pts);
+                    var sm = ftthCableReposLivePts(cableRepos.pts);
+                    if (cableRepos.line && typeof cableRepos.line.setLatLngs === 'function') {
+                        try { cableRepos.line.setLatLngs(sm); } catch (e) {}
+                    }
                     /* Kabel inti ikut terseret real-time */
-                    ftthCableReposSyncLive();
+                    ftthCableReposSyncLive(sm);
                 });
                 mk.on('contextmenu', function(ev) {
                     L.DomEvent.stop(ev);
@@ -6686,19 +7005,21 @@
                 cable_path: cableRepos.pts,
                 cable_color: st.color,
                 cable_width: st.width,
-                cable_curve: a.cable_curve ? 1 : 0
+                cable_curve: a.cable_curve ? 1 : 0,
+                jarak_kabel: ftthCablePathDistance(cableRepos.pts)
             };
             if (a.cable_anim) payload.cable_anim = a.cable_anim;
             ftthCableRepositionStop(true);
-            ftthRestorePreZoom();
             mtApi('/noc/features/map/device/cable', 'POST', payload).then(function(r) {
                 if (r.data && r.data.ok) {
                     ftthToast(ftthT('toast.cable_saved'), 'ok');
+                    ftthDiscardPreZoom();
                     loadMapMarkers();
                 } else {
                     ftthToast((r.data && r.data.error) || ftthT('toast.cable_save_fail'), 'fail');
+                    ftthRestorePreZoom();
                 }
-            }).catch(function() { ftthToast(ftthT('toast.cable_save_fail'), 'fail'); });
+            }).catch(function() { ftthToast(ftthT('toast.cable_save_fail'), 'fail'); ftthRestorePreZoom(); });
         };
 
         window.ftthCableRepositionCancel = function() {
@@ -6730,6 +7051,15 @@
                 '35:65':2.05, '40:60':2.42, '45:55':2.92, '50:50':3.21
             }
         };
+
+        /* Format nilai dB/dBm: minus → "-x.xx", plus → "x.xx" (tanpa tanda +),
+           dan hindari "-0.00" / tanda + sisa dari string masukan. */
+        function ftthDbFmt(v) {
+            var n = parseFloat(v);
+            if (isNaN(n)) n = 0;
+            var t = (Math.abs(n) < 0.005) ? '0.00' : n.toFixed(2);
+            return t.charAt(0) === '+' ? t.slice(1) : t;
+        }
 
         window.ftthCalcSetMode = function(mode) {
             var adv = document.getElementById('fcAdvFields');
@@ -6925,8 +7255,8 @@
             document.getElementById('fcDetailSplice').textContent = spliceLoss.toFixed(2) + ' dB';
             document.getElementById('fcDetailConn').textContent = connLoss.toFixed(2) + ' dB';
             document.getElementById('fcDetailTotal').textContent = totalLoss.toFixed(2) + ' dB';
-            document.getElementById('fcOntPower').textContent = drop.toFixed(2) + ' dBm';
-            document.getElementById('fcPassPower').textContent = pass.toFixed(2) + ' dBm';
+            document.getElementById('fcOntPower').textContent = ftthDbFmt(drop) + ' dBm';
+            document.getElementById('fcPassPower').textContent = ftthDbFmt(pass) + ' dBm';
 
             var status = ftthCalcGetOntStatus(drop);
             var box = document.getElementById('fcOntPowerBox');
@@ -7727,6 +8057,7 @@
                         setStatus('Router offline / tidak terbaca', 'off');
                         document.getElementById('ftthMtWanRx').textContent = '-';
                         document.getElementById('ftthMtWanTx').textContent = '-';
+                        ftthMtWanDraw();
                     }
 
                     return;
@@ -7740,8 +8071,21 @@
                     rx.push(Math.max(0, ((h[i].in - h[i - 1].in) / dt) * 8));
                     tx.push(Math.max(0, ((h[i].out - h[i - 1].out) / dt) * 8));
                 }
-                ftthMtWanRxPts = rx.slice(-FTTH_MT_WAN_MAX_PTS);
-                ftthMtWanTxPts = tx.slice(-FTTH_MT_WAN_MAX_PTS);
+                /* Cross-tick: sama seperti PON OLT — laju tetap dihitung dari counter
+                   tick sebelumnya bila riwayat baru / segmen pembanding tidak naik */
+                var lastW = h[h.length - 1];
+                if ((!rx.length || h.length < 2) && ftthMtWanPrev) {
+                    var dtPrev = lastW.t - ftthMtWanPrev.t;
+                    if (dtPrev > 0 && lastW.in >= ftthMtWanPrev.in && lastW.out >= ftthMtWanPrev.out) {
+                        rx.push(Math.max(0, ((lastW.in - ftthMtWanPrev.in) / dtPrev) * 8));
+                        tx.push(Math.max(0, ((lastW.out - ftthMtWanPrev.out) / dtPrev) * 8));
+                    }
+                }
+                ftthMtWanPrev = { t: lastW.t, in: lastW.in, out: lastW.out };
+                if (rx.length) {
+                    ftthMtWanRxPts = rx.slice(-FTTH_MT_WAN_MAX_PTS);
+                    ftthMtWanTxPts = tx.slice(-FTTH_MT_WAN_MAX_PTS);
+                }
                 if (!ftthMtWanVisible) return;
 
                 var lastRx = rx.length ? rx[rx.length - 1] : null;
@@ -7847,6 +8191,8 @@
                         setStatus(d && d.error ? d.error : 'Counter PON tidak terbaca', 'off');
                         document.getElementById('ftthOltPonRx').textContent = '-';
                         document.getElementById('ftthOltPonTx').textContent = '-';
+                        /* Tetap gambar area grafik (garis tengah) agar tidak tampak kosong */
+                        ftthSparklineDraw(document.getElementById('ftthOltPonChart'), ftthOltPonRxPts, ftthOltPonTxPts);
                     }
 
                     return;
@@ -7858,8 +8204,24 @@
                     rx.push(Math.max(0, ((h[i].in - h[i - 1].in) / dt) * 8));
                     tx.push(Math.max(0, ((h[i].out - h[i - 1].out) / dt) * 8));
                 }
-                ftthOltPonRxPts = rx.slice(-FTTH_OLT_PON_MAX_PTS);
-                ftthOltPonTxPts = tx.slice(-FTTH_OLT_PON_MAX_PTS);
+                /* Cross-tick: saat riwayat server masih baru (baru load/cache
+                   kedaluwarsa) atau segmen pembanding tidak naik, laju tetap bisa
+                   dihitung dari counter sampel tick sebelumnya — grafik tak kosong */
+                var lastP = h[h.length - 1];
+                if ((!rx.length || h.length < 2) && ftthOltPonPrev) {
+                    var dtPrev = lastP.t - ftthOltPonPrev.t;
+                    if (dtPrev > 0 && lastP.in >= ftthOltPonPrev.in && lastP.out >= ftthOltPonPrev.out) {
+                        rx.push(Math.max(0, ((lastP.in - ftthOltPonPrev.in) / dtPrev) * 8));
+                        tx.push(Math.max(0, ((lastP.out - ftthOltPonPrev.out) / dtPrev) * 8));
+                    }
+                }
+                ftthOltPonPrev = { t: lastP.t, in: lastP.in, out: lastP.out };
+                /* Pertahankan buffer lama agar grafik tidak berkedip kosong saat
+                   satu tick gagal menghasilkan laju (counter tidak naik sesaat) */
+                if (rx.length) {
+                    ftthOltPonRxPts = rx.slice(-FTTH_OLT_PON_MAX_PTS);
+                    ftthOltPonTxPts = tx.slice(-FTTH_OLT_PON_MAX_PTS);
+                }
                 if (!ftthOltPonVisible) return;
 
                 var lastRx = rx.length ? rx[rx.length - 1] : null;
@@ -7932,6 +8294,8 @@
                 if (e.target.closest('.ftth-browse-back')) return;
                 if (e.target.closest('.ftth-calc-mode-btn')) return;
                 if (e.target.closest('.ftth-calc-kuping')) return;
+                if (e.target.closest('.ftth-switch')) return;
+                if (e.target.closest('.ftth-odp-tgl-wrap')) return;
                 dg = true;
                 started = false;
                 ox = e.clientX;
@@ -8529,14 +8893,6 @@
             genieacsSummaryCache = d;
             el.innerHTML =
                 '<div class="ftth-router-row"><span class="ftth-router-info">' +
-                    '<span class="ftth-router-line"><span class="dot" style="background:#22c55e"></span> ' + ftthT('status.online') + '</span>' +
-                    '<span class="ftth-router-version">' + ftthT('status.genieacs_active') + '</span>' +
-                '</span><b style="color:#4ade80">' + (d.online || 0) + '</b></div>' +
-                '<div class="ftth-router-row"><span class="ftth-router-info">' +
-                    '<span class="ftth-router-line"><span class="dot" style="background:#ef4444"></span> ' + ftthT('status.offline') + '</span>' +
-                    '<span class="ftth-router-version">' + ftthT('status.genieacs_inactive') + '</span>' +
-                '</span><b style="color:#f87171">' + (d.offline || 0) + '</b></div>' +
-                '<div class="ftth-router-row"><span class="ftth-router-info">' +
                     '<span class="ftth-router-line">' + ftthT('status.total_device') + '</span>' +
                     '<span class="ftth-router-version">' + (d.updated || 0) + ' ' + ftthT('status.onu_tersambung') + '</span>' +
                 '</span><b style="color:#93c5fd">' + (d.total || 0) + '</b></div>';
@@ -8858,7 +9214,7 @@
                     '<div class="ftth-queue-item-name" title="' + escapeHtml(c.name) + '"><span class="ftth-status-dot ' + statusDot + '"></span> ' + escapeHtml(c.name) + '</div>' +
                     '<div class="ftth-queue-item-ip">SN: ' + escapeHtml(c.serial_number || '-') + ' · ' + escapeHtml(rx) + '</div>' +
                     '<div class="ftth-queue-item-ip">OLT: ' + escapeHtml(c.olt || '-') + (c.odp ? ' · ODP: ' + escapeHtml(c.odp) : ' · ODP: -') + '</div>' +
-                    (c.ip_address ? '<div class="ftth-queue-item-ip">' + escapeHtml(c.ip_address) + '</div>' : '') +
+                    '<div class="ftth-queue-item-ip">IP: <input class="ftth-hs-ip" id="ftth-hs-ip-' + row.i + '" value="' + escapeHtml(c.ip_address || '') + '" placeholder="—" onkeydown="if(event.key===\'Enter\'){event.preventDefault();ftthSetHotspotIp(' + row.i + ');}"><button type="button" class="ftth-ip-save" title="Simpan IP" onclick="ftthSetHotspotIp(' + row.i + ')"><i class="fa-solid fa-floppy-disk"></i></button></div>' +
                     '</div>' +
                     '<button type="button" class="ftth-queue-item-add" onclick="ftthHotspotAdd(' + row.i + ')"><i class="fa-solid fa-plus"></i> ADD</button>' +
                     '</div>';
@@ -8876,6 +9232,28 @@
                 parent: c.odp || c.olt || '',
                 hotspot: true,
                 notes: ['Hotspot ONU', c.serial_number ? 'SN: ' + c.serial_number : '', c.caller_id ? 'Caller: ' + c.caller_id : ''].filter(Boolean).join(' — ')
+            });
+        };
+
+        window.ftthSetHotspotIp = function(idx) {
+            var c = hotspotData[idx];
+            if (!c) return;
+            var inp = document.getElementById('ftth-hs-ip-' + idx);
+            if (!inp) return;
+            var ip = inp.value.trim();
+            var prev = c.ip_address;
+            mtApi('/noc/features/map/hotspot/ip', 'POST', { id: c.id, ip: ip }).then(function(r) {
+                if (r.status >= 400 || !r.data.ok) {
+                    inp.value = prev || '';
+                    setHotspotStatus(r.data.error || 'Gagal simpan IP', 'fail');
+                    return;
+                }
+                c.ip_address = r.data.ip || '';
+                setHotspotStatus('IP disimpan: ' + (r.data.ip || '—'), 'ok');
+                renderHotspot();
+            }).catch(function() {
+                inp.value = prev || '';
+                setHotspotStatus('Gagal simpan IP', 'fail');
             });
         };
 
@@ -9058,6 +9436,34 @@
 
         window.ftthImportKmz = function() { document.getElementById('ftthKmzFile').click(); };
         window.ftthExportKmz = function() { window.open('/noc/features/map/backup/kmz-export', '_blank'); };
+        window.ftthExportDevices = function() { window.open('/noc/features/map/backup/devices-export', '_blank'); };
+        window.ftthRestoreDevices = function() { document.getElementById('ftthDevicesFile').click(); };
+
+        var devicesFileEl = document.getElementById('ftthDevicesFile');
+        if (devicesFileEl) {
+            devicesFileEl.addEventListener('change', function() {
+                var f = devicesFileEl.files[0];
+                if (!f) return;
+                setBackupBusy(true);
+                setBackupStatus(ftthT('sync.memulihkan'), 'info', true);
+                mtUpload('/noc/features/map/backup/devices-restore', f).then(function(r) {
+                    if (r.status >= 400 || !r.data.ok) {
+                        ftthToast(r.data.error || ftthT('toast.restore_fail'), 'error');
+                        setBackupStatus(r.data.error || ftthT('sync.gagal_restore'), 'fail');
+                    } else {
+                        ftthToast(r.data.message || ftthT('toast.restore_done'), 'ok');
+                        setBackupStatus(ftthT('sync.restore_selesai'), 'ok');
+                        if (typeof ftthRefreshMarkers === 'function') ftthRefreshMarkers();
+                    }
+                }).catch(function() {
+                    ftthToast(ftthT('toast.restore_fail'), 'error');
+                    setBackupStatus(ftthT('sync.gagal_restore'), 'fail');
+                }).then(function() {
+                    setBackupBusy(false);
+                    devicesFileEl.value = '';
+                });
+            });
+        }
 
         var kmzFileEl = document.getElementById('ftthKmzFile');
         if (kmzFileEl) {
@@ -9107,16 +9513,45 @@
             return String(val).trim();
         }
 
-        function ftthCoreColorSelects() {
+        function ftthCoreColorSelects(type) {
+            var isOdc = String(type || '').toUpperCase() === 'ODC';
+            var isOdp = String(type || '').toUpperCase() === 'ODP';
+            var nomLabel = isOdc ? 'Nomor Passive' : isOdp ? 'Nomor Passive ODC' : 'Nomor PON';
             var ponOpts = '';
-            for (var p = 1; p <= 16; p++) ponOpts += '<option value="PON ' + p + '">PON ' + p + '</option>';
+            if (isOdc) {
+                var nPass = ftthOdcPassives.length;
+                for (var p = 0; p < nPass; p++) {
+                    ponOpts += '<option value="Passive ' + (p + 1) + '">Passive ' + (p + 1) + '</option>';
+                }
+                if (!ponOpts) ponOpts = '<option value="">—</option>';
+            } else if (isOdp) {
+                /* ODP: load passive list from parent ODC */
+                var parentSel = document.getElementById('ftthDevParent');
+                var odcM = parentSel ? ftthOdcLookupFromParentStr(parentSel.value) : null;
+                var odcAttrs = odcM ? (odcM.attributes || {}) : {};
+                var ppList = null;
+                if (odcAttrs.passives) { try { ppList = JSON.parse(odcAttrs.passives); } catch (e) { ppList = null; } }
+                var nP = (ppList && Array.isArray(ppList)) ? ppList.length : (parseInt(odcAttrs.jumlah_passive, 10) || 0);
+                for (var pi = 1; pi <= nP; pi++) {
+                    var pp = (ppList && ppList[pi - 1]) || {};
+                    var ppPorts = parseInt(pp.ports, 10) || 0;
+                    ponOpts += '<option value="' + pi + '" data-ports="' + ppPorts + '">Passive ' + pi + (ppPorts ? ' (' + ppPorts + 'P)' : '') + '</option>';
+                }
+                if (!ponOpts) ponOpts = '<option value="">— Pilih ODC dulu —</option>';
+            } else {
+                for (var q = 1; q <= 16; q++) ponOpts += '<option value="PON ' + q + '">PON ' + q + '</option>';
+            }
             var colOpts = ftthCoreColors.map(function(c) {
                 return '<option value="' + c[1] + '" style="color:' + c[1] + '">' + c[0] + '</option>';
             }).join('');
-            return '<div class="ftth-odp-row">' +
-                '<div class="ftth-df"><label>Nomor PON</label><select id="ftthDevPonNo">' + ponOpts + '</select></div>' +
-                '<div class="ftth-df"><label>Warna Core</label><select id="ftthDevCoreColor" onchange="ftthDevCoreColorChanged()">' + colOpts + '</select></div>' +
+            var html = '<div class="ftth-odp-row">' +
+                '<div class="ftth-df"><label>' + nomLabel + '</label><select id="ftthDevPonNo" onchange="ftthOdcNomorChanged()">' + ponOpts + '</select></div>';
+            if (isOdp) {
+                html += '<div class="ftth-df"><label>Port Passive ODC</label><select id="ftthDevOdpPort"><option value="">— Pilih Passive —</option></select></div>';
+            }
+            html += '<div class="ftth-df"><label>Warna Core</label><select id="ftthDevCoreColor" onchange="ftthDevCoreColorChanged()">' + colOpts + '</select></div>' +
                 '</div>';
+            return html;
         }
 
         /* Varian untuk perangkat yang management core-nya hanya mengatur warna core (mis. HTB) */
@@ -9167,21 +9602,24 @@
             if (!wrap) return;
             var n = parseInt(ftthOltPonCount, 10) || 0;
             if (n <= 0) { wrap.innerHTML = ''; return; }
+            /* Dropdown pilih PON + input dB untuk PON terpilih */
             var html = '<div class="ftth-pon-specs-sidebar">' +
                         '<div class="ftth-pon-specs-head" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px" onclick="ftthTogglePonSpecs()">' +
                             '<span><i class="fa-solid fa-sitemap"></i> Kapasitas dB per PON</span>' +
                             '<i class="fa-solid fa-chevron-down" id="ftthPonSpecsChevron" style="font-size:9px"></i>' +
                         '</div>' +
-                        '<div id="ftthPonSpecsBody">';
+                        '<div id="ftthPonSpecsBody">' +
+                        '<div class="ftth-pon-spec-row" style="display:grid;grid-template-columns:1fr 1fr;gap:5px;align-items:center;margin-bottom:3px">' +
+                            '<select id="ftthDevPonSpecSelect" onchange="ftthOltPonSpecSelectChanged()">';
             for (var i = 1; i <= n; i++) {
-                var s = ftthOltPonSpecs.find(function(x) { return x.pon === i; }) || { pon: i, db: '' };
-                html += '<div class="ftth-pon-spec-row" style="display:grid;grid-template-columns:auto 1fr;gap:5px;align-items:center;margin-bottom:3px">' +
-                            '<span class="ftth-pon-spec-label">PON ' + i + '</span>' +
-                            '<input type="number" step="0.01" min="0" id="ftthDevPonDb_' + i + '" value="' + (s.db || '') + '" placeholder="dB" autocomplete="off" oninput="ftthOltPonDbChanged(' + i + ')">' +
-                        '</div>';
+                html += '<option value="' + i + '">PON ' + i + '</option>';
             }
-            html += '</div></div>';
+            html += '</select>' +
+                    '<input type="number" step="0.01" min="0" id="ftthDevPonSpecDb" value="" placeholder="dB" autocomplete="off" oninput="ftthOltPonSpecDbChanged()">' +
+                    '</div></div></div>';
             wrap.innerHTML = html;
+            /* Prefill input dengan nilai PON pertama */
+            ftthOltPonSpecSelectChanged();
         }
 
         /* Tutup/buka daftar specs PON (minified jadi judul saja) */
@@ -9196,6 +9634,26 @@
         function ftthOltPonDbChanged(pon) {
             var el = document.getElementById('ftthDevPonDb_' + pon);
             var v = el ? el.value.trim() : '';
+            var s = ftthOltPonSpecs.find(function(x) { return x.pon === pon; });
+            if (!s) { s = { pon: pon, db: '' }; ftthOltPonSpecs.push(s); }
+            s.db = v;
+        }
+
+        function ftthOltPonSpecSelectChanged() {
+            var sel = document.getElementById('ftthDevPonSpecSelect');
+            var dbInp = document.getElementById('ftthDevPonSpecDb');
+            if (!sel || !dbInp) return;
+            var pon = parseInt(sel.value, 10) || 1;
+            var s = ftthOltPonSpecs.find(function(x) { return x.pon === pon; });
+            dbInp.value = s ? (s.db || '') : '';
+        }
+
+        function ftthOltPonSpecDbChanged() {
+            var sel = document.getElementById('ftthDevPonSpecSelect');
+            var dbInp = document.getElementById('ftthDevPonSpecDb');
+            if (!sel || !dbInp) return;
+            var pon = parseInt(sel.value, 10) || 1;
+            var v = dbInp.value.trim();
             var s = ftthOltPonSpecs.find(function(x) { return x.pon === pon; });
             if (!s) { s = { pon: pon, db: '' }; ftthOltPonSpecs.push(s); }
             s.db = v;
@@ -9250,19 +9708,81 @@
             var coreMgmt = document.getElementById('ftthDevCoreMgmt');
             var coreOn = coreMgmt.checked;
 
+            var addCard = document.getElementById('ftthAddDeviceCard');
+            if (addCard) {
+                if (type === 'odp') addCard.classList.add('ftth-add-odp');
+                else addCard.classList.remove('ftth-add-odp');
+            }
+
             var isInfrastructure = (type === 'odc' || type === 'odp' || type === 'otb' || type === 'closure' || type === 'olt');
             var nameSpan = document.querySelector('[data-i18n="device.name"]');
-            if (nameSpan) nameSpan.textContent = (type === 'odc' || type === 'olt') ? 'Nama' : (isInfrastructure ? ftthT('device.name_device') : ftthT('device.name'));
+            if (nameSpan) nameSpan.textContent = (type === 'odc' || type === 'olt') ? 'Nama' : (type === 'odp') ? 'Nama ODP' : (isInfrastructure ? ftthT('device.name_device') : ftthT('device.name'));
 
             /* ODC: Type+Induk satu baris, Nama+Kapasitas ODP satu baris.
                OLT: Type+Induk satu baris, Nama+IP Management OLT satu baris. */
             var typeIndukRow = document.getElementById('ftthDevTypeIndukRow');
             var nameCapRow = document.getElementById('ftthDevNameCapRow');
             var capWrap = document.getElementById('ftthDevCapWrap');
-            if (type === 'odc') {
+            if (type === 'odc' || type === 'odp' || type === 'otb') {
                 if (typeIndukRow) typeIndukRow.classList.add('ftth-row2');
                 if (nameCapRow) nameCapRow.classList.add('ftth-row2');
-                if (capWrap) capWrap.hidden = false;
+                if (capWrap) {
+                    if (type === 'odp') {
+                        capWrap.hidden = false;
+                        var capLbl = document.getElementById('ftthDevCapLabel');
+                        if (capLbl) capLbl.textContent = 'Jumlah Port';
+                        var capIn = document.getElementById('ftthDevCapacity');
+                        if (capIn && capIn.tagName !== 'SELECT') {
+                            var plcSel = document.createElement('select');
+                            plcSel.id = 'ftthDevCapacity';
+                            plcSel.className = capIn.className;
+                            plcSel.onchange = function() { ftthOdpEstimate(); };
+                            var defOpt = document.createElement('option');
+                            defOpt.value = ''; defOpt.textContent = '— Pilih —';
+                            plcSel.appendChild(defOpt);
+                            ['2','4','8','16','32','64'].forEach(function(v) {
+                                var opt = document.createElement('option');
+                                opt.value = v; opt.textContent = v;
+                                plcSel.appendChild(opt);
+                            });
+                            capIn.parentNode.replaceChild(plcSel, capIn);
+                        }
+                    } else if (type === 'otb') {
+                        capWrap.hidden = false;
+                        var otbLbl = document.getElementById('ftthDevCapLabel');
+                        if (otbLbl) otbLbl.textContent = 'Jumlah Port';
+                        var otbCap = document.getElementById('ftthDevCapacity');
+                        if (otbCap && otbCap.tagName === 'SELECT') {
+                            var otbNum = document.createElement('input');
+                            otbNum.type = 'number'; otbNum.id = 'ftthDevCapacity';
+                            otbNum.className = otbCap.className;
+                            otbNum.min = '0'; otbNum.step = '1';
+                            otbNum.placeholder = 'e.g. 12';
+                            otbNum.autocomplete = 'off';
+                            otbCap.parentNode.replaceChild(otbNum, otbCap);
+                        }
+                        var otbNum2 = document.getElementById('ftthDevCapacity');
+                        if (otbNum2) {
+                            otbNum2.type = 'number';
+                            otbNum2.min = '0';
+                            otbNum2.step = '1';
+                            otbNum2.placeholder = 'e.g. 12';
+                        }
+                    } else {
+                        capWrap.hidden = true;
+                        var capLbl2 = document.getElementById('ftthDevCapLabel');
+                        if (capLbl2) capLbl2.textContent = 'Kapasitas ODC';
+                        var capIn2 = document.getElementById('ftthDevCapacity');
+                        if (capIn2 && capIn2.tagName === 'SELECT') {
+                            var txtIn = document.createElement('input');
+                            txtIn.type = 'text'; txtIn.id = 'ftthDevCapacity';
+                            txtIn.className = capIn2.className;
+                            txtIn.placeholder = 'e.g. 288 / 16';
+                            txtIn.autocomplete = 'off';
+                            capIn2.parentNode.replaceChild(txtIn, capIn2);
+                        }
+                    }
+                }
                 ftthRemoveOltIpCell();
             } else if (type === 'olt') {
                 if (typeIndukRow) typeIndukRow.classList.add('ftth-row2');
@@ -9277,70 +9797,50 @@
             }
 
             if (type === 'odc') {
-                var oltOpts = ftthOltDropdownOptions();
+                /* Passive 1,2,3... setiap passive punya OLT, PON & port sendiri.
+                   Jumlah Passive tak diinput manual — dihitung dari daftar passive
+                   (dan tampilkan di kartu pertini/Olt card). */
                 extra.innerHTML =
-                    '<div class="ftth-odp-row">' +
-                        '<div class="ftth-df"><label>Pilih OLT</label>' +
-                            '<select id="ftthDevOltPicker" onchange="ftthOltPickerChanged()">' + oltOpts + '</select></div>' +
-                        '<div class="ftth-df"><label>Pilih PON OLT</label>' +
-                            '<select id="ftthDevPonPicker" onchange="ftthPonPickerChanged()"><option value="">— Pilih PON —</option></select></div>' +
+                    '<div class="ftth-odc-passives" id="ftthOdcPassivesBox">' +
+                        '<div class="ftth-odc-passives-head"><button type="button" class="ftth-odc-add-passive" onclick="ftthOdcAddPassive()"><i class="fa-solid fa-plus"></i> Tambah Passive</button></div>' +
                     '</div>' +
-                    '<div class="ftth-df" id="ftthDevOltInfoWrap" hidden>' +
-                        '<small style="color:#fb923c;font-size:10px" id="ftthDevOltInfo"></small>' +
-                    '</div>' +
-                    '<div class="ftth-odp-row">' +
-                        '<div class="ftth-df"><label>Jumlah Passive</label>' +
-                            '<input type="number" min="1" step="1" id="ftthDevPassiveCount" placeholder="e.g. 4" autocomplete="off" oninput="ftthOdcEstimate()"></div>' +
-                        '<div class="ftth-df"><label>Jumlah Port Passive</label>' +
-                            '<input type="number" min="1" step="1" id="ftthDevPassivePorts" placeholder="e.g. 8" autocomplete="off" oninput="ftthOdcEstimate()"></div>' +
-                    '</div>' +
-                    '<div class="ftth-odp-est" id="ftthOdcEstBox" style="border-color:rgba(249,115,22,0.3)">' +
+                    '<div class="ftth-odp-est ftth-odc-est" id="ftthOdcEstBox" style="border-color:rgba(249,115,22,0.3)">' +
                         '<div class="ftth-odp-est-total" style="justify-content:space-between"><span style="font-size:10px">Redaman / Port Passive</span><b id="ftthOdcEstVal">0.00 dB</b></div>' +
+                        '<div class="ftth-odp-est-detail" id="ftthOdcEstDetail"></div>' +
                     '</div>';
-                var savedOltKey = ftthOdcPickedOltKey;
-                if (savedOltKey) {
-                    var pk = document.getElementById('ftthDevOltPicker');
-                    if (pk) pk.value = savedOltKey;
-                    ftthOltPickerChanged();
-                }
-                ftthOdcEstimate();
+                ftthOdcRebuildRows();
             } else if (type === 'odp') {
-                var prevPlc = (document.getElementById('ftthDevPlc') || {}).value || '0';
                 var prevRatio = (document.getElementById('ftthDevRatio') || {}).value || '';
-                var plcOpts = ['2', '4', '8', '16', '32', '64'];
-                var plcHtml = '<option value="0">Tanpa PLC</option>' + plcOpts.map(function(p) {
-                    return '<option value="' + p + '">1:' + p + '</option>';
-                }).join('');
+                var prevSplice = (document.getElementById('ftthDevSplice') || {}).value || '';
+                var prevConn = (document.getElementById('ftthDevConnector') || {}).value || '';
+                var prevCable = (document.getElementById('ftthDevCableDist') || {}).value || '';
                 var ratioOpts = ['1:99', '2:98', '3:97', '4:96', '5:95', '6:94', '8:92', '9:91', '10:90', '12:88', '15:85', '20:80', '25:75', '30:70', '35:65', '40:60', '45:55', '50:50'];
                 var ratioHtml = '<option value="">Tanpa Rasio</option>' + ratioOpts.map(function(r) {
                     return '<option value="' + r + '">' + r + '</option>';
                 }).join('');
                 extra.innerHTML =
                     '<div class="ftth-odp-row">' +
-                        '<div class="ftth-df"><label>Jumlah Port</label>' +
-                            '<select id="ftthDevPlc" onchange="ftthOdpEstimate()">' + plcHtml + '</select>' +
-                        '</div>' +
-                        '<div class="ftth-df"><label>Splitter Rasio</label>' +
+                        '<div class="ftth-df" id="ftthDevRatioWrap"><label>Splitter Rasio</label>' +
                             '<select id="ftthDevRatio" onchange="ftthOdpEstimate()">' + ratioHtml + '</select>' +
                         '</div>' +
                         '<div class="ftth-df"><label>Jumlah Splice</label>' +
                             '<input type="number" min="0" step="1" id="ftthDevSplice" placeholder="e.g. 4" autocomplete="off" oninput="ftthOdpEstimate()"></div>' +
+                    '</div>' +
+                    '<div class="ftth-odp-row">' +
                         '<div class="ftth-df"><label>Jumlah Connector</label>' +
                             '<input type="number" min="0" step="1" id="ftthDevConnector" placeholder="e.g. 2" autocomplete="off" oninput="ftthOdpEstimate()"></div>' +
+                        '<div class="ftth-df"><label>Jarak Kabel (m)</label>' +
+                            '<input type="number" min="0" step="1" id="ftthDevCableDist" placeholder="e.g. 500" autocomplete="off" oninput="ftthOdpEstimate()"></div>' +
                     '</div>' +
-                    '<div class="ftth-odp-est" id="ftthOdpEstBox">' +
-                        '<div class="ftth-odp-est-title"><i class="fa-solid fa-ruler-horizontal"></i> Estimasi Redaman ODP</div>' +
-                        '<div class="ftth-odp-est-total"><span>Total Redaman (Loss)</span><b id="ftthOdpEstVal">0.00 dB</b></div>' +
-                        '<div class="ftth-odp-est-detail">' +
-                            '<span>Port Passive ODC: <b id="ftthOdpEstOdc">0.00 dB</b></span>' +
-                            '<span>Splice: <b id="ftthOdpEstSplice">0.00 dB</b></span>' +
-                            '<span>Connector: <b id="ftthOdpEstConn">0.00 dB</b></span>' +
-                            '<span>PLC: <b id="ftthOdpEstPlc">0.00 dB</b></span>' +
-                            '<span>Rasio: <b id="ftthOdpEstRatio">0.00 dB</b></span>' +
-                        '</div>' +
+                    '<div class="ftth-odp-est ftth-odp-est-mini" id="ftthOdpEstBox">' +
+                        '<div class="ftth-odp-est-total"><span id="ftthOdpEstLabel">Total Redaman (Port Ratio)</span><b id="ftthOdpEstVal">0.00 dBm</b></div>' +
+                        '<div class="ftth-odp-est-total" style="margin-top:2px;font-size:8px" id="ftthOdpEstTerusanBox"><span>Redaman Terusan (Port Passthrough)</span><b id="ftthOdpEstTerusan" style="font-size:9px">0.00 dBm</b></div>' +
                     '</div>';
-                if (prevPlc && prevPlc !== '0') document.getElementById('ftthDevPlc').value = prevPlc;
                 if (prevRatio) document.getElementById('ftthDevRatio').value = prevRatio;
+                if (prevSplice) document.getElementById('ftthDevSplice').value = prevSplice;
+                if (prevConn) document.getElementById('ftthDevConnector').value = prevConn;
+                if (prevCable) document.getElementById('ftthDevCableDist').value = prevCable;
+                ftthOdpModeChanged();
                 ftthOdpEstimate();
             } else if (type === 'onu') {
                 extra.innerHTML = '<div class="ftth-df"><label>IP Address</label>' +
@@ -9359,6 +9859,11 @@
             } else {
                 extra.innerHTML = '';
             }
+
+            /* Toogle "Tanpa Splitter" hanya tampil untuk ODP — letaknya di header
+               (samping tombol X) sehingga langsung terlihat saat form ODP dibuka. */
+            var noSplitTgl = document.getElementById('ftthNoSplitTglWrap');
+            if (noSplitTgl) noSplitTgl.hidden = (type !== 'odp');
 
             /* Closure tidak memakai induk tunggal, melainkan memilih KABEL eksisting
                (induk → anak) sehingga duduk DI ATAS kabel tanpa membuat kabel baru. */
@@ -9391,7 +9896,8 @@
                     /* HTB: management core hanya untuk atur warna core */
                     coreFields.innerHTML = ftthCoreColorOnly();
                 } else {
-                    coreFields.innerHTML = ftthCoreColorSelects();
+                    coreFields.innerHTML = ftthCoreColorSelects(type);
+                    if (type === 'odp') { ftthOdpRebuildPassiveSelects(); ftthOdpFillFromInduk(); }
                 }
                 coreFields.hidden = false;
             } else {
@@ -9548,6 +10054,81 @@
             return src.oltRedaman / src.passivePorts;
         }
 
+        /* ── Redaman ODP berantai (satu jalur) ──
+           Induk ODC → lanjut dari passive: input = keluaran OLT ÷ jumlah port passive.
+           Induk ODP → lanjut dari port terusan induk:
+                       input = Redaman Terusan (Port Passthrough) induk ÷ jumlah port ODP ini.
+           Berlaku rekursif untuk ODP-ODP berikutnya dalam satu jalur. */
+        function ftthOdpInputRedamanFor(marker, depth) {
+            if (!marker) return 0;
+            depth = depth || 0;
+            if (depth > 10) return 0;
+            var a = (marker.attributes && typeof marker.attributes === 'object') ? marker.attributes : {};
+            var induk = marker.parent ? ftthOdcLookupFromParentStr(marker.parent) : null;
+            /* Mode Tanpa Splitter (direct): tidak ada pembagian jumlah port —
+               redaman masuk = seluruh keluaran induk (untuk induk ODP). */
+            var noSplit = (a.splitter_mode === '0');
+            if (noSplit && induk && String(induk.type).toUpperCase() === 'ODP') {
+                return ftthOdpPassthrough(induk, depth + 1);
+            }
+            if (induk && String(induk.type).toUpperCase() === 'ODP') {
+                var pt = ftthOdpPassthrough(induk, depth + 1);
+                var ports = parseInt(a.port_plc, 10) || 0;
+                return ports > 0 ? (pt / ports) : 0;
+            }
+            if (induk && String(induk.type).toUpperCase() === 'ODC') {
+                var inpPorts = 0;
+                var red = 0;
+                var ppList = null;
+                if (induk.attributes && induk.attributes.passives) {
+                    try { ppList = JSON.parse(induk.attributes.passives); } catch (e) { ppList = null; }
+                }
+                var selIdx = (parseInt(a.nomor_passive_odc, 10) || 0) - 1;
+                if (ppList && Array.isArray(ppList) && selIdx >= 0 && selIdx < ppList.length) {
+                    var prRow = ppList[selIdx] || {};
+                    inpPorts = parseInt(prRow.ports, 10) || 0;
+                    if (prRow.oltKey) red = ftthRedamanForOltPon(prRow.oltKey, prRow.pon);
+                }
+                if (!red) {
+                    var olt = ftthFindAncestorMarker(induk, 'OLT');
+                    if (olt) {
+                        var oa = (olt.attributes && typeof olt.attributes === 'object') ? olt.attributes : {};
+                        red = parseFloat(oa.olt_redaman) || 0;
+                    }
+                }
+                return (red > 0 && inpPorts > 0) ? (red / inpPorts) : 0;
+            }
+            return 0;
+        }
+
+        /* Redaman Terusan (Port Passthrough) sebuah ODP, dihitung dari atribut
+           tersimpan (dipakai sebagai sumber input untuk ODP berikutnya). */
+        function ftthOdpPassthrough(marker, depth) {
+            if (!marker) return 0;
+            depth = depth || 0;
+            if (depth > 10) return 0;
+            var a = (marker.attributes && typeof marker.attributes === 'object') ? marker.attributes : {};
+            var plc = parseInt(a.port_plc, 10) || 0;
+            var ratio = a.rasio || '';
+            var cableM = parseFloat(a.jarak_kabel) || 0;
+            var plcLoss = plc ? (CALC.plc[plc] || (plc > 1 ? +(10 * Math.log10(plc) + 1).toFixed(2) : 0)) : 0;
+            var ratioPass = ratio ? (CALC.ratioPass[ratio] || 0) : 0;
+            var input = ftthOdpInputRedamanFor(marker, depth + 1);
+            var cableLoss = cableM > 0 ? +(cableM / 1000 * CALC.dbPerKm).toFixed(4) : 0;
+            /* Mode Tanpa Splitter (direct): tanpa PLC & rasio — terusan = redaman
+               masuk + kabel + splice + connector saja (semua port sama). */
+            if (a.splitter_mode === '0') {
+                return input + cableLoss
+                    + ((parseInt(a.jumlah_splice, 10) || 0) * CALC.spliceDb)
+                    + ((parseInt(a.jumlah_connector, 10) || 0) * CALC.connectorDb);
+            }
+            var base = input + cableLoss
+                + ((parseInt(a.jumlah_splice, 10) || 0) * CALC.spliceDb)
+                + ((parseInt(a.jumlah_connector, 10) || 0) * CALC.connectorDb)
+                + plcLoss;
+            return base + ratioPass;
+        }
+
         /* OLT yang sedang dipilih untuk sumber redaman ODC (spot key), agar
            tetap berlaku saat kartu di-render ulang. */
         var ftthOdcPickedOltKey = '';
@@ -9574,6 +10155,35 @@
                 if (ftthSpotKey(markersCache[i].type, markersCache[i].label) === key) return markersCache[i];
             }
             return null;
+        }
+
+        /* Isi ftthOdcPickedOltKey/ftthOdcPickedPon dari induk chain ODC (mis.
+           "OTB — OTB-S-12") sehingga pilihan OLT/PON tersimpan tak reset saat edit.
+           Walk ulang: ODC → OTB → OLT, lalu PON diambil dari atribut nomor_pon. */
+        function ftthPreloadOdcSourceFromInduk(startInduk) {
+            var currentInduk = startInduk;
+            for (var depth = 0; depth < 10; depth++) {
+                if (!currentInduk) break;
+                var parts = String(currentInduk).split(/\s+[-–—]\s+/u);
+                if (parts.length < 2) break;
+                var pType = String(parts[0]).toUpperCase();
+                var pName = parts.slice(1).join(' - ');
+                if (!markersCache) break;
+                var marker = null;
+                for (var i = 0; i < markersCache.length; i++) {
+                    if (String(markersCache[i].type).toUpperCase() === pType && markersCache[i].label === pName) {
+                        marker = markersCache[i];
+                        break;
+                    }
+                }
+                if (!marker) break;
+                if (pType === 'OLT') {
+                    ftthOdcPickedOltKey = ftthSpotKey('OLT', marker.label);
+                    return;
+                }
+                var ma = (marker.attributes && typeof marker.attributes === 'object') ? marker.attributes : {};
+                currentInduk = ma.induk || '';
+            }
         }
 
         /* Saat OLT dipilih, isi dropdown PON & tampilkan info redaman OLT */
@@ -9681,63 +10291,349 @@
             return parseFloat(a.olt_redaman) || 0;
         }
 
-        /* Kartu Tambah/Edit ODC: tampilkan redaman per port passive dari keluaran OLT */
-        function ftthOdcEstimate() {
-            var oltEl = document.getElementById('ftthDevOltRedaman');
-            var cntEl = document.getElementById('ftthDevPassiveCount');
-            var portsEl = document.getElementById('ftthDevPassivePorts');
-            var oltRedaman = oltEl ? (parseFloat(oltEl.value) || 0) : 0;
-            /* Bila di form ODC (tanpa field OLT), pakai OLT yang dipilih di dropdown */
-            if (!oltEl) {
-                var picker = document.getElementById('ftthDevOltPicker');
-                if (picker && picker.value) {
-                    oltRedaman = ftthOdcSelectedOltRedaman();
-                } else {
-                    var parentSel = document.getElementById('ftthDevParent');
-                    var odcM = parentSel ? ftthOdcLookupFromParentStr(parentSel.value) : null;
-                    var src = ftthRedamanSourceFrom(odcM);
-                    oltRedaman = src ? src.oltRedaman : 0;
+        /* Kartu Tambah/Edit ODC: Passive 1,2,3... setiap passive punya OLT, PON dan
+           jumlah port passive HOELEGEN, dengan hasil redaman berbedaan
+           (redaman_N = keluaran OLT/PON_N ÷ ports_N). Saat tambah passive baru
+           bisa memilih OLT & PON lain (nilai redaman per PON bisa berbedaan). */
+        var ftthOdcPassives = [];
+
+        function ftthPonOptionsForOlt(oltKey, selectedPon) {
+            var olt = ftthOltMarkerFromKey(oltKey);
+            var html = '<option value="">— Pilih PON —</option>';
+            if (!olt) return html;
+            var a = (olt.attributes && typeof olt.attributes === 'object') ? olt.attributes : {};
+            var jumlahPon = parseInt(a.jumlah_pon, 10) || 0;
+            var nomorDefault = String(a.nomor_pon || '').replace(/^PON\s*/i, '');
+            var ponDbMap = {};
+            if (a.pon_specs) {
+                var ps = a.pon_specs;
+                if (typeof ps === 'string') { try { ps = JSON.parse(ps); } catch (e) { ps = null; } }
+                if (Array.isArray(ps)) {
+                    ps.forEach(function(s) {
+                        if (s && s.pon != null && s.db != null && parseFloat(s.db) >= 0) {
+                            ponDbMap[String(s.pon)] = parseFloat(s.db);
+                        }
+                    });
                 }
             }
-            var count = cntEl ? (parseInt(cntEl.value, 10) || 0) : 0;
-            var ports = portsEl ? (parseInt(portsEl.value, 10) || 0) : 0;
-            var perPort = ports ? (oltRedaman / ports) : 0;
+            for (var p = 1; p <= jumlahPon; p++) {
+                var selP = '';
+                var cur = String(selectedPon !== undefined && selectedPon !== null ? selectedPon : '');
+                if (cur === String(p)) selP = ' selected';
+                else if (!cur && nomorDefault && String(p) === nomorDefault) selP = ' selected';
+                var lab = 'PON ' + p;
+                if (ponDbMap[String(p)] != null) lab += ' (' + ponDbMap[String(p)].toFixed(2) + ' dB)';
+                html += '<option value="' + p + '"' + selP + '>' + lab + '</option>';
+            }
+            return html;
+        }
+
+        /* Redaman keluaran OLT/PON (per passive) — pon_specs[pon].db, fallback olt_redaman */
+        function ftthRedamanForOltPon(oltKey, pon) {
+            var olt = ftthOltMarkerFromKey(oltKey);
+            if (!olt) return 0;
+            var a = (olt.attributes && typeof olt.attributes === 'object') ? olt.attributes : {};
+            var list = null;
+            if (a.pon_specs) {
+                list = a.pon_specs;
+                if (typeof list === 'string') { try { list = JSON.parse(list); } catch (e) { list = null; } }
+            }
+            if (Array.isArray(list) && list.length) {
+                if (pon) {
+                    var ponNum = Number(pon);
+                    var match = list.filter(function(s) { return s && Number(s.pon) === ponNum; })[0];
+                    if (match && match.db != null && !isNaN(parseFloat(match.db))) {
+                        return parseFloat(match.db);
+                    }
+                }
+                for (var i = 0; i < list.length; i++) {
+                    if (list[i] && list[i].db != null && !isNaN(parseFloat(list[i].db))) {
+                        return parseFloat(list[i].db);
+                    }
+                }
+            }
+            return parseFloat(a.olt_redaman) || 0;
+        }
+
+        function ftthOdcNewRow() {
+            return { oltKey: '', pon: '', ports: '' };
+        }
+
+        function ftthOdcRebuildRows() {
+            var box = document.getElementById('ftthOdcPassivesBox');
+            if (!box) return;
+            var html = '<div class="ftth-odc-passives-head">' +
+                '<button type="button" class="ftth-odc-add-passive" onclick="ftthOdcAddPassive()"><i class="fa-solid fa-plus"></i> Tambah Passive</button></div>';
+            var oltOpts = ftthOltDropdownOptions();
+            for (var i = 0; i < ftthOdcPassives.length; i++) {
+                var row = ftthOdcPassives[i];
+                var rowOlt = row.oltKey || '';
+                var rowPon = row.pon || '';
+                var selectedInOlt = oltOpts.indexOf('value="' + rowOlt + '"') !== -1;
+                html += '<div class="ftth-odc-passive-row">' +
+                    '<span class="ftth-odc-pn">' + (i + 1) + '</span>' +
+                    '<div class="ftth-df"><label>OLT</label>' +
+                        '<select data-i="' + i + '" data-k="olt" onchange="ftthOdcRowOltChange(this)">' +
+                            (selectedInOlt ? oltOpts.replace('value="' + rowOlt + '"', 'value="' + rowOlt + '" selected') : oltOpts) +
+                        '</select></div>' +
+                    '<div class="ftth-df"><label>PON</label>' +
+                        '<select data-i="' + i + '" data-k="pon" onchange="ftthOdcRowPonChange(this)">' + ftthPonOptionsForOlt(rowOlt, rowPon) + '</select></div>' +
+                    '<div class="ftth-df"><label>Port</label>' +
+                        '<input type="number" min="1" step="1" data-i="' + i + '" data-k="ports" value="' + (row.ports !== undefined ? row.ports : '') + '" placeholder="e.g. 4" autocomplete="off" oninput="ftthOdcRowPortChange(this)"></div>' +
+                    '<button type="button" class="ftth-odc-passive-del" title="Hapus passive" onclick="ftthOdcDelPassive(' + i + ')"><i class="fa-solid fa-trash-can"></i></button>' +
+                '</div>';
+            }
+            box.innerHTML = html;
+            ftthOdcEstimate();
+        }
+
+        function ftthOdcRowOltChange(sel) {
+            var i = parseInt(sel.getAttribute('data-i'), 10) || 0;
+            ftthOdcPassives[i].oltKey = sel.value;
+            ftthOdcPassives[i].pon = '';
+            var ponSel = document.querySelectorAll('#ftthOdcPassivesBox .ftth-odc-passive-row select[data-k="pon"]')[i];
+            if (ponSel) ponSel.innerHTML = ftthPonOptionsForOlt(sel.value, '');
+            ftthOdcRebuildRows();
+            ftthOdcEstimate();
+        }
+
+        function ftthOdcRowPonChange(sel) {
+            var i = parseInt(sel.getAttribute('data-i'), 10) || 0;
+            ftthOdcPassives[i].pon = sel.value;
+            ftthOdcEstimate();
+        }
+
+        function ftthOdcRowPortChange(inp) {
+            var i = parseInt(inp.getAttribute('data-i'), 10) || 0;
+            ftthOdcPassives[i].ports = inp.value;
+            ftthOdcEstimate();
+        }
+
+        function ftthOdcAddPassive() {
+            ftthOdcPassives.push(ftthOdcNewRow());
+            ftthOdcRebuildRows();
+            ftthOdcEstimate();
+        }
+
+        function ftthOdcDelPassive(i) {
+            if (i < 0 || i >= ftthOdcPassives.length) return;
+            ftthOdcPassives.splice(i, 1);
+            ftthOdcRebuildRows();
+            ftthOdcEstimate();
+        }
+
+        function ftthOdcEstimate() {
             var val = document.getElementById('ftthOdcEstVal');
-            var pVal = document.getElementById('ftthOdcEstPassive');
-            var ptVal = document.getElementById('ftthOdcEstPorts');
-            var oVal = document.getElementById('ftthOdcEstOlt');
-            if (val) val.textContent = perPort.toFixed(2) + ' dB';
-            if (pVal) pVal.textContent = count;
-            if (ptVal) ptVal.textContent = ports;
-            if (oVal) oVal.textContent = oltRedaman.toFixed(2) + ' dB';
+            var detail = document.getElementById('ftthOdcEstDetail');
+            if (!val || !detail) return;
+            if (!ftthOdcPassives.length) {
+                val.textContent = '0.00 dB';
+                detail.innerHTML = '<span>Tambah passive di atas</span>';
+                detail.style.display = '';
+                return;
+            }
+            /* Redaman / Port Passive — hanya tampilkan setelah nomor passive dipilih.
+               Sila pilih nomor passive terlebih dahulu, nilai 0.00 dB berubah sesuai
+               passive yang dipilih. */
+            var selIdx = ftthOdcSelectedPassiveIndex();
+            if (selIdx < 0 || selIdx >= ftthOdcPassives.length) {
+                val.textContent = '0.00 dB';
+                detail.innerHTML = '<span>Pilih Nomor Passive</span>';
+                detail.style.display = '';
+                return;
+            }
+            var oltSel = document.querySelectorAll('#ftthOdcPassivesBox .ftth-odc-passive-row select[data-k="olt"]')[selIdx];
+            var ponSel = document.querySelectorAll('#ftthOdcPassivesBox .ftth-odc-passive-row select[data-k="pon"]')[selIdx];
+            var portInp = document.querySelectorAll('#ftthOdcPassivesBox .ftth-odc-passive-row input[data-k="ports"]')[selIdx];
+            var oltKey = oltSel ? oltSel.value : '';
+            var pon = ponSel ? ponSel.value : '';
+            var ports = portInp ? (parseInt(portInp.value, 10) || 0) : 0;
+            var oltRed = ftthRedamanForOltPon(oltKey, pon);
+            var perPort = (ports && oltRed) ? (oltRed / ports) : 0;
+            val.textContent = perPort.toFixed(2) + ' dB';
+            var oltLabel = oltKey ? (ftthOltMarkerFromKey(oltKey) || {}).label || oltKey : '—';
+            var src = (perPort > 0 && (oltKey || pon))
+                ? '<span class="ftth-odc-est-src" title="Passive ' + (selIdx + 1) + ' · ' + (ports || 0) + 'P">' + (oltKey ? oltLabel : '—') + ' P' + (pon || '—') + '</span>'
+                : '<span>—</span>';
+            detail.innerHTML = src;
+            detail.style.display = '';
+        }
+
+        /* Index passive yang dipilih di dropdown Nomor Passive (nilai "Passive N").
+           -1 bila tak ada passive dipilih / dropdown tak ada / nilai tak valid. */
+        function ftthOdcSelectedPassiveIndex() {
+            var sel = document.getElementById('ftthDevPonNo');
+            var raw = sel ? String(sel.value) : '';
+            var m = raw.match(/^Passive\s+(\d+)$/i);
+            if (!m) return -1;
+            return (parseInt(m[1], 10) || 1) - 1;
+        }
+
+        function ftthOdcNomorChanged() {
+            ftthOdpPassiveChanged();
+            ftthOdcEstimate();
+            ftthOdpEstimate();
+        }
+
+        /* Ambil Nomor Passive ODC, Port Passive ODC & Warna Core dari jalur induk.
+           Bila induk ODP belum punya nilainya (mis. ODP lama), ikuti ODP di atasnya
+           sampai ketemu (rantai /03←/02←/01) — idempotent. */
+        function ftthOdpInheritFromInduk() {
+            var parentSel = document.getElementById('ftthDevParent');
+            if (!parentSel) return { nomor: '', port: '', warna: '' };
+            var parentM = ftthOdcLookupFromParentStr(parentSel.value);
+            if (!parentM || String(parentM.type).toUpperCase() !== 'ODP') return { nomor: '', port: '', warna: '' };
+            var seen = {};
+            var node = parentM;
+            var nomor = '', port = '', warna = '';
+            while (node) {
+                var na = (node.attributes && typeof node.attributes === 'object') ? node.attributes : {};
+                if (!nomor && na.nomor_passive_odc != null && na.nomor_passive_odc !== '') nomor = na.nomor_passive_odc;
+                if (!port && na.port_passive_odc != null && na.port_passive_odc !== '') port = na.port_passive_odc;
+                if (!warna && na.warna_core != null && na.warna_core !== '') warna = na.warna_core;
+                var up = node.parent ? ftthOdcLookupFromParentStr(node.parent) : null;
+                if (!up || seen[up.label] || node === up) break;
+                seen[up.label] = true;
+                node = up;
+            }
+            return { nomor: nomor, port: port, warna: warna };
+        }
+
+        /* Salin hasil ftthOdpInheritFromInduk ke elemen form (paksa timpa —
+           dipakai saat induk diganti / Management Core baru dinyalakan). */
+        function ftthOdpFillFromInduk() {
+            var inh = ftthOdpInheritFromInduk();
+            if (!inh.nomor && !inh.port && !inh.warna) return;
+            var pnEl = document.getElementById('ftthDevPonNo');
+            if (pnEl && inh.nomor) {
+                pnEl.value = inh.nomor;
+                ftthOdpPassiveChanged();
+            }
+            var ppEl = document.getElementById('ftthDevOdpPort');
+            if (ppEl && inh.port) ppEl.value = inh.port;
+            var ccEl = document.getElementById('ftthDevCoreColor');
+            if (ccEl && inh.warna) ccEl.value = inh.warna;
         }
 
         /* Saat induk perangkat berubah, perbarui estimasi redaman (ODC & ODP) */
         function ftthParentChanged() {
+            var pType = document.getElementById('ftthDeviceType');
+            var pTypeV = pType ? String(pType.value || '').toUpperCase() : '';
+            if (pTypeV === 'ODP') {
+                ftthOdpRebuildPassiveSelects();
+                ftthOdpFillFromInduk();
+            }
             ftthOdpEstimate();
             ftthOdcEstimate();
         }
 
-        function ftthOdpEstimate() {
-            var plcEl = document.getElementById('ftthDevPlc');
-            var ratioEl = document.getElementById('ftthDevRatio');
-            if (!plcEl || !ratioEl) return;
-            var plc = parseInt(plcEl.value, 10) || 0;
-            var ratio = ratioEl.value;
-            /* Loss PLC diambil dari tabel kalkulator; bila port non‑standar,
-               aproksimasi 10·log10(N) + 1 dB (insertion loss rata‑rata). */
-            var plcLoss = plc
-                ? (CALC.plc[plc] || (plc > 1 ? +(10 * Math.log10(plc) + 1).toFixed(2) : 0))
-                : 0;
-            var ratioLoss = ratio ? (CALC.ratioLoss[ratio] || 0) : 0;
-
-            /* Redaman masuk dari port passive ODC (keluaran OLT ÷ jumlah port passive),
-               plus sambungan splice & connector di jalur ODP. */
+        /* Muat ulang dropdown "Nomor Passive ODC" & "Port Passive ODC" untuk ODP
+           berdasar induk ODC yang dipilih sekarang. */
+        function ftthOdpRebuildPassiveSelects() {
             var parentSel = document.getElementById('ftthDevParent');
+            var ponSel = document.getElementById('ftthDevPonNo');
+            var portSel = document.getElementById('ftthDevOdpPort');
+            if (!ponSel || !portSel) return;
             var odcM = parentSel ? ftthOdcLookupFromParentStr(parentSel.value) : null;
-            var src = ftthRedamanSourceFrom(odcM);
-            var odcPassive = ftthOdcPassivePortRedaman(src);
+            if (odcM && String(odcM.type).toUpperCase() === 'ODP') odcM = ftthFindAncestorMarker(odcM, 'ODC');
+            var odcAttrs = odcM ? (odcM.attributes || {}) : {};
+            var ppList = null;
+            if (odcAttrs.passives) { try { ppList = JSON.parse(odcAttrs.passives); } catch (e) { ppList = null; } }
+            var nP = (ppList && Array.isArray(ppList)) ? ppList.length : (parseInt(odcAttrs.jumlah_passive, 10) || 0);
+            var oldPon = ponSel.value;
+            var html = '';
+            for (var pi = 1; pi <= nP; pi++) {
+                var pp = (ppList && ppList[pi - 1]) || {};
+                var ppPorts = parseInt(pp.ports, 10) || 0;
+                html += '<option value="' + pi + '" data-ports="' + ppPorts + '">Passive ' + pi + (ppPorts ? ' (' + ppPorts + 'P)' : '') + '</option>';
+            }
+            if (!html) html = '<option value="">— Pilih ODC dulu —</option>';
+            ponSel.innerHTML = html;
+            if (oldPon) ponSel.value = oldPon;
+            ftthOdpPassiveChanged();
+        }
 
+        function ftthOdpPassiveChanged() {
+            var ponSel = document.getElementById('ftthDevPonNo');
+            var portSel = document.getElementById('ftthDevOdpPort');
+            if (!ponSel || !portSel) return;
+            var ports = parseInt(ponSel.options[ponSel.selectedIndex] ? ponSel.options[ponSel.selectedIndex].getAttribute('data-ports') : 0, 10) || 0;
+            var old = portSel.value;
+            portSel.innerHTML = '<option value="">— Pilih Port —</option>';
+            for (var i = 1; i <= ports; i++) {
+                portSel.innerHTML += '<option value="' + i + '">Port ' + i + '</option>';
+            }
+            if (old && old <= ports) portSel.value = old;
+        }
+
+        /* Toogle "Mode Rasio" (geser kanan = aktif). Saat off (Tanpa Splitter),
+           input Splitter Rasio hilang & redaman = keluaran port passive ÷ jumlah
+           port PLC + splice + connector + jarak kabel (tanpa PLC & rasio). */
+        function ftthOdpModeChanged() {
+            var sw = document.getElementById('ftthDevNoSplitter');
+            var isRasio = !!(sw && sw.checked);
+            var ratioWrap = document.getElementById('ftthDevRatioWrap');
+            if (ratioWrap) ratioWrap.hidden = !isRasio;
+            ftthOdpEstimate();
+        }
+
+        function ftthOdpEstimate() {
+            var totalVal = document.getElementById('ftthOdpEstVal');
+            var terusanEl = document.getElementById('ftthOdpEstTerusan');
+            var plcEl = document.getElementById('ftthDevCapacity');
+            var ratioEl = document.getElementById('ftthDevRatio');
+            var ponSel = document.getElementById('ftthDevPonNo');
+            var swEl = document.getElementById('ftthDevNoSplitter');
+            var isNoSplitter = !(swEl && swEl.checked);
+
+            var plc = plcEl ? parseInt(plcEl.value, 10) || 0 : 0;
+            var ratio = ratioEl ? ratioEl.value : '';
+            if (!isNoSplitter && (!plc || !ratio)) {
+                if (totalVal) totalVal.textContent = '0.00 dBm';
+                if (terusanEl) terusanEl.textContent = '0.00 dBm';
+                return;
+            }
+
+            /* 1. Redaman masuk per-port ODP:
+               - induk ODC → keluaran passive ODC (OLT ÷ jumlah port passive).
+               - induk ODP (jalur) → Redaman Terusan (Port Passthrough) induk
+                                     ÷ jumlah port ODP yang sedang dibuat/Edit. */
+            var parentSel = document.getElementById('ftthDevParent');
+            var parentM = parentSel && parentSel.value ? ftthOdcLookupFromParentStr(parentSel.value) : null;
+            var inputPerPort = 0;
+            if (parentM && String(parentM.type).toUpperCase() === 'ODP') {
+                /* Splitter rasio: dibagi sesuai jumlah port ODP. Tanpa splitter:
+                   input = terusan induk (tanpa pembagian — attenuasi PLC 1:N
+                   ditambahkan di total, sejalan dengan Kalkulator Redaman). */
+                inputPerPort = isNoSplitter ? ftthOdpPassthrough(parentM) : (plc > 0 ? (ftthOdpPassthrough(parentM) / plc) : 0);
+            } else if (parentM) {
+                var oltRedaman = 0;
+                var passivePorts = 0;
+                var oda = (parentM.attributes && typeof parentM.attributes === 'object') ? parentM.attributes : {};
+                var ppList = null;
+                if (oda.passives) { try { ppList = JSON.parse(oda.passives); } catch (e) { ppList = null; } }
+                var selIdx = ponSel ? (parseInt(ponSel.value, 10) || 0) - 1 : -1;
+                if (ppList && Array.isArray(ppList) && selIdx >= 0 && selIdx < ppList.length) {
+                    passivePorts = parseInt(ppList[selIdx].ports, 10) || 0;
+                    var ppRow = ppList[selIdx] || {};
+                    if (ppRow.oltKey) oltRedaman = ftthRedamanForOltPon(ppRow.oltKey, ppRow.pon);
+                }
+                if (!oltRedaman) {
+                    var olt = ftthFindAncestorMarker(parentM, 'OLT');
+                    if (olt) {
+                        var oa = (olt.attributes && typeof olt.attributes === 'object') ? olt.attributes : {};
+                        oltRedaman = parseFloat(oa.olt_redaman) || 0;
+                    }
+                }
+                inputPerPort = (oltRedaman > 0 && passivePorts > 0) ? oltRedaman / passivePorts : 0;
+            }
+
+            /* 2. Jarak kabel (m → km) × dB per km */
+            var cableEl = document.getElementById('ftthDevCableDist');
+            var cableM = cableEl ? (parseFloat(cableEl.value) || 0) : 0;
+            var cableLoss = cableM > 0 ? +(cableM / 1000 * CALC.dbPerKm).toFixed(4) : 0;
+
+            /* 3. Splice & Connector */
             var spliceEl = document.getElementById('ftthDevSplice');
             var connEl = document.getElementById('ftthDevConnector');
             var splices = spliceEl ? (parseInt(spliceEl.value, 10) || 0) : 0;
@@ -9745,19 +10641,28 @@
             var spliceLoss = splices * CALC.spliceDb;
             var connLoss = connectors * CALC.connectorDb;
 
-            var total = odcPassive + spliceLoss + connLoss + plcLoss + ratioLoss;
-            var odcVal = document.getElementById('ftthOdpEstOdc');
-            var spliceVal = document.getElementById('ftthOdpEstSplice');
-            var connVal = document.getElementById('ftthOdpEstConn');
-            var plcVal = document.getElementById('ftthOdpEstPlc');
-            var ratioVal = document.getElementById('ftthOdpEstRatio');
-            var totalVal = document.getElementById('ftthOdpEstVal');
-            if (odcVal) odcVal.textContent = odcPassive.toFixed(2) + ' dB';
-            if (spliceVal) spliceVal.textContent = spliceLoss.toFixed(2) + ' dB';
-            if (connVal) connVal.textContent = connLoss.toFixed(2) + ' dB';
-            if (plcVal) plcVal.textContent = plcLoss.toFixed(2) + ' dB';
-            if (ratioVal) ratioVal.textContent = ratioLoss.toFixed(2) + ' dB';
-            if (totalVal) totalVal.textContent = total.toFixed(2) + ' dB';
+            /* 4. PLC splitter (kapasitas ODP) — attenuasi 1:N diterapkan di kedua mode
+               (sejalan dengan Kalkulator Redaman); rasio hanya mode ON. */
+            var plcLoss = CALC.plc[plc] || (plc > 1 ? +(10 * Math.log10(plc) + 1).toFixed(2) : 0);
+
+            /* 5. Splitter Rasio — dua nilai: port ratio (ke pelanggan) & port terusan (lanjut) */
+            var ratioLoss = CALC.ratioLoss[ratio] || 0;
+            var ratioPass = CALC.ratioPass[ratio] || 0;
+
+            /* Total — mode Tanpa Splitter (direct): keluaran port passive + attenuasi
+               PLC 1:N + splice + connector + jarak kabel (tanpa rasio & terusan) —
+               sejalan dengan Kalkulator Redaman. Mode ON menambah attenuasi rasio. */
+            var baseLoss = inputPerPort + cableLoss + spliceLoss + connLoss + plcLoss; 
+            var total = baseLoss + (isNoSplitter ? 0 : ratioLoss);
+            var terusan = baseLoss + (isNoSplitter ? 0 : ratioPass);
+
+            var lbl = document.getElementById('ftthOdpEstLabel');
+            if (lbl) lbl.textContent = isNoSplitter ? 'Redaman' : 'Total Redaman (Port Ratio)';
+            var terb = document.getElementById('ftthOdpEstTerusanBox');
+            if (terb) terb.hidden = isNoSplitter;
+
+            if (totalVal) totalVal.textContent = ftthDbFmt(-total) + ' dBm';
+            if (terusanEl) terusanEl.textContent = ftthDbFmt(-terusan) + ' dBm';
         }
 
         function ftthTogglePppoeField() {
@@ -9825,14 +10730,17 @@
         function ftthOpenAddDevice(prefill) {
             ftthCloseAllCards();
             prefill = prefill || {};
+            var nsReset = document.getElementById('ftthDevNoSplitter');
+            if (nsReset) nsReset.checked = true;
+            var nsTglReset = document.getElementById('ftthNoSplitTglWrap');
+            if (nsTglReset) nsTglReset.hidden = true;
             ftthCloseDetail();
             /* ftthParentsLoaded tidak di-reset di sini: daftar induk sudah di-preload
                & di-cache, sehingga dropdown Induk langsung terisi saat dibuka.
                Cache di-invalidasi pada ftthSaveDevice setelah perangkat tersimpan. */
             ftthEditDeviceId = prefill.id || null;
-            /* Reset pilihan OLT/PON sumber redaman ODC saat buka kartu baru */
-            ftthOdcPickedOltKey = '';
-            ftthOdcPickedPon = '';
+            /* Reset daftar passive ODC saat buka kartu baru (dihit ulang di prefill) */
+            ftthOdcPassives = [];
             var isEdit = !!ftthEditDeviceId;
             document.getElementById('ftthDeviceType').value = prefill.type || '';
             document.getElementById('ftthDevName').value = prefill.name || '';
@@ -9870,13 +10778,16 @@
                 if (cap) cap.value = prefill.capacity;
             }
             if (prefill.port_plc) {
-                var plcEl2 = document.getElementById('ftthDevPlc');
+                var plcEl2 = document.getElementById('ftthDevCapacity');
                 if (plcEl2) plcEl2.value = prefill.port_plc;
             }
             if (prefill.rasio) {
                 var ratioEl2 = document.getElementById('ftthDevRatio');
                 if (ratioEl2) ratioEl2.value = prefill.rasio;
             }
+            var noSplitEl = document.getElementById('ftthDevNoSplitter');
+            if (noSplitEl) noSplitEl.checked = (String(prefill.splitter_mode || '1') !== '0');
+            ftthOdpModeChanged();
             ftthOdpEstimate();
             if (prefill.ip) {
                 var ip = document.getElementById('ftthDevIp');
@@ -9890,10 +10801,6 @@
                 var pc = document.getElementById('ftthDevPonCount');
                 if (pc) pc.value = prefill.jumlah_pon;
             }
-            if (prefill.nomor_pon) {
-                var pn = document.getElementById('ftthDevPonNo');
-                if (pn) pn.value = prefill.nomor_pon;
-            }
             if (prefill.warna_core) {
                 var cc = document.getElementById('ftthDevCoreColor');
                 if (cc) cc.value = prefill.warna_core;
@@ -9902,13 +10809,46 @@
                 var or = document.getElementById('ftthDevOltRedaman');
                 if (or) or.value = prefill.olt_redaman;
             }
-            if (prefill.jumlah_passive) {
-                var pcnt = document.getElementById('ftthDevPassiveCount');
-                if (pcnt) pcnt.value = prefill.jumlah_passive;
+            /* Passive 1,2,3... — muat daftar passive sendiri (passives JSON: oltKey, pon, ports).
+               Bila ndak ada, fallback ke induk chain ODC→OTB→OLT + nomor_pon + scalar
+               jumlah_port_passive untuk satu passive (legacy). */
+            var ppList = null;
+            if (prefill.passives) {
+                try { ppList = JSON.parse(prefill.passives); } catch (e) { ppList = null; }
             }
-            if (prefill.jumlah_port_passive) {
-                var pptrs = document.getElementById('ftthDevPassivePorts');
-                if (pptrs) pptrs.value = prefill.jumlah_port_passive;
+            var fbOltKey = '';
+            var fbPon = '';
+            if (prefill.type === 'odc') {
+                ftthPreloadOdcSourceFromInduk(prefill.parent || '');
+                fbOltKey = ftthOdcPickedOltKey || '';
+                fbPon = (prefill.nomor_pon || '').toString().replace(/^PON\s*/i, '');
+            }
+            if (ppList && Array.isArray(ppList) && ppList.length) {
+                ftthOdcPassives = ppList.map(function(p) {
+                    return {
+                        oltKey: (p && p.oltKey) ? p.oltKey : fbOltKey,
+                        pon: (p && p.pon) ? String(p.pon) : fbPon,
+                        ports: String((p && p.ports != null) ? (parseInt(p.ports, 10) || 0) : '')
+                    };
+                });
+            } else if (prefill.jumlah_port_passive) {
+                ftthOdcPassives = [{ oltKey: fbOltKey, pon: fbPon, ports: String(parseInt(prefill.jumlah_port_passive, 10) || 0) }];
+            } else {
+                ftthOdcPassives = [];
+            }
+            if (document.getElementById('ftthOdcPassivesBox')) ftthOdcRebuildRows();
+            /* ODC: daftar nomor passive di dropdown core harus sesuai daftar passive
+               yang SUDAH muat di atas — muat ulang select & dan re-apply nilai simpan. */
+            if (prefill.type === 'odc') {
+                var cfEl = document.getElementById('ftthCoreFields');
+                var coreOn = (document.getElementById('ftthDevCoreMgmt') || {}).checked;
+                if (cfEl && coreOn) {
+                    cfEl.innerHTML = ftthCoreColorSelects('odc');
+                    var pnEl = document.getElementById('ftthDevPonNo');
+                    if (pnEl && prefill.nomor_passive) pnEl.value = prefill.nomor_passive;
+                    var ccEl = document.getElementById('ftthDevCoreColor');
+                    if (ccEl && prefill.warna_core) ccEl.value = prefill.warna_core;
+                }
             }
             if (prefill.jumlah_splice) {
                 var spl = document.getElementById('ftthDevSplice');
@@ -9917,6 +10857,10 @@
             if (prefill.jumlah_connector) {
                 var cnn = document.getElementById('ftthDevConnector');
                 if (cnn) cnn.value = prefill.jumlah_connector;
+            }
+            if (prefill.jarak_kabel) {
+                var cdEl = document.getElementById('ftthDevCableDist');
+                if (cdEl) cdEl.value = prefill.jarak_kabel;
             }
             ftthOdcEstimate();
 
@@ -9944,6 +10888,23 @@
                 if (match) sel.value = match;
                 ftthOdpEstimate();
                 ftthOdcEstimate();
+                if (prefill.type === 'odp') {
+                    ftthOdpRebuildPassiveSelects();
+                    var inh = ftthOdpInheritFromInduk();
+                    var fnom = prefill.nomor_passive_odc || inh.nomor || '';
+                    var pnEl = document.getElementById('ftthDevPonNo');
+                    if (pnEl && fnom) {
+                        pnEl.value = fnom;
+                        ftthOdpPassiveChanged();
+                    }
+                    var fport = prefill.port_passive_odc || inh.port || '';
+                    var ppEl = document.getElementById('ftthDevOdpPort');
+                    if (ppEl && fport) ppEl.value = fport;
+                    var fcol = prefill.warna_core || inh.warna || '';
+                    var ccEl = document.getElementById('ftthDevCoreColor');
+                    if (ccEl && fcol) ccEl.value = fcol;
+                    ftthOdpEstimate();
+                }
             });
 
             if (isEdit && prefill.lat != null && prefill.lng != null) {
@@ -10061,26 +11022,48 @@
             if (type === 'odc') {
                 var cap = document.getElementById('ftthDevCapacity');
                 capacity = (cap && cap.value.trim()) ? cap.value.trim() : null;
-                var passiveCnt = document.getElementById('ftthDevPassiveCount');
-                var passivePorts = document.getElementById('ftthDevPassivePorts');
-                var pCnt = passiveCnt ? passiveCnt.value.trim() : '';
-                var pPorts = passivePorts ? passivePorts.value.trim() : '';
-                if (pCnt) attributes.jumlah_passive = pCnt;
-                if (pPorts) attributes.jumlah_port_passive = pPorts;
+                /* Passive 1,2,3... — setiap passive punya OLT, PON & port sendiri */
+                var ppList = [];
+                var pSum = 0;
+                for (var ppi = 0; ppi < ftthOdcPassives.length; ppi++) {
+                    var pr = ftthOdcPassives[ppi];
+                    var ppPon = pr.pon || '';
+                    var ppPorts = parseInt(pr.ports, 10) || 0;
+                    ppList.push({ oltKey: pr.oltKey || '', pon: ppPon, ports: ppPorts });
+                    pSum += ppPorts;
+                }
+                attributes.passives = JSON.stringify(ppList);
+                attributes.jumlah_passive = String(ftthOdcPassives.length);
+                if (pSum) attributes.jumlah_port_passive = String(pSum);
+                /* nomor_pon legacy = PON passive pertama (untuk induk/topologi) */
+                var firstPon = ftthOdcPassives.length ? (ftthOdcPassives[0].pon || '') : '';
+                if (firstPon) attributes.nomor_pon = 'PON ' + firstPon;
             } else if (type === 'odp') {
-                var plcEl = document.getElementById('ftthDevPlc');
+                var plcEl = document.getElementById('ftthDevCapacity');
                 var ratioEl = document.getElementById('ftthDevRatio');
                 if (plcEl && plcEl.value && plcEl.value !== '0') {
                     attributes.port_plc = plcEl.value;
                     capacity = plcEl.value;
                 }
                 if (ratioEl && ratioEl.value) attributes.rasio = ratioEl.value;
+                var noSplitSave = document.getElementById('ftthDevNoSplitter');
+                attributes.splitter_mode = (noSplitSave && noSplitSave.checked) ? '1' : '0';
                 var spliceEl = document.getElementById('ftthDevSplice');
                 var connEl = document.getElementById('ftthDevConnector');
                 var sp = spliceEl ? spliceEl.value.trim() : '';
                 var cn = connEl ? connEl.value.trim() : '';
                 if (sp) attributes.jumlah_splice = sp;
                 if (cn) attributes.jumlah_connector = cn;
+                var cableDistEl = document.getElementById('ftthDevCableDist');
+                var cd = cableDistEl ? cableDistEl.value.trim() : '';
+                if (cd) attributes.jarak_kabel = cd;
+            } else if (type === 'otb') {
+                var otbEl = document.getElementById('ftthDevCapacity');
+                var oc = otbEl ? otbEl.value.trim() : '';
+                if (oc) {
+                    attributes.jumlah_port = oc;
+                    capacity = oc;
+                }
             } else if (type === 'onu' || type === 'htb' || type === 'olt') {
                 var ipEl = document.getElementById('ftthDevIp');
                 ip = (ipEl && ipEl.value.trim()) ? ipEl.value.trim() : null;
@@ -10106,7 +11089,14 @@
             if ((type === 'odc' || type === 'odp') && document.getElementById('ftthDevCoreMgmt').checked) {
                 var ponNo = document.getElementById('ftthDevPonNo');
                 var coreCol = document.getElementById('ftthDevCoreColor');
-                if (ponNo && ponNo.value) attributes.nomor_pon = ponNo.value;
+                if (ponNo && ponNo.value) {
+                    var nomKey = (type === 'odc') ? 'nomor_passive' : 'nomor_passive_odc';
+                    attributes[nomKey] = ponNo.value;
+                }
+                if (type === 'odp') {
+                    var portP = document.getElementById('ftthDevOdpPort');
+                    if (portP && portP.value) attributes.port_passive_odc = portP.value;
+                }
                 if (coreCol && coreCol.value) attributes.warna_core = coreCol.value;
             } else if (type === 'htb' && document.getElementById('ftthDevCoreMgmt').checked) {
                 /* HTB: hanya simpan warna core — kabel di peta otomatis mengikuti warna ini */
@@ -10199,9 +11189,18 @@
         function ftthOpenDevices() {
             ftthCloseAllCards();
             var devCard = document.getElementById('ftthDevicesCard');
-            devCard.style.left = '';
-            devCard.style.top = '';
-            devCard.style.transform = '';
+            var btn = document.querySelector('.ftth-ac-perangkat');
+            if (btn && btn.offsetParent !== null) {
+                var r = btn.getBoundingClientRect();
+                var left = Math.max(8, Math.min(r.left, window.innerWidth - 340 - 8));
+                devCard.style.left = left + 'px';
+                devCard.style.top = (r.bottom + 8) + 'px';
+                devCard.style.transform = 'none';
+            } else {
+                devCard.style.left = '';
+                devCard.style.top = '';
+                devCard.style.transform = '';
+            }
             ftthBrowseType = null;
             document.getElementById('ftthBrowseSearch').value = '';
             document.getElementById('ftthDevicesBackdrop').hidden = false;
@@ -10622,10 +11621,17 @@
                 pppoe: attrs.pppoe_user,
                 port_plc: attrs.port_plc,
                 rasio: attrs.rasio,
+                splitter_mode: attrs.splitter_mode,
                 management_core: Number(attrs.management_core) === 1,
                 jumlah_pon: attrs.jumlah_pon,
                 pon_specs: attrs.pon_specs,
-                nomor_pon: attrs.nomor_pon,                warna_core: attrs.warna_core,
+                passives: attrs.passives,
+                nomor_pon: attrs.nomor_pon,
+                nomor_passive: attrs.nomor_passive,
+                nomor_passive_odc: attrs.nomor_passive_odc,
+                port_passive_odc: attrs.port_passive_odc,
+                warna_core: attrs.warna_core,
+                jarak_kabel: attrs.jarak_kabel,
                 lat: d.latitude != null ? Number(d.latitude) : null,
                 lng: d.longitude != null ? Number(d.longitude) : null,
                 location: d.location || ''
@@ -10691,6 +11697,8 @@
                     ftthOnuData = r.data.rows || [];
                     ftthOnuPage = 1;
                     renderOnuTable();
+                } else {
+                    document.getElementById('ftthOnuTableBody').innerHTML = '<tr><td colspan="9" class="ftth-device-empty">' + ftthT('msg.gagal_load') + '</td></tr>';
                 }
             }).catch(function() {
                 document.getElementById('ftthOnuTableBody').innerHTML = '<tr><td colspan="9" class="ftth-device-empty">' + ftthT('msg.gagal_load') + '</td></tr>';
@@ -11026,44 +12034,86 @@
                 /* ODP: estimasi redaman = redaman masuk dari port passive ODC
                    (keluaran OLT ÷ jumlah port passive) + splice + connector
                    + PLC + rasio. */
-                var odpSplitterHtml = '';
+var odpSplitterHtml = '';
                 if (mType === 'ODP') {
-                    var odpPlc = Number(attrs.port_plc) || 0;
-                    var odpRatio = attrs.rasio || '';
-                    var odpPlcLoss = odpPlc
-                        ? (CALC.plc[odpPlc] || (odpPlc > 1 ? +(10 * Math.log10(odpPlc) + 1).toFixed(2) : 0))
-                        : 0;
-                    var odpRatioLoss = odpRatio ? (CALC.ratioLoss[odpRatio] || 0) : 0;
-                    var odpSrc = ftthRedamanSourceFrom(m);
-                    var odpOdcPassive = ftthOdcPassivePortRedaman(odpSrc);
-                    var odpSplices = parseInt(attrs.jumlah_splice, 10) || 0;
-                    var odpConnectors = parseInt(attrs.jumlah_connector, 10) || 0;
-                    var odpSpliceLoss = odpSplices * CALC.spliceDb;
-                    var odpConnLoss = odpConnectors * CALC.connectorDb;
-                    var odpTotal = odpOdcPassive + odpSpliceLoss + odpConnLoss + odpPlcLoss + odpRatioLoss;
-                    if (odpPlc || odpRatio || odpOdcPassive > 0) {
+                    var odpNoSplit = String(attrs.splitter_mode || '1') === '0';
+                    var odpInput = ftthOdpInputRedamanFor(m);
+
+                    var odpCableM = parseFloat(attrs.jarak_kabel) || 0;
+                    var odpCableLoss = odpCableM > 0 ? +(odpCableM / 1000 * CALC.dbPerKm).toFixed(4) : 0;
+                    var odpSpliceLoss = (parseInt(attrs.jumlah_splice, 10) || 0) * CALC.spliceDb;
+                    var odpConnLoss = (parseInt(attrs.jumlah_connector, 10) || 0) * CALC.connectorDb;
+                    if (odpNoSplit) {
+                        /* Mode Tanpa Splitter (direct): redaman = keluaran port passive
+                           + attenuasi PLC 1:N + splice + connector + jarak kabel —
+                           sejalan dengan Kalkulator Redaman. Tanpa rasio & terusan. */
+                        var odpPorts = Number(attrs.port_plc) || 0;
+                        var odpPlcLossN = odpPorts
+                            ? (CALC.plc[odpPorts] || (odpPorts > 1 ? +(10 * Math.log10(odpPorts) + 1).toFixed(2) : 0))
+                            : 0;
+                        var odpDirectBase = odpInput + odpPlcLossN + odpCableLoss + odpSpliceLoss + odpConnLoss;
                         odpSplitterHtml =
-                            '<div class="ftth-odc-info-row"><span class="ftth-odc-info-label">Port PLC</span><span class="ftth-odc-info-val blue">' +
-                                (odpPlc ? '1:' + odpPlc : '—') + (odpRatio ? ' · Rasio ' + escapeHtml(odpRatio) : '') +
-                            '</span></div>' +
-                            '<div class="ftth-odc-info-row"><span class="ftth-odc-info-label">Port Passive ODC</span><span class="ftth-odc-info-val cyan">' + odpOdcPassive.toFixed(2) + ' dB</span></div>' +
-                            '<div class="ftth-odc-info-row"><span class="ftth-odc-info-label">Splice / Connector</span><span class="ftth-odc-info-val">' + odpSpliceLoss.toFixed(2) + ' + ' + odpConnLoss.toFixed(2) + ' dB</span></div>' +
-                            '<div class="ftth-odc-info-row"><span class="ftth-odc-info-label">Estimasi Redaman</span><span class="ftth-odc-info-val">' + odpTotal.toFixed(2) + ' dB</span></div>';
+                            ((Number(attrs.port_plc) || 0) > 0 ? '<div class="ftth-odc-info-row"><span class="ftth-odc-info-label">Port ODP</span><span class="ftth-odc-info-val blue">' + attrs.port_plc + '</span></div>' : '') +
+                            (odpDirectBase > 0 ? '<div class="ftth-odc-info-row ftth-odc-red-row ftth-odc-red-row-blue"><span class="ftth-odc-info-label">Redaman</span><span class="ftth-odc-info-val ftth-odc-red-val">' + ftthDbFmt(-odpDirectBase) + ' dBm</span></div>' : '');
+                    } else {
+                        var odpPlc = Number(attrs.port_plc) || 0;
+                        var odpRatio = attrs.rasio || '';
+                        var odpPlcLoss = odpPlc
+                            ? (CALC.plc[odpPlc] || (odpPlc > 1 ? +(10 * Math.log10(odpPlc) + 1).toFixed(2) : 0))
+                            : 0;
+                        var odpRatioLoss = odpRatio ? (CALC.ratioLoss[odpRatio] || 0) : 0;
+                        var odpRatioPass = odpRatio ? (CALC.ratioPass[odpRatio] || 0) : 0;
+                        var odpBase = odpInput + odpCableLoss + odpSpliceLoss + odpConnLoss;
+                        var odpTotal = odpPlc || odpRatio ? odpBase + odpPlcLoss + odpRatioLoss : 0;
+                        var odpTerusan = odpPlc || odpRatio ? odpBase + odpPlcLoss + odpRatioPass : 0;
+                        if (odpPlc || odpRatio || odpInput > 0) {
+                            odpSplitterHtml =
+                                '<div class="ftth-odc-info-row"><span class="ftth-odc-info-label">Port PLC</span><span class="ftth-odc-info-val blue">' +
+                                    (odpPlc ? '1:' + odpPlc : '—') + (odpRatio ? ' · Rasio ' + escapeHtml(odpRatio) : '') +
+                                '</span></div>' +
+                                '<div class="ftth-odc-info-row ftth-odc-red-row ftth-odc-red-row-blue"><span class="ftth-odc-info-label">Redaman</span><span class="ftth-odc-info-val ftth-odc-red-val">' + ftthDbFmt(-odpTotal) + ' dBm</span></div>' +
+                                '<div class="ftth-odc-info-row ftth-odc-red-row ftth-odc-red-row-red"><span class="ftth-odc-info-label">Redaman ODP Terusan</span><span class="ftth-odc-info-val ftth-odc-red-val">' + ftthDbFmt(-odpTerusan) + ' dBm</span></div>';
+                        }
                     }
                 } else if (mType === 'ODC') {
-                    /* ODC: info passive & redaman per port passive dari keluaran OLT */
+                    /* ODC: info passive & redaman per port passive dari keluaran OLT. */
                     var odcPassiveCount = parseInt(attrs.jumlah_passive, 10) || 0;
                     var odcPassivePorts = parseInt(attrs.jumlah_port_passive, 10) || 0;
                     var odcSrc = ftthRedamanSourceFrom(m);
                     var odcOltRedaman = odcSrc ? odcSrc.oltRedaman : 0;
+                    var ppParse = null;
+                    if (attrs.passives) { try { ppParse = JSON.parse(attrs.passives); } catch (e) { ppParse = null; } }
+                    var ppRows = (ppParse && Array.isArray(ppParse) && ppParse.length)
+                        ? ppParse.map(function(p) {
+                            return { oltKey: (p && p.oltKey) || '', pon: (p && p.pon) || '', ports: parseInt(p && p.ports, 10) || 0 };
+                        })
+                        : (odcPassivePorts ? [{ oltKey: '', pon: (attrs.nomor_passive || attrs.nomor_pon || '').toString().replace(/^Passive\s+|^PON\s*/i, ''), ports: odcPassivePorts }] : []);
                     var odcPerPort = ftthOdcPassivePortRedaman(odcSrc);
+                    /* Daftar passive sebagai tombol pilihan; nilai redaman hanya
+                       tampil setelah passive terpilih. */
+                    var odcPpData = [];
+                    if (ppParse && Array.isArray(ppParse) && ppParse.length) {
+                        for (var ppii = 0; ppii < ppParse.length; ppii++) {
+                            var pr = ppRows[ppii];
+                            var prRed = pr.oltKey ? ftthRedamanForOltPon(pr.oltKey, pr.pon) : 0;
+                            if (!prRed) prRed = odcOltRedaman;
+                            odcPpData.push({ label: 'Passive ' + (ppii + 1) + ' (' + (pr.ports || 0) + 'P)', perPort: (pr.ports && prRed) ? (prRed / pr.ports) : 0 });
+                        }
+                    } else if (odcPassivePorts || odcOltRedaman > 0) {
+                        var fbPorts = odcPassivePorts || 0;
+                        odcPpData.push({ label: 'Passive 1 (' + fbPorts + 'P)', perPort: (fbPorts && odcOltRedaman) ? (odcOltRedaman / fbPorts) : 0 });
+                    }
                     odpSplitterHtml = '';
-                    if (odcPassiveCount || odcPassivePorts || odcOltRedaman > 0) {
-                        odpSplitterHtml =
-                            '<div class="ftth-odc-info-row"><span class="ftth-odc-info-label">Jumlah Passive</span><span class="ftth-odc-info-val blue">' + (odcPassiveCount || '—') + '</span></div>' +
-                            '<div class="ftth-odc-info-row"><span class="ftth-odc-info-label">Jumlah Port Passive</span><span class="ftth-odc-info-val blue">' + (odcPassivePorts || '—') + '</span></div>' +
-                            (odcOltRedaman > 0 ? '<div class="ftth-odc-info-row"><span class="ftth-odc-info-label">Redaman OLT</span><span class="ftth-odc-info-val cyan">' + odcOltRedaman.toFixed(2) + ' dB</span></div>' : '') +
-                            (odcPassivePorts ? '<div class="ftth-odc-info-row"><span class="ftth-odc-info-label">Redaman / Port Passive</span><span class="ftth-odc-info-val">' + odcPerPort.toFixed(2) + ' dB</span></div>' : '');
+                    if (odcPassiveCount || odcPassivePorts || odcOltRedaman > 0 || odcPpData.length) {
+                        odpSplitterHtml +=
+                            '<div class="ftth-odc-info-row"><span class="ftth-odc-info-label">Jumlah Passive</span><span class="ftth-odc-info-val blue">' + (odcPpData.length || odcPassiveCount || '—') + '</span></div>';
+                        if (odcPpData.length) {
+                            odpSplitterHtml += '<div class="ftth-odc-passive-sel-row"><select class="ftth-odc-detail-passive-sel" id="ftthOdcDetailSel"><option value="">— Pilih Passive —</option>';
+                            for (var ppi = 0; ppi < odcPpData.length; ppi++) {
+                                odpSplitterHtml += '<option value="' + ppi + '" data-db="' + odcPpData[ppi].perPort.toFixed(2) + '">' + odcPpData[ppi].label + '</option>';
+                            }
+                            odpSplitterHtml += '</select><span class="ftth-odc-info-val cyan" id="ftthOdcDetailRedVal">—</span></div>';
+                        }
                     }
                 }
 
@@ -11098,12 +12148,14 @@
                     '<div class="ftth-odc-topo"><i class="fa-solid fa-network-wired"></i> ' + escapeHtml(parentInduk || '—') + '</div>' +
                     '<div class="ftth-odc-body">' +
                         '<div class="ftth-odc-info-row"><span class="ftth-odc-info-label">' + ftthT('detail.status') + '</span><span class="ftth-odc-info-val ' + statusColor + '" id="ftthOdcStatusVal">' + statusText + '</span></div>' +
-                        '<div class="ftth-odc-info-row"><span class="ftth-odc-info-label">Koordinat</span><span class="ftth-odc-info-val blue">' + ftthCoordText(m.lat, m.lon) + '</span></div>' +
+                        '<div class="ftth-odc-info-row"><span class="ftth-odc-info-label">Koordinat</span><span class="ftth-odc-info-val blue ftth-coord-group"><span>' + ftthCoordText(m.lat, m.lon) + '</span>' + (m.lat != null && m.lon != null ? '<button type="button" class="ftth-coord-copy" onclick="ftthCopyText(\'' + Number(m.lat).toFixed(6) + ', ' + Number(m.lon).toFixed(6) + '\', \'Koordinat\')" title="Salin koordinat"><i class="fa-regular fa-copy"></i></button>' : '') + '</span></div>' +
                         (m.ip_address ? '<div class="ftth-odc-info-row"><span class="ftth-odc-info-label">IP</span><span class="ftth-odc-info-val blue">' + escapeHtml(m.ip_address) + '</span></div>' : '') +
+                        (isOtb ? '<div class="ftth-odc-info-row"><span class="ftth-odc-info-label">Jumlah Port</span><span class="ftth-odc-info-val blue">' + escapeHtml(attrs.jumlah_port || m.capacity || '—') + '</span></div>' : '') +
                         (isOtb ? '' :
                         '<div class="ftth-odc-info-row"><span class="ftth-odc-info-label">' + ftthT('odc.port_usage') + '</span><span class="ftth-odc-info-val green" id="ftthOdcPortVal">...</span></div>' +
                         '<div class="ftth-odc-info-row"><span class="ftth-odc-info-label">' + ftthT('odc.onu_per_jalur') + '</span><span class="ftth-odc-info-val green" id="ftthOdcOnuTotal">...</span></div>' +
-                        '<div class="ftth-odc-info-row"><span class="ftth-odc-info-label">' + ftthT('odc.mgmt_core') + '</span><span class="ftth-odc-info-val blue" id="ftthOdcMgmtVal">' + mgmtLabel + '</span></div>') +
+                        (mType === 'ODP' ? '' :
+                        '<div class="ftth-odc-info-row"><span class="ftth-odc-info-label">' + ftthT('odc.mgmt_core') + '</span><span class="ftth-odc-info-val blue" id="ftthOdcMgmtVal">' + mgmtLabel + '</span></div>')) +
                         ((mType === 'ODP' || mType === 'ODC') ? odpSplitterHtml : '') +
                     '</div>' +
                     (jarak ? '<div class="ftth-odc-distance"><span>' + escapeHtml(String(jarak)) + '</span></div>' : '') +
@@ -11121,6 +12173,9 @@
                 ftthCardDocked = true;
                 document.getElementById('ftthDetailCard').hidden = false;
                 ftthPositionDetailCard();
+                /* Bind passive dropdown handler (programmatic — avoids inline scope issues) */
+                var _pSel = document.getElementById('ftthOdcDetailSel');
+                if (_pSel) _pSel.addEventListener('change', function() { ftthOdcDetailSelect(this); });
 
                 /* async load stats (hanya ODC/ODP — OTB tidak punya endpoint stats) */
                 if (!isOtb) mtApi('/noc/features/map/' + mType.toLowerCase() + '-stats/' + m.id, 'GET').then(function(r) {
@@ -11171,7 +12226,8 @@
                 locEl.innerHTML = '<i class="fa-solid fa-location-dot"></i><span>—</span>';
             }
             document.getElementById('ftthDetailCoords').innerHTML =
-                '<i class="fa-solid fa-map-pin"></i><span>' + ftthCoordText(m.lat, m.lon) + '</span>';
+                '<i class="fa-solid fa-map-pin"></i><span class="ftth-coord-group"><span class="ftth-coord-text">' + ftthCoordText(m.lat, m.lon) + '</span>' +
+                (m.lat != null && m.lon != null ? '<button type="button" class="ftth-coord-copy" onclick="ftthCopyText(\'' + Number(m.lat).toFixed(6) + ', ' + Number(m.lon).toFixed(6) + '\', \'Koordinat\')" title="Salin koordinat"><i class="fa-regular fa-copy"></i></button>' : '') + '</span>';
 
             var rows = [];
             if (m.parent) rows.push([ftthT('detail.induk'), m.parent]);
@@ -11262,6 +12318,18 @@
             ftthOnuStopTraffic();
         }
 
+        function ftthOdcDetailSelect(sel) {
+            var val = document.getElementById('ftthOdcDetailRedVal');
+            var opt = (sel && sel.selectedOptions && sel.selectedOptions.length) ? sel.selectedOptions[0] : null;
+            if (!opt) opt = (sel && sel.options) ? sel.options[sel.selectedIndex] : null;
+            if (opt && opt.getAttribute && opt.getAttribute('data-db')) {
+                if (val) val.textContent = opt.getAttribute('data-db') + ' dB';
+            } else if (val) {
+                val.textContent = '—';
+            }
+        }
+        window.ftthOdcDetailSelect = ftthOdcDetailSelect;
+
         function ftthOdcAction(action) {
             var m = ftthDetailData;
             if (!m || m.source !== 'device') return;
@@ -11304,15 +12372,21 @@
                 management_core: Number(attrs.management_core) === 1,
                 jumlah_pon: attrs.jumlah_pon || '',
                 pon_specs: attrs.pon_specs || '',
+                passives: attrs.passives || '',
                 nomor_pon: attrs.nomor_pon || '',
+                nomor_passive: attrs.nomor_passive || '',
+                nomor_passive_odc: attrs.nomor_passive_odc || '',
+                port_passive_odc: attrs.port_passive_odc || '',
                 warna_core: attrs.warna_core || '',
                 olt_redaman: attrs.olt_redaman || '',
                 jumlah_passive: attrs.jumlah_passive || '',
                 jumlah_port_passive: attrs.jumlah_port_passive || '',
                 port_plc: attrs.port_plc || '',
                 rasio: attrs.rasio || '',
+                splitter_mode: attrs.splitter_mode || '',
                 jumlah_splice: attrs.jumlah_splice || '',
                 jumlah_connector: attrs.jumlah_connector || '',
+                jarak_kabel: attrs.jarak_kabel || '',
                 lat: m.lat,
                 lon: m.lon,
                 location: m.location || ''
@@ -11335,14 +12409,21 @@
                 management_core: Number(attrs.management_core) === 1,
                 jumlah_pon: attrs.jumlah_pon,
                 pon_specs: attrs.pon_specs,
-                nomor_pon: attrs.nomor_pon,                warna_core: attrs.warna_core,
+                passives: attrs.passives,
+                nomor_pon: attrs.nomor_pon,
+                nomor_passive: attrs.nomor_passive,
+                nomor_passive_odc: attrs.nomor_passive_odc,
+                port_passive_odc: attrs.port_passive_odc,
+                warna_core: attrs.warna_core,
                 olt_redaman: attrs.olt_redaman,
                 jumlah_passive: attrs.jumlah_passive,
                 jumlah_port_passive: attrs.jumlah_port_passive,
                 port_plc: attrs.port_plc,
                 rasio: attrs.rasio,
+                splitter_mode: attrs.splitter_mode,
                 jumlah_splice: attrs.jumlah_splice,
                 jumlah_connector: attrs.jumlah_connector,
+                jarak_kabel: attrs.jarak_kabel,
                 lat: m.lat,
                 lng: m.lon,
                 location: m.location || ''
@@ -11519,14 +12600,9 @@
                         '</div>' +
                       '</div>' +
                     '</div>' +
-                 '</div>' +
-                 '<div class="ftth-onu-link-box" id="ftthOnuLinkBox" hidden>' +
-                   '<div style="color:#f59e0b;font-size:11px;margin-bottom:6px"><i class="fa-solid fa-link"></i> ONU belum terhubung ke pelanggan ini</div>' +
-                   '<input type="text" id="ftthOnuLinkSearch" placeholder="Cari serial / onu_id..." style="width:100%;padding:5px 8px;border:1px solid #334155;border-radius:4px;background:#0f172a;color:#e2e8f0;font-size:11px;margin-bottom:4px" oninput="ftthOnuLinkDoSearch()">' +
-                   '<div id="ftthOnuLinkResults" style="max-height:120px;overflow-y:auto"></div>' +
-                 '</div>' +
-               '</div>' +
-                 '<div class="ftth-onu-box ftth-onu-traffic"><div class="ftth-onu-traffic-head"><span class="ftth-onu-traffic-title">Live Traffic</span><span class="ftth-onu-tx"><i></i> TX: <b id="ftthOnuTxVal">-</b></span><span class="ftth-onu-rx"><i></i> RX: <b id="ftthOnuRxVal">-</b></span></div><div class="ftth-onu-traffic-chart"><canvas id="ftthOnuTrafficChart"></canvas></div><div class="ftth-onu-traffic-status" id="ftthOnuTrafficStatus"></div><div class="ftth-onu-hs-clients" id="ftthOnuHsClients" hidden></div></div>' +
+'</div>' +
+                '</div>' +
+                  '<div class="ftth-onu-box ftth-onu-traffic"><div class="ftth-onu-traffic-head"><span class="ftth-onu-traffic-title">Live Traffic</span><span class="ftth-onu-tx"><i></i> TX: <b id="ftthOnuTxVal">-</b></span><span class="ftth-onu-rx"><i></i> RX: <b id="ftthOnuRxVal">-</b></span></div><div class="ftth-onu-traffic-chart"><canvas id="ftthOnuTrafficChart"></canvas></div><div class="ftth-onu-traffic-status" id="ftthOnuTrafficStatus"></div><div class="ftth-onu-hs-clients" id="ftthOnuHsClients" hidden></div></div>' +
               '<div class="ftth-onu-footer" id="ftthOnuTotal">286 M</div>' +
               '<div class="ftth-onu-bottom" id="ftthOnuBottom"></div>' +
               '<div class="ftth-detail-log" id="ftthDetailLog" hidden></div>' +
@@ -11586,7 +12662,11 @@ var ftthTowerTickAt = null;
 
             var acts = '';
             acts += '<div class="ftth-odc-btns">';
-            acts += '<a class="ftth-odc-btn blue" target="_blank" rel="noopener" href="' + escapeHtml(edit || custSearch) + '"><i class="fa-solid fa-pen"></i> Edit</a>';
+            if (m && m.source === 'device') {
+                acts += '<button type="button" class="ftth-odc-btn blue" onclick="ftthEditFromDetail()"><i class="fa-solid fa-pen"></i> Edit</button>';
+            } else {
+                acts += '<a class="ftth-odc-btn blue" target="_blank" rel="noopener" href="' + escapeHtml(edit || custSearch) + '"><i class="fa-solid fa-pen"></i> Edit</a>';
+            }
             if (maps) acts += '<a class="ftth-odc-btn green-dark" target="_blank" rel="noopener" href="' + escapeHtml(maps) + '"><i class="fa-solid fa-map-location-dot"></i> Maps</a>';
             else acts += '<button type="button" class="ftth-odc-btn green-dark" disabled style="background:#475569;cursor:not-allowed"><i class="fa-solid fa-map-location-dot"></i> Maps</button>';
             acts += '<a class="ftth-odc-btn green-light" target="_blank" rel="noopener" href="' + escapeHtml(wa || custSearch) + '"><i class="fa-brands fa-whatsapp"></i> WA</a>';
@@ -11679,7 +12759,25 @@ var ftthTowerTickAt = null;
             if (body) {
                 body.innerHTML = FTTH_ONU_CARD_HTML;
                 var oc = document.getElementById('ftthOnuCoords');
-                if (oc) oc.textContent = ftthCoordText(m.lat, m.lon);
+                if (oc) {
+                    var _wrap = document.createElement('span');
+                    _wrap.className = 'ftth-coord-group';
+                    var _txt = document.createElement('span');
+                    _txt.className = 'ftth-coord-text';
+                    _txt.textContent = ftthCoordText(m.lat, m.lon);
+                    _wrap.appendChild(_txt);
+                    if (m.lat != null && m.lon != null) {
+                        var _cb = document.createElement('button');
+                        _cb.type = 'button';
+                        _cb.className = 'ftth-coord-copy';
+                        _cb.title = 'Salin koordinat';
+                        _cb.innerHTML = '<i class="fa-regular fa-copy"></i>';
+                        _cb.onclick = function() { ftthCopyText(Number(m.lat).toFixed(6) + ', ' + Number(m.lon).toFixed(6), 'Koordinat'); };
+                        _wrap.appendChild(_cb);
+                    }
+                    oc.textContent = '';
+                    oc.appendChild(_wrap);
+                }
                 /* Status langsung dari data marker — jangan tunggu detail async */
                 var stEl0 = document.getElementById('ftthOnuStatus');
                 if (stEl0) {
@@ -11751,8 +12849,6 @@ var ftthTowerTickAt = null;
 
         function ftthCustRenderDevice(m) {
             /* Fallback: perangkat ONU tanpa pelanggan terhubung (mis. wireless yang belum di-link) */
-            var linkBox = document.getElementById('ftthOnuLinkBox');
-            if (linkBox) linkBox.hidden = true;
             document.getElementById('ftthDetailName').textContent = m.label || '-';
             var typeParts = [];
             if (m.detail) typeParts.push(m.detail);
@@ -11780,12 +12876,15 @@ var ftthTowerTickAt = null;
 
             if (m.matched_onu_id) {
                 ftthAcsInfo = null;
-                mtApi('/noc/features/map/onu/lookup?onu_id=' + encodeURIComponent(m.matched_onu_id), 'GET').then(function(r) {
+                var luQ = 'onu_id=' + encodeURIComponent(m.matched_onu_id);
+                var luPppoe = (m.attributes && (m.attributes.pppoe_user || m.attributes.hotspot_user)) ? (m.attributes.pppoe_user || m.attributes.hotspot_user) : null;
+                if (luPppoe) luQ += '&pppoe=' + encodeURIComponent(luPppoe);
+                mtApi('/noc/features/map/onu/lookup?' + luQ, 'GET').then(function(r) {
                     if (ftthDetailData !== m) return;
                     var data = (r.data && r.data.ok && r.data.found) ? r.data : null;
-                    if (data && data.acs_device_id) {
-                        ftthAcsInfo = data;
-                        var acsDevBox = document.getElementById('ftthOnuAcsDeviceInfo');
+if (data && data.acs_device_id) {
+                            ftthAcsInfo = data;
+                            var acsDevBox = document.getElementById('ftthOnuAcsDeviceInfo');
                         if (acsDevBox) acsDevBox.hidden = true;
                         var mfr = document.getElementById('ftthOnuAcsManufacturer');
                         if (mfr) mfr.textContent = data.acs_manufacturer || '-';
@@ -11814,6 +12913,9 @@ var ftthTowerTickAt = null;
                         ftthOnuAcsResolve(true);
                         /* Langsung muat info live ACS (SSID, client, tombol aksi) */
                         ftthOnuLoadAcs();
+                        /* Uptime real dari sesi PPPoE (jika lookup mengembalikannya) */
+                        var upEl = document.getElementById('ftthOnuUptime');
+                        if (upEl && data.uptime) upEl.textContent = 'Up: ' + ftthHumanUptime(data.uptime);
                     } else {
                         ftthOnuAcsResolve(false);
                     }
@@ -11864,6 +12966,8 @@ var ftthTowerTickAt = null;
                             if (rxAwalBox) { document.getElementById('ftthOnuRxAwal').textContent = txv !== null ? (txv + ' dBm') : '-'; rxAwalBox.className = ftthOnuAttenClass(txv); }
                             ftthOnuAcsResolve(true);
                             ftthOnuLoadAcs();
+                            var upEl = document.getElementById('ftthOnuUptime');
+                            if (upEl && data.uptime) upEl.textContent = 'Up: ' + ftthHumanUptime(data.uptime);
                         } else {
                             ftthOnuAcsResolve(false);
                         }
@@ -11941,8 +13045,8 @@ var ftthTowerTickAt = null;
                 ftthOnuLoadAcs();
             }
 
-            /* Device info (Merek/Tipe/Hardware/Software/Last Inform) disembunyikan
-               sesuai permintaan — box ACS hanya menampilkan redaman + SSID/Password. */
+            /* Device info (Merek/Tipe/Hardware/Software/Last Inform) disembunyikan —
+               box ACS hanya menampilkan redaman + SSID/Password + aksi. */
             var acsDevInfo = document.getElementById('ftthOnuAcsDeviceInfo');
             if (acsDetected) {
                 acsDevInfo.hidden = true;
@@ -11978,15 +13082,6 @@ var ftthTowerTickAt = null;
 
             var acsActions = document.getElementById('ftthOnuAcsActions'); if (acsActions) acsActions.hidden = !acsDetected;
 
-            /* Link manual ke ONU dihapus dari tampilan: card otomatis ter‑link ke
-               data GenieACS berdasarkan akun PPPoE / nama pelanggan (diproses di
-               backend saat customerDetail). Bila data ONU belum ada di GenieACS,
-               cukup sembunyikan box tanpa menampilkan pencarian manual. */
-            var linkBox = document.getElementById('ftthOnuLinkBox');
-            if (linkBox) {
-                linkBox.hidden = true;
-            }
-
             ftthCustRenderActions(m, d);
             ftthPositionDetailCard();
 
@@ -12006,12 +13101,13 @@ var ftthTowerTickAt = null;
             var payload = {};
             if (cid) payload.id = cid;
             else if (onu.id) payload.onu_id = onu.id;
+            else if (info.id) payload.onu_id = info.id;
             else if (info.onu_id) payload.onu_id = info.onu_id;
             else return;
             mtApi('/noc/features/map/customer/acs', 'POST', payload).then(function(r) {
                 if (!r.data || !r.data.ok) return;
                 var a = r.data.acs || {};
-                if (info && info.onu_id) { ftthAcsInfo = Object.assign({}, ftthAcsInfo, a); }
+                if (info && (info.id || info.onu_id)) { ftthAcsInfo = Object.assign({}, ftthAcsInfo, a); }
                 else { ftthAcsInfo = a; }
                 if (a.ssid || a.wifi_password !== undefined) {
                     document.getElementById('ftthOnuWifiBox').hidden = false;
@@ -12057,85 +13153,35 @@ var ftthTowerTickAt = null;
             var fallbackOnu = ftthAcsInfo || {};
             var ssid = document.getElementById('ftthOnuGantiSsid').value.trim();
             var pass = document.getElementById('ftthOnuGantiPass').value;
+            ftthOnuCloseGantiWifi();
             ftthClearLog();
             ftthLogRow('info', 'Mengubah WiFi...');
             var payload = { ssid: ssid, password: pass };
             if (cid) payload.id = cid;
+            else if (fallbackOnu.id) payload.onu_id = fallbackOnu.id;
             else if (fallbackOnu.onu_id) payload.onu_id = fallbackOnu.onu_id;
             else { ftthLogRow('err', 'Tidak ada ONU terpilih'); return; }
             mtApi('/noc/features/map/customer/acs/set', 'POST', payload).then(function(r) {
+                ftthClearLog();
                 if (r.data && r.data.ok) {
                     ftthLogRow('ok', r.data.message || 'WiFi diperbarui');
-                    ftthOnuCloseGantiWifi();
+                    var a = ftthAcsInfo || {};
+                    if (ssid) a.ssid = ssid;
+                    if (pass) a.wifi_password = pass;
+                    ftthAcsInfo = a;
+                    var box = document.getElementById('ftthOnuWifiBox');
+                    if (box) box.hidden = false;
+                    var ssidEl = document.getElementById('ftthOnuSsid');
+                    if (ssidEl) ssidEl.textContent = ssid || a.ssid || '-';
+                    var passEl = document.getElementById('ftthOnuPass');
+                    if (passEl) { passEl.textContent = '••••••••'; passEl.dataset.show = '0'; }
+                    if (pass) ftthOnuPassVal = pass;
+                    document.getElementById('ftthOnuAcsActions').hidden = false;
                     setTimeout(ftthOnuLoadAcs, 4000);
                 } else {
                     ftthLogRow('err', (r.data && r.data.error) || 'Gagal');
                 }
-            }).catch(function() { ftthLogRow('err', 'Gagal set WiFi'); });
-        }
-
-        var ftthOnuLinkTimer = null;
-
-        function ftthOnuLinkDoSearch() {
-            clearTimeout(ftthOnuLinkTimer);
-            var q = (document.getElementById('ftthOnuLinkSearch').value || '').trim();
-            var box = document.getElementById('ftthOnuLinkResults');
-            if (q.length < 2) { box.innerHTML = ''; return; }
-            ftthOnuLinkTimer = setTimeout(function() {
-                mtApi('/noc/features/map/onu/search?q=' + encodeURIComponent(q), 'GET').then(function(r) {
-                    if (ftthDetailData !== ftthDetailData) return;
-                    var rows = (r.data && r.data.ok) ? (r.data.data || []) : [];
-                    if (!rows.length) { box.innerHTML = '<div style="color:#64748b;font-size:11px;padding:4px 0">Tidak ditemukan</div>'; return; }
-                    var html = '';
-                    for (var i = 0; i < rows.length; i++) {
-                        var o = rows[i];
-                        var hasAcs = o.acs_device_id ? '<span style="color:#22c55e">ACS</span>' : '<span style="color:#64748b">-</span>';
-                        var linked = o.customer_id ? '<span style="color:#f59e0b">terlink</span>' : '';
-                        html += '<div class="ftth-onu-link-item" onclick="ftthOnuLinkDo(' + o.id + ')" style="display:flex;justify-content:space-between;align-items:center;padding:5px 8px;border:1px solid #1e293b;border-radius:4px;margin-bottom:3px;cursor:pointer;font-size:11px;color:#e2e8f0;background:#1e293b">' +
-                            '<span>' + escapeHtml(o.serial_number || '-') + ' <span style="color:#64748b">(' + escapeHtml(o.onu_id || '-') + ')</span></span>' +
-                            '<span>' + hasAcs + ' ' + linked + '</span></div>';
-                    }
-                    box.innerHTML = html;
-                });
-            }, 300);
-        }
-
-        function ftthOnuLinkShowSearch() {
-            var box = document.getElementById('ftthOnuLinkResults');
-            if (!box) return;
-            box.innerHTML = '<div style="color:#64748b;font-size:11px;padding:4px 0">Memuat...</div>';
-            mtApi('/noc/features/map/onu/search', 'GET').then(function(r) {
-                if (ftthDetailData === null) return;
-                var rows = (r.data && r.data.ok) ? (r.data.data || []) : [];
-                if (!rows.length) { box.innerHTML = '<div style="color:#64748b;font-size:11px;padding:4px 0">Tidak ada ONU ACS tanpa link</div>'; return; }
-                var html = '';
-                for (var i = 0; i < rows.length; i++) {
-                    var o = rows[i];
-                    var mfr = o.acs_manufacturer ? ('<span style="color:#60a5fa">' + escapeHtml(o.acs_manufacturer) + '</span>') : '';
-                    html += '<div class="ftth-onu-link-item" onclick="ftthOnuLinkDo(' + o.id + ')" style="display:flex;justify-content:space-between;align-items:center;padding:5px 8px;border:1px solid #1e293b;border-radius:4px;margin-bottom:3px;cursor:pointer;font-size:11px;color:#e2e8f0;background:#1e293b">' +
-                        '<span>' + escapeHtml(o.serial_number || '-') + ' <span style="color:#64748b">(' + escapeHtml(o.onu_id || '-') + ')</span></span>' +
-                        '<span>' + mfr + '</span></div>';
-                }
-                box.innerHTML = html;
-            }).catch(function() {
-                box.innerHTML = '<div style="color:#ef4444;font-size:11px;padding:4px 0">Gagal memuat</div>';
-            });
-        }
-
-        function ftthOnuLinkDo(onuId) {
-            var m = ftthDetailData;
-            var cid = ftthResolveCid(m);
-            if (!cid) { ftthLogRow('err', 'Tidak ada pelanggan terpilih'); return; }
-            if (!confirm('Link ONU ini ke pelanggan?')) return;
-            mtApi('/noc/features/map/onu/link', 'POST', { customer_id: cid, onu_id: onuId }).then(function(r) {
-                if (r.data && r.data.ok) {
-                    ftthLogRow('ok', r.data.message || 'ONU berhasil dilink');
-                    document.getElementById('ftthOnuLinkBox').hidden = true;
-                    setTimeout(function() { ftthCustLoad(); }, 500);
-                } else {
-                    ftthLogRow('err', (r.data && r.data.error) || 'Gagal link ONU');
-                }
-            }).catch(function() { ftthLogRow('err', 'Gagal link ONU'); });
+            }).catch(function() { ftthClearLog(); ftthLogRow('err', 'Gagal set WiFi'); });
         }
 
         function ftthHumanRate(bps) {
@@ -12210,7 +13256,14 @@ var ftthTowerTickAt = null;
                         var d = r.data || {};
                         var txVal = document.getElementById('ftthOnuTxVal');
                         var rxVal = document.getElementById('ftthOnuRxVal');
-                        if (!d.ok || !d.online) {
+                        if (!d.ok) {
+                            setStatus('OLT tidak Terhubung', 'off');
+                            if (txVal) txVal.textContent = '-';
+                            if (rxVal) rxVal.textContent = '-';
+                            return;
+                        }
+                        var hasLiveTraffic = d.bw_down != null || d.bw_up != null;
+                        if (!d.online && !hasLiveTraffic) {
                             setStatus('OLT tidak Terhubung', 'off');
                             if (txVal) txVal.textContent = '-';
                             if (rxVal) rxVal.textContent = '-';
@@ -12257,6 +13310,12 @@ var ftthTowerTickAt = null;
                     if (ipEl && s && (s.address || s.ip)) {
                         ipEl.textContent = s.address || s.ip;
                         ipEl.title = 'IP Remote PPPoE (live): ' + (s.address || s.ip);
+                    }
+                    /* Isi uptime sesi live — jangan biarkan "Up: -" pada device
+                       yang sesinya aktif. */
+                    var upEl = document.getElementById('ftthOnuUptime');
+                    if (upEl && s && s.uptime) {
+                        upEl.textContent = 'Up: ' + ftthHumanUptime(s.uptime);
                     }
                     /* Riwayat counter sesi tersimpan di server: laju dihitung
                        dari selisih antar sampel, chart penuh seketika */
@@ -12583,7 +13642,7 @@ var ftthTowerTickAt = null;
             var m = ftthDetailData;
             var onu = (ftthCustDetail && ftthCustDetail.onu) || {};
             var fallbackOnu = ftthAcsInfo || {};
-            var onuDbId = onu.id || fallbackOnu.onu_id;
+            var onuDbId = onu.id || ((fallbackOnu && fallbackOnu.id) || null);
             var onuLabel = onu.onu_id || fallbackOnu.serial_number || (m && m.label) || '';
             if (!onuDbId) {
                 ftthLogRow('err', ftthT('log.no_onu_reboot'));
@@ -12782,8 +13841,8 @@ var ftthTowerTickAt = null;
             var pid = 'ftth-cable-path-' + pl._cableMarkerId;
             el.setAttribute('id', pid);
             var NS = 'http://www.w3.org/2000/svg';
-            var count = mode === 'glow-fast' ? 8 : 1;
-            var dur = mode === 'glow-fast' ? 2.2 : 1.3;
+            var count = mode === 'glow-fast' ? 5 : 1;
+            var dur = mode === 'glow-fast' ? 8 : 14;
             for (var i = 0; i < count; i++) {
                 var g = document.createElementNS(NS, 'g');
                 g.setAttribute('data-ftth-meteor', pl._cableMarkerId);
@@ -12801,6 +13860,10 @@ var ftthTowerTickAt = null;
                 am.setAttribute('dur', dur + 's');
                 am.setAttribute('repeatCount', 'indefinite');
                 am.setAttribute('begin', (-(i * dur / count)).toFixed(2) + 's');
+                /* Pergerakan halus: laju pelan + easing mulus (spline) agar tidak tersentak */
+                am.setAttribute('calcMode', 'spline');
+                am.setAttribute('keyTimes', '0;1');
+                am.setAttribute('keySplines', '0.42 0 0.58 1');
                 var mp = document.createElementNS(NS, 'mpath');
                 mp.setAttribute('href', '#' + pid);
                 mp.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', '#' + pid);
@@ -12825,22 +13888,38 @@ var ftthTowerTickAt = null;
             });
         });
 
-        /* ── Toggle Glow Kabel (di card Edit Kabel): kabel memancarkan cahaya sesuai warnanya ── */
-        var ftthGlowOn = false;
-        function ftthApplyCableGlow() {
-            var pane = map.getPane('overlayPane');
-            if (pane) pane.classList.toggle('ftth-cables-glow', ftthGlowOn);
-            var cb = document.getElementById('fcpGlow');
-            if (cb) cb.checked = ftthGlowOn;
-        }
+        /* ── Glow kabel per-kabel (toggle "Aktif Glow Kabel" di card Edit Kabel):
+           hanya kabel yang sedang diedit yang menyala, tersimpan di attr cable_glow ── */
         window.ftthToggleCableGlow = function() {
+            if (!cableProp.m || !cableLayer) return;
+            var cb = document.getElementById('fcpGlow');
+            var on = cb ? cb.checked : false;
+            cableLayer.getLayers().forEach(function(pl) {
+                if (pl._cableMarkerId !== cableProp.m.id) return;
+                var gel = pl.getElement ? pl.getElement() : null;
+                if (gel) gel.classList.toggle('ftth-cable-glow-on', on);
+            });
+            if (cableProp.m.attributes && typeof cableProp.m.attributes === 'object') {
+                cableProp.m.attributes.cable_glow = on ? 1 : 0;
+            }
+        };
+
+        /* ── Glow global (dropdown Matikan/hidupkan Animasi): kabel + ikon perangkat ── */
+        var ftthGlowOn = false;
+        window.ftthToggleGlobalGlow = function() {
             ftthGlowOn = !ftthGlowOn;
             try { localStorage.setItem('ftth_glow', ftthGlowOn ? '1' : '0'); } catch (e) {}
-            ftthApplyCableGlow();
+            document.body.classList.toggle('ftth-global-glow', ftthGlowOn);
+            var gsw = document.getElementById('ftthGlowSwitch');
+            if (gsw) gsw.checked = ftthGlowOn;
         };
         (function() {
             try { ftthGlowOn = localStorage.getItem('ftth_glow') === '1'; } catch (e) {}
-            ftthApplyCableGlow();
+            document.body.classList.toggle('ftth-global-glow', ftthGlowOn);
+            var asw = document.getElementById('ftthAnimSwitch');
+            if (asw) asw.checked = !document.body.classList.contains('ftth-anim-off');
+            var gsw = document.getElementById('ftthGlowSwitch');
+            if (gsw) gsw.checked = ftthGlowOn;
         })();
 
         function ftthNodeOnline(m) {
@@ -12909,9 +13988,21 @@ var ftthTowerTickAt = null;
                 if (!color) color = (String(m.type || '').toUpperCase() === 'ONU') ? '#3b82f6' : ftthDeviceColor(m.type);
                 var childKey = ftthSpotKey(m.type, m.label);
                 var online = isActive(childKey, []);
+                /* Kabel ONU pelanggan mengikuti status perangkatnya:
+                   online = biru + meteor cepat; offline = merah + semua animasi/meteor berhenti */
+                var effAnim = attrs.cable_anim || '';
+                if (ftthIsOnuMarker(m)) {
+                    if (online) {
+                        if (!attrs.cable_color && !attrs.warna_core) color = '#3b82f6';
+                        if (!effAnim) effAnim = 'glow-fast';
+                    } else {
+                        color = '#ef4444';
+                        effAnim = '';
+                    }
+                }
                 var width = Number(attrs.cable_width) || 0;
                 if (!width) width = online ? 2.5 : 2;
-                var cls = 'ftth-cable ' + ftthCableAnimClass(attrs.cable_anim || '', online);
+                var cls = 'ftth-cable ' + ftthCableAnimClass(effAnim, online);
                 var path = (attrs.cable_path && Array.isArray(attrs.cable_path) && attrs.cable_path.length >= 2)
                     ? attrs.cable_path.map(function(p) { return [Number(p[0]), Number(p[1])]; })
                     : [from, to];
@@ -12924,12 +14015,13 @@ var ftthTowerTickAt = null;
                 }).addTo(cableLayer);
                 pl._cableMarkerId = m.id;
                 pl.options._cableOnline = online;
-                pl.options._cableAnim = attrs.cable_anim || '';
+                pl.options._cableAnim = effAnim;
                 pl.options._cableMeteor = attrs.cable_meteor_color || '';
                 var gel = pl.getElement ? pl.getElement() : null;
                 if (gel) gel.style.setProperty('--glowc', color);
-                if (online && (attrs.cable_anim === 'glow-fast' || attrs.cable_anim === 'glow-slow')) {
-                    ftthAddMeteors(pl, attrs.cable_anim, attrs.cable_meteor_color);
+                if (attrs.cable_glow && gel) gel.classList.add('ftth-cable-glow-on');
+                if (online && (effAnim === 'glow-fast' || effAnim === 'glow-slow')) {
+                    ftthAddMeteors(pl, effAnim, attrs.cable_meteor_color);
                 }
             });
         }
@@ -13036,7 +14128,14 @@ var ftthTowerTickAt = null;
         window.ftthTogglePppoeField = function() { ftthTogglePppoeField(); };
         window.ftthSaveDevice = function() { ftthSaveDevice(); };
         window.ftthOdcEstimate = function() { ftthOdcEstimate(); };
+        window.ftthOdcNomorChanged = function() { ftthOdcNomorChanged(); };
+        window.ftthOdcAddPassive = function() { ftthOdcAddPassive(); };
+        window.ftthOdcDelPassive = function(i) { ftthOdcDelPassive(i); };
+        window.ftthOdcRowOltChange = function(el) { ftthOdcRowOltChange(el); };
+        window.ftthOdcRowPonChange = function(el) { ftthOdcRowPonChange(el); };
+        window.ftthOdcRowPortChange = function(el) { ftthOdcRowPortChange(el); };
         window.ftthOdpEstimate = function() { ftthOdpEstimate(); };
+        window.ftthOdpModeChanged = function() { ftthOdpModeChanged(); };
         window.ftthOltPickerChanged = function() { ftthOltPickerChanged(); };
         window.ftthPonPickerChanged = function() { ftthPonPickerChanged(); };
         window.ftthOltPonCountChanged = function() { ftthOltPonCountChanged(); };
@@ -13080,9 +14179,6 @@ var ftthTowerTickAt = null;
         window.ftthOnuCloseGantiWifi = function() { ftthOnuCloseGantiWifi(); };
         window.ftthOnuSaveGantiWifi = function() { ftthOnuSaveGantiWifi(); };
         window.ftthOnuTogglePass = function() { ftthOnuTogglePass(); };
-        window.ftthOnuLinkDo = function(id) { ftthOnuLinkDo(id); };
-        window.ftthOnuLinkDoSearch = function() { ftthOnuLinkDoSearch(); };
-        window.ftthOnuLinkShowSearch = function() { ftthOnuLinkShowSearch(); };
         window.ftthCustDelete = function() { ftthCustDelete(); };
         window.ftthToggleLang = function() { ftthToggleLang(); };
         window.ftthCableEditCancel = function() { ftthCableEditCancel(); };

@@ -11,6 +11,7 @@ use App\Models\NetworkMetric;
 use App\Models\Odc;
 use App\Models\Odp;
 use App\Models\Olt;
+use App\Models\OltPort;
 use App\Models\Onu;
 use App\Models\Package;
 use App\Models\Setting;
@@ -30,6 +31,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Schema;
@@ -600,6 +602,13 @@ class FeaturesController extends Controller
         $customerMap = $customers->mapWithKeys(fn ($c) => [mb_strtolower((string) $c->pppoe_username) => $c])->all();
         $customerNames = $customers->mapWithKeys(fn ($c) => [mb_strtolower((string) $c->pppoe_username) => (string) $c->name])->all();
 
+        /* Indeks ONU: MAC (turunan GenieACS) -> onu.id, dan seluruh ONU by ip,
+           agar tiap sesi PPPoE tanpa customer tetap bisa menampilkan
+           SN/OLT/ODP/IP bila ONU-nya dikenal (dari OLT / GenieACS). */
+        $genieByMac = $this->genieOnuIdByMac();
+        $onuRows = Onu::with('oltPort.olt')->get();
+        $onuById = $onuRows->keyBy('id')->all();
+
         foreach ($routers as $router) {
             try {
                 $cmd = new RouterCommandService($router);
@@ -625,13 +634,32 @@ class FeaturesController extends Controller
                         $sec = $secretMap[$name] ?? [];
                         $cust = $customerMap[mb_strtolower($name)] ?? null;
                         $onu = $cust?->onus?->first();
+
+                        /* ONU tak ber-customer: cocokkan caller-id (MAC) sesi PPPoE
+                           dengan MAC turunan GenieACS / ONU yang dikenal OLT. */
+                        if (! $onu) {
+                            $callerBare = str_replace(':', '', self::normMac((string) ($s['caller-id'] ?? '')));
+                            if ($callerBare !== '' && isset($genieByMac[$callerBare])) {
+                                $onu = $onuById[$genieByMac[$callerBare]] ?? null;
+                            }
+                        }
+                        /* Masih kosong → coba lewat pelanggan: username PPPoE →
+                           serial/modem_sn pelanggan → ONU. */
+                        if (! $onu && $cust) {
+                            $ser = trim((string) ($cust->serial_number ?? $cust->modem_sn ?? ''));
+                            if ($ser !== '' && ($m = $this->allOnusBySerial()[strtolower($ser)] ?? null)) {
+                                $onu = $onuById[$m->id] ?? $m;
+                            }
+                        }
+
+                        $sessIp = $s['address'] ?? null;
                         $routerClients[] = [
                             'router_id' => $router->id,
                             'router_name' => $router->name,
                             'name' => $name,
                             'customer_name' => $cust?->name ?? $customerNames[mb_strtolower($name)] ?? null,
                             'service' => $s['service'] ?? null,
-                            'address' => $s['address'] ?? null,
+                            'address' => $onu?->ip_address ?: $sessIp,
                             'caller_id' => $s['caller-id'] ?? null,
                             'uptime' => $s['uptime'] ?? null,
                             'session_id' => $s['.id'] ?? null,
@@ -643,6 +671,7 @@ class FeaturesController extends Controller
                             'rx_power' => $onu?->rx_power,
                             'olt' => $onu?->oltPort?->olt?->name ?? null,
                             'odp' => $cust?->odp?->nama_odp ?? null,
+                            'ip_address' => $onu?->ip_address ?? $sessIp,
                         ];
                     }
                 }
@@ -753,10 +782,31 @@ class FeaturesController extends Controller
      */
     public function hotspotList(): JsonResponse
     {
+        $hotspotCustomers = Customer::where('type', 'hotspot')->get(['id', 'serial_number']);
+        $hotspotCustomerIds = $hotspotCustomers->pluck('id');
+        $hotspotSerials = $hotspotCustomers->pluck('serial_number')->filter()->unique();
+
         $onus = Onu::with(['customer.odp', 'oltPort.olt'])
-            ->whereHas('customer', fn ($q) => $q->where('type', 'hotspot'))
+            ->where(function ($q) use ($hotspotCustomerIds, $hotspotSerials) {
+                $q->whereIn('customer_id', $hotspotCustomerIds)
+                    ->orWhereIn('serial_number', $hotspotSerials);
+            })
             ->orderByDesc('last_seen_at')
             ->get();
+
+        // Auto-tautkan ONU yang cocok via serial ke pelanggan hotspot,
+        // agar ONU hasil scan OLT langsung masuk daftar hotspot & dipakai downstream.
+        $custBySerial = $hotspotCustomers->keyBy('serial_number');
+        foreach ($onus as $onu) {
+            if ($onu->customer_id === null && ($onu->serial_number !== null && $onu->serial_number !== '')) {
+                $match = $custBySerial->get($onu->serial_number);
+                if ($match) {
+                    $onu->customer_id = $match->id;
+                    $onu->save();
+                    $onu->setRelation('customer', $match);
+                }
+            }
+        }
 
         // Build IP map from MikroTik hotspot active users (cached 60s)
         $ipMap = Cache::remember('hotspot_active_ip_map', 60, function () {
@@ -791,6 +841,10 @@ class FeaturesController extends Controller
             return $map;
         });
 
+        // Build IP map from DHCP leases (cached 60s) — CPE hotspot dapat IP dari
+        // DHCP server sebelum/atau tanpa login hotspot, jadi ini sumber kedua.
+        $dhcpIpMap = $this->hotspotDhcpIpMap();
+
         $clients = [];
         $devIpIdx = $this->deviceIpIndex();
         foreach ($onus as $onu) {
@@ -804,7 +858,8 @@ class FeaturesController extends Controller
                 'vendor' => $onu->vendor,
                 'model' => $onu->model,
                 'mac_address' => $onu->mac_address,
-                'ip_address' => $this->hotspotIpFor($ipMap, $onu->mac_address, $cust)
+                'ip_address' => $this->hotspotIpFor($ipMap, $dhcpIpMap, $onu->mac_address, $cust)
+                    ?? $onu->ip_address
                     ?? $this->storedIpFor($devIpIdx, $cust),
                 'status' => $onu->status,
                 'rx_power' => $onu->rx_power,
@@ -815,6 +870,23 @@ class FeaturesController extends Controller
         }
 
         return response()->json(['ok' => true, 'clients' => $clients, 'total' => count($clients)]);
+    }
+
+    /**
+     * Simpan override IP manual untuk suatu ONU hotspot (kolom onus.ip_address).
+     */
+    public function hotspotIpSave(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'id' => 'required|integer|exists:onus,id',
+            'ip' => 'nullable|string|max:45',
+        ]);
+
+        $onu = Onu::query()->findOrFail($validated['id']);
+        $ip = trim((string) ($validated['ip'] ?? ''));
+        $onu->update(['ip_address' => $ip === '' ? null : $ip]);
+
+        return response()->json(['ok' => true, 'ip' => $onu->ip_address, 'id' => $onu->id]);
     }
 
     public function mikrotikDelete(Request $request): JsonResponse
@@ -918,10 +990,13 @@ class FeaturesController extends Controller
         $oltIp = $olt?->ip_address ?? $device->ip_address;
         if ($cmd && $oltIp) {
             $pingStatus = $this->pingOltStatus($cmd, $oltIp, "olt_ping_live_{$device->id}");
-            if ($pingStatus !== null) {
-                $online = $pingStatus === 'online';
-                if ($olt && $olt->connection_status !== $pingStatus) {
-                    $olt->update(['connection_status' => $pingStatus, 'last_polled_at' => now()]);
+            /* Ping hanya untuk UPGRADE/konfirm ONLINE, jangan downgrade OLT yang
+               sudah online via sync SSH (trafik jalan / poll selesai). IP management
+               OLT sering tidak ping-reachable dari server, walau OLT hidup. */
+            if ($pingStatus === 'online') {
+                $online = true;
+                if ($olt && $olt->connection_status !== 'online') {
+                    $olt->update(['connection_status' => 'online', 'last_polled_at' => now()]);
                 }
             }
         }
@@ -997,6 +1072,18 @@ class FeaturesController extends Controller
             }
         }
 
+        /* Fallback: matche berdasarkan IP management bila nama berbeda
+           (mis. Device peta "FD1601S" ↔ Olt model "OLT 172.10.10.2" — dua
+           rekord untuk satu fisik OLT). IP lebih stabil daripada nama. */
+        $devIp = trim((string) ($device->ip_address ?? ''));
+        if ($devIp !== '') {
+            foreach (Olt::all() as $o) {
+                if (trim((string) ($o->ip_address ?? '')) === $devIp) {
+                    return $o;
+                }
+            }
+        }
+
         return null;
     }
 
@@ -1006,7 +1093,7 @@ class FeaturesController extends Controller
      * MikroTik ke IP management OLT. Hasil ditulis ke Olt.connection_status /
      * Device.status agar konsisten di seluruh peta.
      */
-    private function refreshAllOltRealStatus(array $allDevices): void
+    private function refreshAllOltRealStatus(iterable $allDevices): void
     {
         $router = MikrotikRouter::where('is_active', true)->orderBy('id')->first();
         if (! $router) {
@@ -1015,15 +1102,21 @@ class FeaturesController extends Controller
 
         $cmd = new RouterCommandService($router);
 
-        /* OLT terdaftar (model Olt) */
+        /* OLT terdaftar (model Olt) — source of truth untuk status fisik adalah
+           hasil connect SSH real (PollOltJob/connectOlt set connection_status
+           'online'/'offline' berdasarkan connect connector succeed/fail).
+           ICMP ping dari MikroTik hanya sebagai konfirmasi/upgrade → 'online'.
+           Jangan di-grade ke 'offline' dari ping timeout saja: MikroTik bisa tak
+           route ICMP ke IP management OLT (OLT tetap hidup via SSH direct). */
         foreach (Olt::all() as $olt) {
             $ip = trim((string) ($olt->ip_address ?? ''));
             if ($ip === '') {
                 continue;
             }
+            $current = (string) ($olt->connection_status ?? '');
             $status = $this->pingOltStatus($cmd, $ip, "olt_real_{$olt->id}");
-            if ($status !== null && $olt->connection_status !== $status) {
-                $olt->update(['connection_status' => $status, 'last_polled_at' => now()]);
+            if ($status === 'online' && $current !== 'online') {
+                $olt->update(['connection_status' => 'online', 'last_polled_at' => now()]);
             }
         }
 
@@ -1032,7 +1125,14 @@ class FeaturesController extends Controller
             if (strtolower((string) $d->type) !== 'olt') {
                 continue;
             }
-            if ($this->resolveOltModelForDevice($d)) {
+            $oltModel = $this->resolveOltModelForDevice($d);
+            if ($oltModel) {
+                /* Sinkron status Device peta dengan model Olt (source of truth) */
+                $sync = (string) ($oltModel->connection_status ?? 'online');
+                if ((string) ($d->status ?? '') !== $sync) {
+                    $d->update(['status' => $sync]);
+                }
+
                 continue;
             }
             $ip = trim((string) ($d->ip_address ?? ''));
@@ -1040,8 +1140,11 @@ class FeaturesController extends Controller
                 continue;
             }
             $status = $this->pingOltStatus($cmd, $ip, "olt_dev_real_{$d->id}");
-            if ($status !== null && (string) ($d->status ?? '') !== $status) {
-                $d->update(['status' => $status]);
+            /* Upgrade-only (dari ping): tak di-grade OLT 'online' ke 'offline'
+               berdasarkan ping timeout yang tak tekonfirmi SSH. Konsistensi
+               dengan regola Olt model di atas. */
+            if ($status === 'online' && (string) ($d->status ?? '') !== 'online') {
+                $d->update(['status' => 'online']);
             }
         }
     }
@@ -1089,6 +1192,7 @@ class FeaturesController extends Controller
             $olt = new Olt;
             $olt->name = 'OLT '.$data['ip'];
             $olt->status = 'active';
+            $olt->user_id = Auth::id() ?: 1;
         }
 
         $olt->ip_address = $data['ip'];
@@ -1375,7 +1479,7 @@ class FeaturesController extends Controller
                 'InternetGatewayDevice.ManagementServer.ConnectionRequestURL',
             ]);
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::warning('genieacsSync gagal: '.$e->getMessage());
+            Log::warning('genieacsSync gagal: '.$e->getMessage());
 
             return response()->json([
                 'ok' => false,
@@ -1393,7 +1497,11 @@ class FeaturesController extends Controller
 
         foreach ((array) $devices as $dev) {
             $devId = $dev['_id'] ?? null;
-            $serial = $dev['_deviceId'] ?? ($dev['InternetGatewayDevice.DeviceInfo.SerialNumber'] ?? null);
+            /* _deviceId adalah object (bukan scalar): serial jack lewat _SerialNumber */
+            $deviceId = $dev['_deviceId'];
+            $serial = is_array($deviceId) && filled($deviceId['_SerialNumber'] ?? null)
+                ? (string) $deviceId['_SerialNumber']
+                : ($this->genieacsValue($dev, 'InternetGatewayDevice.DeviceInfo.SerialNumber') ?? null);
             $lastInform = $dev['_lastInform'] ?? null;
             $isOnline = $lastInform !== null && ($now - strtotime((string) $lastInform)) < 600;
 
@@ -1403,24 +1511,28 @@ class FeaturesController extends Controller
                 $offline++;
             }
 
-            if (! $serial) {
+            $serial = trim((string) ($serial ?? ''));
+            if ($serial === '') {
                 continue;
             }
 
-            $onu = $onusBySerial[strtolower(trim((string) $serial))] ?? null;
+            $onu = $onusBySerial[strtolower($serial)] ?? null;
             if (! $onu) {
                 continue;
             }
+
+            $manufacturer = is_array($deviceId) ? ($deviceId['_Manufacturer'] ?? null) : null;
+            $productClass = is_array($deviceId) ? ($deviceId['_ProductClass'] ?? null) : null;
 
             $onu->update([
                 'acs_device_id' => $devId,
                 'acs_status' => $isOnline ? 'online' : 'offline',
                 'acs_last_inform' => $lastInform ? Carbon::parse($lastInform) : null,
-                'acs_manufacturer' => $dev['InternetGatewayDevice.DeviceInfo.Manufacturer'] ?? null,
-                'acs_product_class' => $dev['InternetGatewayDevice.DeviceInfo.ProductClass'] ?? null,
-                'acs_hardware_version' => $dev['InternetGatewayDevice.DeviceInfo.HardwareVersion'] ?? null,
-                'acs_software_version' => $dev['InternetGatewayDevice.DeviceInfo.SoftwareVersion'] ?? null,
-                'acs_connection_request_url' => $dev['InternetGatewayDevice.ManagementServer.ConnectionRequestURL'] ?? null,
+                'acs_manufacturer' => $manufacturer ?? $this->genieacsValue($dev, 'InternetGatewayDevice.DeviceInfo.Manufacturer'),
+                'acs_product_class' => $productClass ?? $this->genieacsValue($dev, 'InternetGatewayDevice.DeviceInfo.ProductClass'),
+                'acs_hardware_version' => $this->genieacsValue($dev, 'InternetGatewayDevice.DeviceInfo.HardwareVersion'),
+                'acs_software_version' => $this->genieacsValue($dev, 'InternetGatewayDevice.DeviceInfo.SoftwareVersion'),
+                'acs_connection_request_url' => $this->genieacsValue($dev, 'InternetGatewayDevice.ManagementServer.ConnectionRequestURL'),
             ]);
             $updated++;
         }
@@ -1433,6 +1545,25 @@ class FeaturesController extends Controller
             'offline' => $offline,
             'updated' => $updated,
         ]);
+    }
+
+    /**
+     * Ambil nilai CWMP dari payload device GenieACS. NBI return params yang
+     * ber-punt (mis. "InternetGatewayDevice.DeviceInfo.Manufacturer") sebagai
+     * object {$punt: {_value: _, _type: _, _timestamp: _}}. Helper ini lam asi
+     * lewat punt niaw object dan return _value (atau scalar bila non-object).
+     */
+    private function genieacsValue(array $dev, string $path): mixed
+    {
+        $node = $dev;
+        foreach (preg_split('/\./', $path) as $key) {
+            if (! is_array($node) || ! isset($node[$key])) {
+                return null;
+            }
+            $node = $node[$key];
+        }
+
+        return is_array($node) ? ($node['_value'] ?? null) : $node;
     }
 
     /* â”€â”€ Backup & Restore (card pada peta FTTH) â”€â”€ */
@@ -1528,7 +1659,7 @@ class FeaturesController extends Controller
                 }
             );
         } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::warning('backupSendNow gagal: '.$e->getMessage());
+            Log::warning('backupSendNow gagal: '.$e->getMessage());
 
             return response()->json([
                 'ok' => false,
@@ -1830,6 +1961,124 @@ class FeaturesController extends Controller
         ]);
     }
 
+    public function devicesExport(): HttpResponse
+    {
+        $devices = Device::orderBy('type')->orderBy('name')->get()->map(function ($d) {
+            return [
+                'type' => $d->type,
+                'status' => $d->status,
+                'name' => $d->name,
+                'brand' => $d->brand,
+                'model' => $d->model,
+                'serial_number' => $d->serial_number,
+                'mac_address' => $d->mac_address,
+                'ip_address' => $d->ip_address,
+                'capacity' => $d->capacity,
+                'location' => $d->location,
+                'latitude' => $d->latitude !== null ? (float) $d->latitude : null,
+                'longitude' => $d->longitude !== null ? (float) $d->longitude : null,
+                'attributes' => $d->attributes,
+                'notes' => $d->notes,
+            ];
+        })->values()->all();
+
+        $payload = [
+            'app' => config('app.name'),
+            'generated_at' => now()->format('Y-m-d H:i:s'),
+            'count' => count($devices),
+            'devices' => $devices,
+        ];
+
+        /* Simpan salinan di folder backup khusus agar mudah dibackup/dipulihkan manual. */
+        try {
+            $dir = storage_path('app/backups/devices');
+            if (! is_dir($dir)) {
+                mkdir($dir, 0775, true);
+            }
+            file_put_contents($dir.'/devices-'.now()->format('Ymd-His').'.json', json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+        } catch (\Throwable) {
+            /* simpan-file non-fatal: tetap unduh ke browser */
+        }
+
+        return Response::make(json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE), 200, [
+            'Content-Type' => 'application/json',
+            'Content-Disposition' => 'attachment; filename="devices-map-'.now()->format('Ymd-His').'.json"',
+        ]);
+    }
+
+    public function devicesRestore(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'file' => ['required', 'file', 'max:10240'],
+        ]);
+
+        $file = $request->file('file');
+        $content = file_get_contents($file->getRealPath());
+        $json = json_decode($content, true);
+
+        if (! is_array($json) || ! isset($json['devices']) || ! is_array($json['devices'])) {
+            return response()->json(['ok' => false, 'error' => 'File JSON perangkat tidak valid (butuh key "devices")'], 422);
+        }
+
+        $restored = 0;
+        $updated = 0;
+        $skipped = 0;
+
+        foreach ($json['devices'] as $row) {
+            if (! is_array($row)) {
+                $skipped++;
+
+                continue;
+            }
+
+            $type = isset($row['type']) ? trim((string) $row['type']) : '';
+            $name = isset($row['name']) ? trim((string) $row['name']) : '';
+            if ($type === '' || $name === '') {
+                $skipped++;
+
+                continue;
+            }
+
+            $attrs = $row['attributes'] ?? null;
+            if (is_array($attrs) && $attrs === []) {
+                $attrs = null;
+            }
+
+            $values = [
+                'type' => $type,
+                'status' => isset($row['status']) && $row['status'] !== '' ? (string) $row['status'] : null,
+                'name' => $name,
+                'brand' => $row['brand'] ?? null,
+                'model' => $row['model'] ?? null,
+                'serial_number' => $row['serial_number'] ?? null,
+                'mac_address' => $row['mac_address'] ?? null,
+                'ip_address' => $row['ip_address'] ?? null,
+                'capacity' => $row['capacity'] ?? null,
+                'location' => $row['location'] ?? null,
+                'latitude' => isset($row['latitude']) && $row['latitude'] !== null ? (float) $row['latitude'] : null,
+                'longitude' => isset($row['longitude']) && $row['longitude'] !== null ? (float) $row['longitude'] : null,
+                'attributes' => $attrs,
+                'notes' => $row['notes'] ?? null,
+            ];
+
+            $matched = Device::where('type', $type)->where('name', $name)->first();
+            if ($matched) {
+                $matched->update($values);
+                $updated++;
+            } else {
+                Device::create($values);
+                $restored++;
+            }
+        }
+
+        $this->flushMapMarkersCache();
+
+        return response()->json([
+            'ok' => true,
+            'message' => "Restore selesai: {$restored} ditambahkan, {$updated} diperbarui, {$skipped} dilewati",
+        ]);
+    }
+
     /* â”€â”€ Map markers & Tambah Perangkat (card pada peta FTTH) â”€â”€ */
 
     public function mapMarkers(): JsonResponse
@@ -1879,7 +2128,13 @@ class FeaturesController extends Controller
             $oltStatusMap[$olt->name] = $olt->connection_status;
         }
 
-        $allDevices->each(function ($m) use (&$markers, $allDevicesByName, $oltStatusMap) {
+        /* Self-heal: bila resolusi menemukan ONU fisik untuk suatu Device ONU
+           peta yang belum menyimpan serial, serial ditulis ke device agar
+           resolusi menetap (tidak bergantung sesi PPPoE aktif / MAC map) —
+           mencegah kartu kembali "ACS Tidak Deteksi" di refresh berikutnya. */
+        $healed = false;
+
+        $allDevices->each(function ($m) use (&$markers, $allDevicesByName, $oltStatusMap, &$healed) {
             if ($m->latitude === null || $m->longitude === null) {
                 return;
             }
@@ -1894,6 +2149,8 @@ class FeaturesController extends Controller
             if (strtoupper($m->type) === 'OLT' && empty($ipAddress)) {
                 $ipAddress = $this->resolveOltModelForDevice($m)?->ip_address;
             }
+
+            $matchedOnuId = $this->matchedOnuIdForDevice($m, $attrs);
 
             $markers[] = [
                 'id' => $m->id,
@@ -1915,8 +2172,22 @@ class FeaturesController extends Controller
                 'notes' => $m->notes,
                 'customer_id' => $onuCust[0],
                 'onu_type' => $onuCust[1],
+                'matched_onu_id' => $matchedOnuId,
             ];
+
+            if ($matchedOnuId && $m->serial_number === null) {
+                $onu = Onu::find($matchedOnuId);
+                if ($onu && $onu->serial_number !== null && $onu->serial_number !== '') {
+                    $m->serial_number = $onu->serial_number;
+                    $m->save();
+                    $healed = true;
+                }
+            }
         });
+
+        if ($healed) {
+            Cache::forget($this->mapMarkersCacheKey());
+        }
 
         return $markers;
     }
@@ -2165,15 +2436,29 @@ class FeaturesController extends Controller
 
         /* Perangkat tanpa parent OLT terpoll (ditambah manual di peta, mis. OLT/OTB/ODC
            yang belum punya backend Olt) dianggap ONLINE secara default, bukan offline.
-           Untuk tipe OLT, cek model Olt bila ada (status sudah direfresh REAL via ping). */
+           Untuk tipe OLT, cek model Olt bila ada (source of truth = connect SSH real). */
         if (strtolower($device->type) === 'olt') {
-            $oltModel = Olt::where('name', $device->name)->first();
+            $oltModel = self::resolveOltModelForDeviceByNameOrIp($device->name, $device->ip_address ?? null);
             if ($oltModel) {
                 return $oltModel->connection_status === 'offline' ? 'offline' : 'online';
             }
         }
 
         return $device->status ?? 'online';
+    }
+
+    private static function resolveOltModelForDeviceByNameOrIp(string $name, mixed $ip = null): ?Olt
+    {
+        $hit = Olt::where('name', $name)->first();
+        if ($hit) {
+            return $hit;
+        }
+        $normalized = $ip !== null ? trim((string) $ip) : '';
+        if ($normalized !== '') {
+            return Olt::where('ip_address', $normalized)->first();
+        }
+
+        return null;
     }
 
     public function odcStats(int $id): JsonResponse
@@ -2667,6 +2952,49 @@ class FeaturesController extends Controller
         return response()->json(['ok' => true, 'parents' => $parents]);
     }
 
+    /**
+     * Ikuti rantai induk ODP (via atribut "induk") untuk menemukan nilai
+     * Nomor Passive ODC / Port Passive ODC / Warna Core yang pertama kali muncul.
+     * Dipakai oleh deviceSave agar data jalur ODP tidak ter-drop karena kosong.
+     *
+     * @return array{nomor_passive_odc: string, port_passive_odc: string, warna_core: string}
+     */
+    private function odpChainDefaults(string $induk): array
+    {
+        $defaults = ['nomor_passive_odc' => '', 'port_passive_odc' => '', 'warna_core' => ''];
+        $seen = [];
+        $current = $induk;
+
+        while ($current !== '') {
+            $parts = preg_split('/\s*—\s*/u', $current, 2);
+            if (count($parts) < 2) {
+                break;
+            }
+            $type = strtoupper(trim($parts[0]));
+            $name = trim($parts[1]);
+            if (isset($seen[$name]) || $type !== 'ODP' || $name === '') {
+                break;
+            }
+            $seen[$name] = true;
+
+            $parent = Device::where('type', 'odp')->where('name', $name)->first();
+            if (! $parent) {
+                break;
+            }
+            $attrs = is_array($parent->attributes) ? $parent->attributes : [];
+
+            foreach (['nomor_passive_odc', 'port_passive_odc', 'warna_core'] as $field) {
+                if (($defaults[$field] ?? '') === '' && isset($attrs[$field]) && $attrs[$field] !== '' && $attrs[$field] !== null) {
+                    $defaults[$field] = (string) $attrs[$field];
+                }
+            }
+
+            $current = (string) ($attrs['induk'] ?? '');
+        }
+
+        return $defaults;
+    }
+
     public function deviceSave(Request $request): JsonResponse
     {
         $data = $request->validate([
@@ -2711,12 +3039,39 @@ class FeaturesController extends Controller
             'status', 'serial_number', 'mac_address', 'brand', 'model', 'ip_address',
             'capacity', 'location', 'latitude', 'longitude', 'notes',
         ] as $field) {
-            $device->{$field} = array_key_exists($field, $data) && $data[$field] !== null && $data[$field] !== ''
+            if (! array_key_exists($field, $data)) {
+                /* Field yang TIDAK ikut dikirim formulir dibiarkan apa adanya —
+                   jangan di-null. Form kartu ONU (rename/pindah) tidak menyertakan
+                   serial_number/mac/brand/dll; menulis null di sini memutus
+                   auto-link ACS (matched_onu_id) setiap kali kartu ONU diedit. */
+                continue;
+            }
+            $device->{$field} = $data[$field] !== null && $data[$field] !== ''
                 ? $data[$field]
                 : null;
         }
 
+        /* Gabungkan atribut yang dikirim DI ATAS atribut lama: key yang tidak ikut
+           dikirim (mis. onu_id, hotspot_user, jalur/gaya kabel, cable_*) dipertahankan
+           agar edit kartu tidak memutus auto-link ACS maupun hasil reposisi kabel. */
+        $attributes = array_merge(is_array($device->attributes) ? $device->attributes : [], $attributes);
+
+        /* ODP berantai (jalur): pastikan Nomor Passive ODC & Port Passive ODC tidak
+           ter-drop saat ODP induk di rantai belum punya nilainya — ikuti nilai dari
+           ODP di atasnya sampai ketemu (idempotent, hanya isi kolom yang kosong). */
+        if (strtoupper($data['type'] ?? '') === 'ODP' && (int) ($attributes['management_core'] ?? 0) === 1) {
+            $defaults = $this->odpChainDefaults($attributes['induk'] ?? '');
+            foreach (['nomor_passive_odc', 'port_passive_odc', 'warna_core'] as $field) {
+                if (! isset($attributes[$field]) || $attributes[$field] === '' || $attributes[$field] === null) {
+                    if (($defaults[$field] ?? '') !== '') {
+                        $attributes[$field] = $defaults[$field];
+                    }
+                }
+            }
+        }
+
         $device->attributes = $attributes ?: null;
+
         $device->save();
         $this->flushMapMarkersCache();
 
@@ -2739,6 +3094,8 @@ class FeaturesController extends Controller
             'cable_width' => ['nullable', 'numeric', 'between:1,20'],
             'cable_curve' => ['nullable', 'boolean'],
             'cable_anim' => ['nullable', 'string', 'in:none,dash,glow-fast,glow-slow'],
+            'cable_glow' => ['nullable', 'boolean'],
+            'jarak_kabel' => ['nullable', 'numeric', 'min:0'],
             'clear' => ['nullable', 'boolean'],
         ]);
 
@@ -2808,6 +3165,20 @@ class FeaturesController extends Controller
             }
         }
 
+        if (array_key_exists('cable_glow', $data)) {
+            $attrs['cable_glow'] = ! empty($data['cable_glow']);
+        } else {
+            unset($attrs['cable_glow']);
+        }
+
+        if (array_key_exists('jarak_kabel', $data)) {
+            if ($data['jarak_kabel'] !== null && is_numeric($data['jarak_kabel'])) {
+                $attrs['jarak_kabel'] = (string) max(0, round((float) $data['jarak_kabel']));
+            } else {
+                unset($attrs['jarak_kabel']);
+            }
+        }
+
         $device->attributes = $attrs ?: null;
         $device->save();
         $this->flushMapMarkersCache();
@@ -2874,6 +3245,15 @@ class FeaturesController extends Controller
         }
 
         $onu = $customer->onus->first();
+        if (! $onu) {
+            /* Auto-link: pelanggan belum punya ONU ter-link di tabel onus.
+               Coba resolve dari serial/modem_sn pelanggan ke ONU fisik OLT
+               agar card tetap menampilkan data ACS walau belum di-link manual. */
+            $ser = trim((string) ($customer->serial_number ?? $customer->modem_sn ?? ''));
+            if ($ser !== '') {
+                $onu = $this->allOnusBySerial()[strtolower($ser)] ?? null;
+            }
+        }
         $onuOltPort = null;
         if ($onu) {
             $onu->load(['oltPort.olt']);
@@ -2939,28 +3319,33 @@ class FeaturesController extends Controller
                 'lat' => $lat,
                 'lon' => $lon,
             ],
-            'onu' => $onu ? [
-                'id' => $onu->id,
-                'onu_id' => $onu->onu_id,
-                'serial_number' => $onu->serial_number,
-                'mac_address' => $onu->mac_address,
-                'status' => $onu->status,
-                'rx_power' => $onu->rx_power,
-                'tx_power' => $onu->tx_power,
-                'distance' => $onu->distance,
-                'uptime' => $onu->uptime,
-                'slot' => $onuOltPort?->slot_number ?? $onu->slot_number,
-                'port' => $onuOltPort?->port_number ?? $onu->port_number,
-                'olt_name' => $onuOltPort?->olt?->name,
-                'olt_brand' => $onuOltPort?->olt?->brand,
-                'acs_device_id' => $onu->acs_device_id,
-                'acs_status' => $onu->acs_status,
-                'acs_last_inform' => $onu->acs_last_inform ? $onu->acs_last_inform->toIso8601String() : null,
-                'acs_ip' => $onu->acs_ip,
-                'acs_manufacturer' => $onu->acs_manufacturer,
-                'acs_product_class' => $onu->acs_product_class,
-                'acs_software_version' => $onu->acs_software_version,
-            ] : null,
+            'onu' => $onu ? (function () use ($onu, $onuOltPort) {
+                $acs = $this->liveGenieacsAcsForOnu($onu);
+                $acsDeviceId = $acs['acs_device_id'] ?? $onu->acs_device_id;
+
+                return [
+                    'id' => $onu->id,
+                    'onu_id' => $onu->onu_id,
+                    'serial_number' => $onu->serial_number,
+                    'mac_address' => $onu->mac_address,
+                    'status' => $onu->status,
+                    'rx_power' => $acs['rx_power'] ?? $onu->rx_power,
+                    'tx_power' => $acs['tx_power'] ?? $onu->tx_power,
+                    'distance' => $onu->distance,
+                    'uptime' => $onu->uptime,
+                    'slot' => $onuOltPort?->slot_number ?? $onu->slot_number,
+                    'port' => $onuOltPort?->port_number ?? $onu->port_number,
+                    'olt_name' => $onuOltPort?->olt?->name,
+                    'olt_brand' => $onuOltPort?->olt?->brand,
+                    'acs_device_id' => $acsDeviceId,
+                    'acs_status' => $acs['acs_status'] ?? $onu->acs_status,
+                    'acs_last_inform' => $acs['acs_last_inform'] ?? ($onu->acs_last_inform?->toIso8601String()),
+                    'acs_ip' => $onu->acs_ip,
+                    'acs_manufacturer' => $acs['acs_manufacturer'] ?? $onu->acs_manufacturer,
+                    'acs_product_class' => $acs['acs_product_class'] ?? $onu->acs_product_class,
+                    'acs_software_version' => $acs['acs_software_version'] ?? $onu->acs_software_version,
+                ];
+            })() : null,
             'session' => $session,
             'session_history' => $sessHistory,
             'maps' => ($lat !== null && $lon !== null) ? 'https://www.google.com/maps?q='.$lat.','.$lon : null,
@@ -2975,12 +3360,16 @@ class FeaturesController extends Controller
      * Username hotspot di MikroTik umumnya = nama pelanggan.
      *
      * @param  array<string, string>  $hsIpMap  peta 'u:<user>' / 'm:<mac>' => ip
+     * @param  array<string, string>  $dhcpIpMap  peta 'm:<mac>' => ip (DHCP lease)
      */
-    private function hotspotIpFor(array $hsIpMap, ?string $mac, ?Customer $c): ?string
+    private function hotspotIpFor(array $hsIpMap, array $dhcpIpMap, ?string $mac, ?Customer $c): ?string
     {
         $mac = str_replace(['-', ' '], ':', mb_strtolower((string) $mac));
         if ($mac !== '' && isset($hsIpMap['m:'.$mac])) {
             return $hsIpMap['m:'.$mac];
+        }
+        if ($mac !== '' && isset($dhcpIpMap['m:'.$mac])) {
+            return $dhcpIpMap['m:'.$mac];
         }
 
         if (! $c) {
@@ -2998,12 +3387,82 @@ class FeaturesController extends Controller
     }
 
     /**
+     * IP dari sesi aktif MikroTik (PPPoE + hotspot) oleh username ternormalisasi
+     * / nama-slug. Dipakai untuk baris hotspot yang CPE-nya naik via PPPoE
+     * (mis. "Icang Cell" ↔ sesi "icangcell@alkonek.ppp") — IP dinamis tetap
+     * selalu ter-update sesuai sesi di router.
+     */
+    private function liveIpForUser(array $ipMap, array $byNorm, array $hsIpMap, string $slug): ?string
+    {
+        foreach ([$slug, self::normPppoeUser($slug)] as $cand) {
+            if ($cand === '') {
+                continue;
+            }
+            if (isset($ipMap[$cand])) {
+                return $ipMap[$cand];
+            }
+            if (isset($byNorm[$cand])) {
+                return $byNorm[$cand];
+            }
+            if (isset($hsIpMap['u:'.$cand])) {
+                return $hsIpMap['u:'.$cand];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Slug nama untuk pencocokan username MikroTik: "Icang Cell" -> "icangcell".
+     */
+    private static function nameSlug(string $s): string
+    {
+        return mb_strtolower((string) preg_replace('/[^A-Za-z0-9]/', '', trim($s)));
+    }
+
+    /**
      * Indeks IP tersimpan pada Device peta (kolom ip_address) untuk ONU —
      * fallback bila tidak ada sesi PPPoE/hotspot aktif di MikroTik.
      * Kunci: nama device, serial, dan atribut pppoe_user/hotspot_user.
      *
      * @return array<string, string>
      */
+    /**
+     * Peta 'm:<mac>' => IP dari DHCP leases MikroTik (cached 60s) — CPE hotspot
+     * mendapat IP dari DHCP server sebelum/atau tanpa login hotspot, jadi ini
+     * sumber kedua setelah IP sesi hotspot aktif.
+     *
+     * @return array<string, string>
+     */
+    private function hotspotDhcpIpMap(): array
+    {
+        return Cache::remember('hotspot_dhcp_ip_map', 60, function () {
+            $map = [];
+            $routers = MikrotikRouter::where('is_active', true)->get();
+            foreach ($routers as $router) {
+                try {
+                    $cmd = new RouterCommandService($router);
+                    $leases = $cmd->getDhcpLeases();
+                    if ($leases->isSuccess() && is_array($leases->getData())) {
+                        foreach ($leases->getData() as $lease) {
+                            $ip = $lease['active-address'] ?? $lease['address'] ?? null;
+                            if (! $ip) {
+                                continue;
+                            }
+                            $mac = str_replace(['-', ' '], ':', mb_strtolower((string) ($lease['active-mac-address'] ?? $lease['mac-address'] ?? '')));
+                            if ($mac) {
+                                $map['m:'.$mac] = $ip;
+                            }
+                        }
+                    }
+                } catch (\Throwable) {
+                }
+            }
+
+            return $map;
+        });
+    }
+
     private function deviceIpIndex(): array
     {
         $idx = [];
@@ -3040,6 +3499,127 @@ class FeaturesController extends Controller
         }
 
         return null;
+    }
+
+    /**
+     * Live-check GenieACS by serial when DB acs_device_id is missing.
+     * Returns an array of acs_* fields (persisted to onu row) or empty.
+     */
+    private function liveGenieacsAcsForOnu(Onu $onu): array
+    {
+        if (! empty($onu->acs_device_id)) {
+            return [
+                'acs_device_id' => $onu->acs_device_id,
+                'acs_status' => $onu->acs_status,
+                'acs_manufacturer' => $onu->acs_manufacturer,
+                'acs_product_class' => $onu->acs_product_class,
+                'acs_hardware_version' => $onu->acs_hardware_version,
+                'acs_software_version' => $onu->acs_software_version,
+                'acs_last_inform' => $onu->acs_last_inform?->toIso8601String(),
+                'rx_power' => $onu->rx_power,
+                'tx_power' => $onu->tx_power,
+            ];
+        }
+
+        $serial = trim((string) ($onu->serial_number ?? ''));
+        if ($serial === '') {
+            return [];
+        }
+
+        $baseUrl = Setting::get('genieacs_base_url');
+        if (empty($baseUrl)) {
+            return [];
+        }
+
+        try {
+            $dev = null;
+            $serialLower = strtolower($serial);
+            $serialSuffix = strtolower(preg_replace('/[^A-Za-z0-9]/', '', $serial));
+
+            foreach ((array) app(IGenieACSClient::class)->devices([], [
+                '_id', '_deviceId', '_lastInform',
+                'InternetGatewayDevice.DeviceInfo.Manufacturer',
+                'InternetGatewayDevice.DeviceInfo.ProductClass',
+                'InternetGatewayDevice.DeviceInfo.HardwareVersion',
+                'InternetGatewayDevice.DeviceInfo.SoftwareVersion',
+            ]) as $cand) {
+                if (! is_array($cand)) {
+                    continue;
+                }
+                $deviceId = $cand['_deviceId'] ?? null;
+                if (! is_array($deviceId)) {
+                    continue;
+                }
+                $candSerial = trim((string) ($deviceId['_SerialNumber'] ?? $deviceId['SerialNumber'] ?? ''));
+                $candId = trim((string) ($cand['_id'] ?? ''));
+                $k1 = strtolower($candSerial);
+                $dashPos = strrpos($candId, '-');
+                $k2 = strtolower($dashPos === false ? $candId : substr($candId, $dashPos + 1));
+                if ($k1 !== '' && ($k1 === $serialLower || $k1 === $serialSuffix)) {
+                    $dev = $cand;
+                    break;
+                }
+                if ($k2 !== '' && ($k2 === $serialLower || $k2 === $serialSuffix)) {
+                    $dev = $cand;
+                    break;
+                }
+            }
+        } catch (\Exception $e) {
+            Log::warning('liveGenieacsAcsForOnu: devices gagal', ['serial' => $serial, 'error' => $e->getMessage()]);
+
+            return [];
+        }
+
+        if (! is_array($dev)) {
+            return [];
+        }
+
+        $id = $dev['_id'] ?? null;
+        if (empty($id)) {
+            return [];
+        }
+
+        $val = function (string $path) use ($dev) {
+            $v = $dev[$path] ?? null;
+
+            return is_array($v) ? ($v['value'] ?? null) : $v;
+        };
+
+        $deviceIdArr = is_array($dev['_deviceId'] ?? null) ? $dev['_deviceId'] : [];
+        $didVal = function (string $key) use ($deviceIdArr) {
+            return $deviceIdArr[$key] ?? null;
+        };
+
+        $lastInformRaw = $dev['_lastInform'] ?? null;
+        $lastInform = null;
+        $acsStatus = 'offline';
+        if ($lastInformRaw) {
+            $ts = is_string($lastInformRaw) ? strtotime($lastInformRaw) : (is_int($lastInformRaw) ? $lastInformRaw : null);
+            if ($ts && ($ts > 0)) {
+                $lastInform = date('c', $ts);
+                $acsStatus = (now()->timestamp - $ts) < 600 ? 'online' : 'offline';
+            }
+        }
+
+        $fields = [
+            'acs_device_id' => $id,
+            'acs_status' => $acsStatus,
+            'acs_manufacturer' => $val('InternetGatewayDevice.DeviceInfo.Manufacturer') ?? $didVal('_Manufacturer'),
+            'acs_product_class' => $val('InternetGatewayDevice.DeviceInfo.ProductClass') ?? $didVal('_ProductClass'),
+            'acs_hardware_version' => $val('InternetGatewayDevice.DeviceInfo.HardwareVersion') ?? $didVal('_HardwareVersion'),
+            'acs_software_version' => $val('InternetGatewayDevice.DeviceInfo.SoftwareVersion') ?? $didVal('_SoftwareVersion'),
+            'acs_last_inform' => $lastInform,
+        ];
+
+        $onu->fill($fields);
+        $onu->saveQuietly();
+
+        Log::info('liveGenieacsAcsForOnu: linked onu', ['onu_id' => $onu->id, 'serial' => $serial, 'acs_device_id' => $id]);
+
+        return $fields + [
+            'rx_power' => $onu->rx_power,
+            'tx_power' => $onu->tx_power,
+        ];
     }
 
     /**
@@ -3128,8 +3708,27 @@ class FeaturesController extends Controller
 
             $deviceByPppoe = [];
             $deviceRows = [];
-            foreach (Device::whereIn('type', ['onu', 'htb'])->orderBy('name')->get() as $d) {
+            $onMapBySerial = [];
+            $onMapByOnuId = [];
+            $onMapByName = [];
+
+            /* Hanya ONU pelanggan yang SUDAH ditambahkan ke peta (Device peta
+               memiliki koordinat lat/long). ONU yang masih di queue / belum
+               ditempatkan di peta TIDAK dimasukkan ke Tabel ONU. */
+            foreach (Device::whereIn('type', ['onu', 'htb'])
+                ->whereNotNull('latitude')
+                ->whereNotNull('longitude')
+                ->orderBy('name')->get() as $d) {
                 $attrs = is_array($d->attributes) ? $d->attributes : [];
+                $onMapByName[strtolower(trim((string) $d->name))] = $d;
+                $serial = $d->serial_number ? strtolower(trim((string) $d->serial_number)) : null;
+                if ($serial !== null && $serial !== '') {
+                    $onMapBySerial[$serial] = $d;
+                }
+                $onuIdAttr = isset($attrs['onu_id']) ? strtolower(trim((string) $attrs['onu_id'])) : '';
+                if ($onuIdAttr !== '') {
+                    $onMapByOnuId[$onuIdAttr] = $d;
+                }
                 $pppoe = isset($attrs['pppoe_user']) ? (string) $attrs['pppoe_user'] : '';
                 $isHotspot = ! empty($attrs['hotspot']);
                 if ($pppoe === '' && ! $isHotspot) {
@@ -3184,7 +3783,28 @@ class FeaturesController extends Controller
             });
             $ipMap = $mikrotikData['pppoe'];
             $hsIpMap = $mikrotikData['hotspot'];
+            $dhcpIpMap = $this->hotspotDhcpIpMap();
             $devIpIdx = $this->deviceIpIndex();
+
+            /* Indeks IP live per username ternormalisasi (PPPoE + hotspot),
+               agar pelanggan hotspot yang CPE-nya login via PPPoE tetap dapat
+               IP dinamis terbaru dari sesi di router. */
+            $ipByNormUser = [];
+            foreach ($ipMap as $sessionName => $ip) {
+                $n = self::normPppoeUser((string) $sessionName);
+                if ($n !== '' && ! isset($ipByNormUser[$n])) {
+                    $ipByNormUser[$n] = $ip;
+                }
+            }
+            foreach ($hsIpMap as $hk => $ip) {
+                if (! str_starts_with($hk, 'u:')) {
+                    continue;
+                }
+                $n = self::normPppoeUser(substr($hk, 2));
+                if ($n !== '' && ! isset($ipByNormUser[$n])) {
+                    $ipByNormUser[$n] = $ip;
+                }
+            }
 
             /* Index perangkat berdasarkan type:nama untuk traversal rantai topologi
                (ONU -> ODP -> OLT) melalui atribut `induk`.
@@ -3241,16 +3861,52 @@ class FeaturesController extends Controller
                 $resolveOnu = $onu ?? $mikrotikOnu;
                 $device = $c->pppoe_username ? ($deviceByPppoe[$c->pppoe_username] ?? null) : null;
                 $topo = $this->resolveDeviceTopology($device, $deviceIndex);
+                $cName = strtolower(trim((string) $c->name));
+
+                /* Hanya ONU pelanggan yang SUDAH ada di peta: pelanggan masuk
+                   hanya bila ada Device peta (berkoordinat) yang cocok lewat
+                   akun PPPoE, serial, onu_id, atau nama device. */
+                $onMap = $device !== null;
+                if (! $onMap) {
+                    $cSerial = $c->serial_number ? strtolower(trim((string) $c->serial_number)) : null;
+                    if ($cSerial !== null && $cSerial !== '' && isset($onMapBySerial[$cSerial])) {
+                        $onMap = true;
+                    }
+                }
+                if (! $onMap) {
+                    $cOnu = $c->onus->first();
+                    if ($cOnu && $cOnu->onu_id && isset($onMapByOnuId[strtolower(trim((string) $cOnu->onu_id))])) {
+                        $onMap = true;
+                    }
+                }
+                if (! $onMap) {
+                    if ($cName !== '' && isset($onMapByName[$cName])) {
+                        $onMap = true;
+                    }
+                }
+                if (! $onMap) {
+                    continue;
+                }
+
+                /* Pelanggan hotspot yang ONU-nya sudah ada di peta tidak
+                   dikeluarkan dua kali: baris device ONU (dengan koordinat peta)
+                   sudah mewakilinya di Tabel ONU. */
+                if ($c->type === 'hotspot' && $cName !== '' && isset($onMapByName[$cName])) {
+                    continue;
+                }
 
                 $typeOnu = $c->type === 'hotspot' ? 'Hotspot' : 'PPPoE';
 
                 /* IP address: PPPoE dari session aktif, hotspot dari hotspot active,
-                   lalu fallback ke IP tersimpan pada Device peta */
+                   lalu fallback ke IP tersimpan pada Device peta. */
                 if ($typeOnu === 'Hotspot') {
-                    $ip = $this->hotspotIpFor($hsIpMap, $onu?->mac_address ?? $c->mac_address, $c)
+                    $ip = $this->hotspotIpFor($hsIpMap, $dhcpIpMap, $onu?->mac_address ?? $c->mac_address, $c)
+                        ?? $this->liveIpForUser($ipMap, $ipByNormUser, $hsIpMap, self::nameSlug((string) $c->name))
                         ?? $this->storedIpFor($devIpIdx, $c);
                 } else {
-                    $ip = $ipMap[$c->pppoe_username] ?? null;
+                    $ip = $ipMap[$c->pppoe_username]
+                        ?? $ipByNormUser[self::normPppoeUser((string) $c->pppoe_username)]
+                        ?? null;
                 }
 
                 /* --- ODP resolution --- */
@@ -3338,7 +3994,13 @@ class FeaturesController extends Controller
 
                 $topo = $this->resolveDeviceTopology($d, $deviceIndex);
 
-                $ip = $pppoe !== '' ? ($ipMap[$pppoe] ?? null) : null;
+                $ip = $pppoe !== '' ? ($ipMap[$pppoe] ?? $ipByNormUser[self::normPppoeUser($pppoe)] ?? null) : null;
+                if ($ip === null) {
+                    $ip = $this->liveIpForUser($ipMap, $ipByNormUser, $hsIpMap, self::nameSlug((string) $d->name));
+                }
+                if ($ip === null && $d->ip_address) {
+                    $ip = $d->ip_address;
+                }
 
                 $rows[] = [
                     'id' => $d->id,
@@ -3547,26 +4209,194 @@ class FeaturesController extends Controller
                 'message' => $result['message'] ?? 'ONU '.$onu->onu_id.' di-reboot',
             ]);
         } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::warning('onuReboot gagal: '.$e->getMessage());
+            Log::warning('onuReboot gagal: '.$e->getMessage());
 
             return response()->json(['ok' => false, 'error' => 'Reboot gagal: '.$e->getMessage()], 502);
         }
     }
 
-    public function customerAcs(Request $request): JsonResponse
+    /**
+     * Cari ONU untuk card ONU tanpa pelanggan ter-link (fallback card).
+     * Param: onu_id (PK Onu) ATAU pppoe / name (nama pelanggan) —
+     * ONU dipilih dari onus yang ter-link ke pelanggan yang cocok.
+     */
+    public function onuLookup(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'onu_id' => ['nullable', 'integer'],
+            'pppoe' => ['nullable', 'string', 'max:255'],
+            'name' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $onu = null;
+
+        if (! empty($data['onu_id'])) {
+            $onu = Onu::fromOlt()->find((int) $data['onu_id']);
+            if (! $onu && empty($data['pppoe']) && empty($data['name'])) {
+                return response()->json(['ok' => true, 'found' => false]);
+            }
+        } else {
+            $customer = null;
+            if (! empty($data['pppoe'])) {
+                $customer = $this->customersByPppoe()[self::normPppoeUser((string) $data['pppoe'])] ?? null;
+            }
+            if (! $customer && ! empty($data['name'])) {
+                $customer = $this->customersByName()[mb_strtolower(trim((string) $data['name']))] ?? null;
+            }
+            if ($customer) {
+                $onu = Onu::fromOlt()->where('customer_id', $customer->id)->first();
+            }
+        }
+
+        if (! $onu) {
+            return response()->json(['ok' => true, 'found' => false]);
+        }
+
+        $acs = $this->liveGenieacsAcsForOnu($onu);
+
+        return response()->json([
+            'ok' => true,
+            'found' => true,
+            'id' => $onu->id,
+            'onu_id' => $onu->onu_id,
+            'serial_number' => $onu->serial_number,
+            'customer_id' => $onu->customer_id,
+            'status' => $onu->status,
+            'acs_device_id' => $acs['acs_device_id'] ?? $onu->acs_device_id,
+            'acs_status' => $acs['acs_status'] ?? $onu->acs_status,
+            'acs_manufacturer' => $acs['acs_manufacturer'] ?? $onu->acs_manufacturer,
+            'acs_product_class' => $acs['acs_product_class'] ?? $onu->acs_product_class,
+            'acs_hardware_version' => $acs['acs_hardware_version'] ?? $onu->acs_hardware_version,
+            'acs_software_version' => $acs['acs_software_version'] ?? $onu->acs_software_version,
+            'acs_last_inform' => $acs['acs_last_inform'] ?? ($onu->acs_last_inform?->toIso8601String()),
+            'acs_ip' => $onu->acs_ip,
+            'rx_power' => $acs['rx_power'] ?? $onu->rx_power,
+            'tx_power' => $acs['tx_power'] ?? $onu->tx_power,
+            'uptime' => $this->uptimeForOnuLookup($onu, $data),
+        ]);
+    }
+
+    private function uptimeForOnuLookup(Onu $onu, array $data): ?string
+    {
+        $user = null;
+        if (! empty($data['pppoe'])) {
+            $user = (string) $data['pppoe'];
+        } elseif ($onu->customer_id) {
+            $cust = Customer::find($onu->customer_id);
+            if ($cust) {
+                $user = $cust->pppoe_username ?? null;
+            }
+        }
+
+        $sess = $user ? $this->findActiveSession($user) : null;
+
+        return $sess['uptime'] ?? null;
+    }
+
+    /**
+     * Cari kandidat ONU untuk modal "Link ONU ke pelanggan".
+     * Dengan q: filter serial / onu_id / nama pelanggan.
+     * Tanpa q: daftar ONU yang punya data ACS tapi belum ter-link pelanggan.
+     */
+    public function searchOnu(Request $request): JsonResponse
+    {
+        $q = trim((string) $request->input('q', ''));
+
+        $query = Onu::fromOlt();
+
+        if ($q === '') {
+            $query->whereNotNull('acs_device_id')->whereNull('customer_id');
+        } else {
+            $like = '%'.$q.'%';
+            $query->where(function ($qq) use ($like) {
+                $qq->where('serial_number', 'like', $like)
+                    ->orWhere('onu_id', 'like', $like)
+                    ->orWhereHas('customer', fn ($c) => $c->where('name', 'like', $like));
+            });
+        }
+
+        $rows = $query->limit(50)->get([
+            'id', 'onu_id', 'serial_number', 'customer_id',
+            'acs_device_id', 'acs_manufacturer',
+        ]);
+
+        return response()->json(['ok' => true, 'data' => $rows]);
+    }
+
+    public function linkOnu(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'customer_id' => ['nullable', 'integer'],
+            'onu_id' => ['required', 'integer'],
+            'device_id' => ['nullable', 'integer'],
+        ]);
+
+        $onu = Onu::find($data['onu_id']);
+
+        if (! $onu) {
+            return response()->json(['ok' => false, 'error' => 'ONU tidak ditemukan'], 404);
+        }
+
+        if (! empty($data['customer_id'])) {
+            $onu->update(['customer_id' => (int) $data['customer_id']]);
+        }
+
+        /* Link Device ONU peta -> ONU fisik (berisi acs_device_id): tuliskan
+           serial ke Device supaya matched_onu_id terselesaikan selamanya dan
+           card device langsung memuat ACS. */
+        if (! empty($data['device_id'])) {
+            $device = Device::find((int) $data['device_id']);
+            if ($device) {
+                $device->update([
+                    'serial_number' => $onu->serial_number,
+                    'brand' => $device->brand ?: $onu->acs_manufacturer,
+                ]);
+            }
+        }
+
+        $this->flushMapMarkersCache();
+
+        return response()->json(['ok' => true, 'message' => 'ONU berhasil dilink ke pelanggan']);
+    }
+
+    public function onuDelete(Request $request): JsonResponse
     {
         $data = $request->validate(['id' => ['required', 'integer']]);
 
-        $customer = Customer::with('onus')->find($data['id']);
+        Onu::where('id', $data['id'])->delete();
 
-        if (! $customer) {
-            return response()->json(['ok' => false, 'error' => 'Pelanggan tidak ditemukan'], 404);
+        return response()->json(['ok' => true]);
+    }
+
+    public function customerAcs(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'id' => ['nullable', 'integer'],
+            'onu_id' => ['nullable', 'integer'],
+        ]);
+
+        if (empty($data['id']) && empty($data['onu_id'])) {
+            return response()->json(['ok' => false, 'error' => 'Parameter id atau onu_id diperlukan'], 422);
         }
 
-        $onu = $customer->onus->first();
+        $onu = null;
 
-        if (! $onu || ! $onu->acs_device_id) {
-            return response()->json(['ok' => false, 'error' => 'Belum ada perangkat ACS tersambung untuk pelanggan ini'], 422);
+        if (! empty($data['id'])) {
+            $customer = Customer::with('onus')->find($data['id']);
+            if (! $customer) {
+                return response()->json(['ok' => false, 'error' => 'Pelanggan tidak ditemukan'], 404);
+            }
+            $onu = $customer->onus->first();
+        } else {
+            $onu = Onu::fromOlt()->find((int) $data['onu_id']);
+        }
+
+        if (! $onu) {
+            return response()->json(['ok' => false, 'error' => 'ONU tidak ditemukan'], 404);
+        }
+
+        if (! $onu->acs_device_id) {
+            return response()->json(['ok' => false, 'error' => 'Belum ada perangkat ACS tersambung untuk ONU ini'], 422);
         }
 
         try {
@@ -3576,6 +4406,7 @@ class FeaturesController extends Controller
                 'InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.Channel',
                 'InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.Mode',
                 'InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.KeyPassPhrase',
+                'InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.KeyPassphrase',
                 'InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.AssociatedDevice',
                 'InternetGatewayDevice.LANDevice.1.Hosts.Host',
                 'InternetGatewayDevice.WANDevice.1.WANConnectionDevice.1.WANIPConnection.1.ExternalIPAddress',
@@ -3584,19 +4415,38 @@ class FeaturesController extends Controller
                 'InternetGatewayDevice.DeviceInfo.SoftwareVersion',
             ]);
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::warning('customerAcs gagal: '.$e->getMessage());
+            Log::warning('customerAcs gagal: '.$e->getMessage());
 
             return response()->json(['ok' => false, 'error' => 'Gagal ambil data ACS: '.$e->getMessage()], 502);
         }
 
-        $val = function (string $path) use ($dev) {
-            $v = is_array($dev) ? ($dev[$path] ?? null) : null;
+        /* GenieACS mengembalikan objek tersarang (bukan kunci bertitik), jadi
+           kita turun per-segmen untuk membaca nilai leaf (mis. .../SSID). */
+        $devArr = is_array($dev) ? $dev : [];
+        $descend = function (string $path) use ($devArr) {
+            $node = $devArr;
+            foreach (explode('.', $path) as $seg) {
+                if (! is_array($node) || ! array_key_exists($seg, $node)) {
+                    return null;
+                }
+                $node = $node[$seg];
+            }
 
-            return is_array($v) ? ($v['value'] ?? null) : $v;
+            return $node;
         };
 
-        $objCount = function (string $path) use ($dev) {
-            $v = is_array($dev) ? ($dev[$path] ?? null) : null;
+        $val = function (string $path) use ($descend) {
+            $v = $descend($path);
+
+            if (is_array($v)) {
+                return array_key_exists('_value', $v) ? $v['_value'] : null;
+            }
+
+            return $v;
+        };
+
+        $objCount = function (string $path) use ($descend) {
+            $v = $descend($path);
             if (! is_array($v)) {
                 return 0;
             }
@@ -3621,7 +4471,7 @@ class FeaturesController extends Controller
                 'wifi_enabled' => $val('InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.Enable'),
                 'channel' => $val('InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.Channel'),
                 'mode' => $val('InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.Mode'),
-                'wifi_password' => $val('InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.KeyPassPhrase'),
+                'wifi_password' => $val('InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.KeyPassphrase') ?? $val('InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.KeyPassPhrase'),
                 'wlan_clients' => $objCount('InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.AssociatedDevice'),
                 'lan_clients' => $objCount('InternetGatewayDevice.LANDevice.1.Hosts.Host'),
                 'external_ip' => $val('InternetGatewayDevice.WANDevice.1.WANConnectionDevice.1.WANIPConnection.1.ExternalIPAddress'),
@@ -3635,21 +4485,34 @@ class FeaturesController extends Controller
     public function customerAcsSet(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'id' => ['required', 'integer'],
+            'id' => ['nullable', 'integer'],
+            'onu_id' => ['nullable', 'integer'],
             'ssid' => ['nullable', 'string', 'max:32'],
             'password' => ['nullable', 'string', 'max:64'],
         ]);
 
-        $customer = Customer::with('onus')->find($data['id']);
-
-        if (! $customer) {
-            return response()->json(['ok' => false, 'error' => 'Pelanggan tidak ditemukan'], 404);
+        if (empty($data['id']) && empty($data['onu_id'])) {
+            return response()->json(['ok' => false, 'error' => 'Parameter id atau onu_id diperlukan'], 422);
         }
 
-        $onu = $customer->onus->first();
+        $onu = null;
 
-        if (! $onu || ! $onu->acs_device_id) {
-            return response()->json(['ok' => false, 'error' => 'Belum ada perangkat ACS tersambung untuk pelanggan ini'], 422);
+        if (! empty($data['id'])) {
+            $customer = Customer::with('onus')->find($data['id']);
+            if (! $customer) {
+                return response()->json(['ok' => false, 'error' => 'Pelanggan tidak ditemukan'], 404);
+            }
+            $onu = $customer->onus->first();
+        } else {
+            $onu = Onu::fromOlt()->find((int) $data['onu_id']);
+        }
+
+        if (! $onu) {
+            return response()->json(['ok' => false, 'error' => 'ONU tidak ditemukan'], 404);
+        }
+
+        if (! $onu->acs_device_id) {
+            return response()->json(['ok' => false, 'error' => 'Belum ada perangkat ACS tersambung untuk ONU ini'], 422);
         }
 
         $params = [];
@@ -3657,7 +4520,11 @@ class FeaturesController extends Controller
             $params[] = ['InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.SSID', $data['ssid']];
         }
         if (($data['password'] ?? '') !== '') {
+            /* Cakup gaya path TR-098 (KeyPassPhrase/KeyPassphrase) dan TR-181
+               (PreSharedKey.1.KeyPassphrase) agar diterima berbagai merk CPE. */
             $params[] = ['InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.KeyPassPhrase', $data['password']];
+            $params[] = ['InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.KeyPassphrase', $data['password']];
+            $params[] = ['InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.PreSharedKey.1.KeyPassphrase', $data['password']];
         }
 
         if (empty($params)) {
@@ -3666,8 +4533,15 @@ class FeaturesController extends Controller
 
         try {
             app(IGenieACSClient::class)->setParameterValues($onu->acs_device_id, $params);
+            /* Paksa ONU untuk segera inform & mengeksekusi task (bukan menunggu
+               periodic inform). Non-fatal: bila connection request tidak
+               terjangkau (NAT), task tetap jalan pada inform berikutnya. */
+            try {
+                app(IGenieACSClient::class)->connectionRequest($onu->acs_device_id);
+            } catch (\Exception $ignored) {
+            }
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::warning('customerAcsSet gagal: '.$e->getMessage());
+            Log::warning('customerAcsSet gagal: '.$e->getMessage());
 
             return response()->json(['ok' => false, 'error' => 'Gagal set WiFi: '.$e->getMessage()], 502);
         }
@@ -3829,6 +4703,13 @@ class FeaturesController extends Controller
             return $idx['ppp'][$key];
         }
 
+        /* Variasi tanpa spasi (mis. username MikroTik "icangcell" sementara
+           pelanggan tercatat "Icang Cell") — cukup umum pada sesi PPPoE */
+        $keyNs = preg_replace('/\s+/', '', $key);
+        if ($keyNs !== '' && $keyNs !== $key && isset($idx['ppp'][$keyNs])) {
+            return $idx['ppp'][$keyNs];
+        }
+
         /* Hotspot: trim + case-insensitive, plus varian tanpa spasi */
         $hKey = mb_strtolower(trim((string) $username));
         if ($hKey !== '' && isset($idx['hs'][$hKey])) {
@@ -3861,6 +4742,12 @@ class FeaturesController extends Controller
 
     private ?array $onusByOnuIdCache = null;
 
+    private ?array $allOnusBySerialCache = null;
+
+    private ?array $allOnusByOnuIdCache = null;
+
+    private ?array $allOnusByIpCache = null;
+
     private ?array $customersByPppoeCache = null;
 
     private ?array $customersByNameCache = null;
@@ -3892,6 +4779,92 @@ class FeaturesController extends Controller
         }
 
         return $this->onusByOnuIdCache;
+    }
+
+    /**
+     * Semua ONU (ter-link maupun tidak), kunci = serial lowercase.
+     *
+     * @return array<string, Onu>
+     */
+    private function allOnusBySerial(): array
+    {
+        if ($this->allOnusBySerialCache === null) {
+            $this->allOnusBySerialCache = Onu::fromOlt()
+                ->get()
+                ->keyBy(fn ($o) => strtolower(trim((string) ($o->serial_number ?? ''))))
+                ->all();
+        }
+
+        return $this->allOnusBySerialCache;
+    }
+
+    /**
+     * Semua ONU (ter-link maupun tidak), kunci = onu_id (ID OLT) lowercase.
+     *
+     * @return array<string, Onu>
+     */
+    private function allOnusByOnuId(): array
+    {
+        if ($this->allOnusByOnuIdCache === null) {
+            $this->allOnusByOnuIdCache = Onu::fromOlt()
+                ->whereNotNull('onu_id')
+                ->get()
+                ->keyBy(fn ($o) => strtolower(trim((string) ($o->onu_id ?? ''))))
+                ->all();
+        }
+
+        return $this->allOnusByOnuIdCache;
+    }
+
+    /**
+     * Resolusi ONU fisik milik pelanggan: dari serial/modem_sn atau relasi
+     * `onus` (OLT) / `mikrotikOnus`. Dipakai untuk resolusi device ONU peta
+     * yang tidak menyimpan serial — kartu tetap bisa memuat data ACS/OLT
+     * selama pelanggannya bisa dikenali (lewat akun atau nama).
+     */
+    private function onuIdForCustomer(?Customer $c): ?int
+    {
+        if (! $c) {
+            return null;
+        }
+
+        $ser = trim((string) ($c->serial_number ?? $c->modem_sn ?? ''));
+        if ($ser !== '') {
+            $onus = $this->allOnusBySerial();
+            if (isset($onus[strtolower($ser)])) {
+                return (int) $onus[strtolower($ser)]->id;
+            }
+        }
+
+        $onu = $c->onus()->fromOlt()->first();
+        if ($onu) {
+            return (int) $onu->id;
+        }
+
+        $mOnu = $c->mikrotikOnus()->first();
+        if ($mOnu) {
+            return (int) $mOnu->id;
+        }
+
+        return null;
+    }
+
+    /**
+     * Semua ONU (ter-link maupun tidak), kunci = ip_address lowercase.
+     *
+     * @return array<string, Onu>
+     */
+    private function allOnusByIp(): array
+    {
+        if ($this->allOnusByIpCache === null) {
+            $this->allOnusByIpCache = Onu::fromOlt()
+                ->whereNotNull('ip_address')
+                ->get()
+                ->keyBy(fn ($o) => strtolower(trim((string) ($o->ip_address ?? ''))))
+                ->all();
+        }
+
+        return $this->allOnusByIpCache;
     }
 
     private function customersByPppoe(): array
@@ -3991,6 +4964,174 @@ class FeaturesController extends Controller
         }
 
         return [$cust->id, $cust->type];
+    }
+
+    /**
+     * Resolve ONU (tabel onus) yang sesuai dengan Device ONU di peta,
+     * untuk dipakai sebagai matched_onu_id pada marker — sehingga card ONU
+     * bisa memuat data ACS via /onu/lookup.
+     */
+    private function matchedOnuIdForDevice(Device $d, array $attrs): ?int
+    {
+        if (strtolower($d->type) !== 'onu') {
+            return null;
+        }
+
+        $serial = trim((string) ($d->serial_number ?? ''));
+        if ($serial !== '') {
+            $onu = $this->allOnusBySerial()[strtolower($serial)] ?? null;
+            if ($onu) {
+                return (int) $onu->id;
+            }
+        }
+
+        $onuId = ! empty($attrs['onu_id']) ? strtolower(trim((string) $attrs['onu_id'])) : null;
+        if ($onuId) {
+            $onu = $this->allOnusByOnuId()[$onuId] ?? null;
+            if ($onu) {
+                return (int) $onu->id;
+            }
+        }
+
+        /* Auto-link via sesi PPPoE aktif: Device tak berserial di peta (mis.
+           ONU wireless) di-match lewat IP klien -> caller-id (MAC) -> ONU fisik
+           yang MAC-nya dikenal GenieACS. Hanya pasangan EXACT yang dipakai agar
+           tidak salah-link. Di-cache pendek agar tidak membebani router. */
+        $ip = trim((string) ($d->ip_address ?? ($attrs['ip'] ?? '')));
+        if ($ip !== '' && isset($this->pppoeByIp()[$ip])) {
+            $sess = $this->pppoeByIp()[$ip];
+            $mac = $sess['mac'] ?? '';
+            if ($mac !== '' && ($onuId2 = $this->genieOnuIdByMac()[$mac] ?? null)) {
+                return (int) $onuId2;
+            }
+            /* Username PPPoE -> pelanggan -> serial/relasi onus -> ONU OLT */
+            $user = $sess['user'] ?? '';
+            if ($user !== '' && ($c = $this->customersByPppoe()[self::normPppoeUser($user)] ?? null)) {
+                if ($onuBySer = $this->onuIdForCustomer($c)) {
+                    return $onuBySer;
+                }
+            }
+        }
+
+        /* Auto-link langsung ke tabel onus lewat IP (kolom ip_address hasil
+           sinkron OLT/PPP) — tanpa butuh GenieACS. */
+        if ($ip !== '' && ($onuByIp = $this->allOnusByIp()[$ip] ?? null)) {
+            return (int) $onuByIp->id;
+        }
+
+        /* Attribute pppoe/hotspot milik device sendiri (diisi dari daftar queue
+           PPPoE) -> pelanggan -> serial/relasi onus -> ONU. */
+        $pppUser = trim((string) ($attrs['pppoe'] ?? $attrs['pppoe_user'] ?? $attrs['pppoe_username'] ?? $attrs['hotspot_user'] ?? ''));
+        if ($pppUser !== '' && ($cc = $this->customersByPppoe()[self::normPppoeUser($pppUser)] ?? null)) {
+            if ($onuBySer2 = $this->onuIdForCustomer($cc)) {
+                return $onuBySer2;
+            }
+        }
+
+        /* Auto-link by nama/PPPoE pelanggan bila nama device sama dengan serial
+           ONU yang dikenal (mis. device dibuat dengan serial sebagai nama). */
+        $name = trim((string) $d->name);
+        if ($name !== '' && ($onuByName = $this->allOnusBySerial()[strtolower($name)] ?? null)) {
+            return (int) $onuByName->id;
+        }
+
+        /* Nama device == nama pelanggan -> serial/relasi onus pelanggan.
+           MENGGANTI skema lama yang hanya cocokkan nama dengan serial ONU,
+           sehingga device ONU yang dibuat di peta tanpa serial (mis. ikut
+           alamat pelanggan hotspot) tetap bisa me-resolve ONU fisiknya. */
+        $custByName = $this->customersByName()[strtolower(trim((string) $name))] ?? null;
+        if ($custByName) {
+            if ($onuByCust = $this->onuIdForCustomer($custByName)) {
+                return $onuByCust;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Kunci MAC (lowercase) -> onu.id untuk semua ONU yang dikenal GenieACS.
+     * MAC diturunkan dari _id GenieACS ("PREFIX-PRODUK-SERIAL"): 6 hex pertama
+     * = 3 oktet MAC, lalu 6 hex terakhir serial = 3 oktet sisanya.
+     * Contoh D05FAF-FD511GW-CDTCAFCB4319 -> d0:5f:af:cb:43:19.
+     *
+     * @return array<string, int>
+     */
+    private function genieOnuIdByMac(): array
+    {
+        return Cache::remember('ftth_genie_onu_by_mac', now()->addMinutes(5), function () {
+            $onuBySerial = $this->allOnusBySerial();
+            $map = [];
+
+            try {
+                foreach ((array) app(IGenieACSClient::class)->devices([], ['_id', '_deviceId']) as $cand) {
+                    if (! is_array($cand)) {
+                        continue;
+                    }
+                    $id = trim((string) ($cand['_id'] ?? ''));
+                    $deviceId = $cand['_deviceId'] ?? null;
+                    $ser = is_array($deviceId)
+                        ? trim((string) ($deviceId['_SerialNumber'] ?? $deviceId['SerialNumber'] ?? ''))
+                        : '';
+                    if ($id === '' || $ser === '') {
+                        continue;
+                    }
+                    $prefix = strtolower(preg_replace('/[^0-9a-fA-F]/', '', substr($id, 0, strpos($id, '-') ?: 8)));
+                    $suffix = strtolower(preg_replace('/[^0-9a-fA-F]/', '', substr($ser, -8)));
+                    if (strlen($prefix) !== 6 || strlen($suffix) < 6) {
+                        continue;
+                    }
+                    $mac = $prefix.substr($suffix, -6);
+                    $onu = $onuBySerial[strtolower($ser)] ?? null;
+                    if ($onu) {
+                        $map[$mac] = (int) $onu->id;
+                    }
+                }
+            } catch (\Exception $e) {
+                Log::warning('genieOnuIdByMac: devices gagal', ['error' => $e->getMessage()]);
+            }
+
+            return $map;
+        });
+    }
+
+    /**
+     * Peta IP klien PPPoE aktif -> ['mac'=>caller-id, 'user'=>username] dari
+     * semua router Mikrotik, di-cache pendek (60 detik) karena dipakai pipeline
+     * build marker peta.
+     *
+     * @return array<string, array{mac: string, user: string}>
+     */
+    private function pppoeByIp(): array
+    {
+        return Cache::remember('ftth_pppoe_by_ip', now()->addSeconds(60), function () {
+            $map = [];
+
+            foreach (MikrotikRouter::where('is_active', true)->get() as $router) {
+                try {
+                    $result = (new RouterCommandService($router))->getPppActive();
+                    if (! $result->isSuccess() || ! is_array($result->getData())) {
+                        continue;
+                    }
+                    foreach ($result->getData() as $s) {
+                        $ip = trim((string) ($s['address'] ?? ''));
+                        $mac = trim((string) ($s['caller-id'] ?? ''));
+                        $user = trim((string) ($s['name'] ?? ''));
+                        if ($ip === '') {
+                            continue;
+                        }
+                        $map[$ip] = [
+                            'mac' => strtolower(str_replace([':', '-', '.'], '', $mac)),
+                            'user' => $user,
+                        ];
+                    }
+                } catch (\Exception $e) {
+                    Log::warning('pppoeByIp: router gagal', ['router' => $router->id, 'error' => $e->getMessage()]);
+                }
+            }
+
+            return $map;
+        });
     }
 
     private function devicePayload(Device $d): array
@@ -4509,6 +5650,19 @@ class FeaturesController extends Controller
             $onuOnline = 0;
             $onuOffline = 0;
             $scanOk = false;
+
+            /* OLT tanpa port PON terdaftar (mis. setelah DB dihapus): autoprovisi
+               PON slot 0/port 1 — port fisik default C-Data yang ber-cert trail. */
+            if (count($olt->ports) === 0) {
+                OltPort::create([
+                    'olt_id' => $olt->id,
+                    'slot_number' => 0,
+                    'port_number' => 1,
+                    'port_type' => 'gpon',
+                    'status' => 'active',
+                ]);
+                $olt->unsetRelation('ports');
+            }
 
             foreach ($olt->ports as $port) {
                 try {
