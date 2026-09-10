@@ -3,7 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\Customer;
-use App\Models\olt;
+use App\Models\Olt;
 use App\Models\OltPort;
 use App\Models\Onu;
 use App\Services\MikrotikService;
