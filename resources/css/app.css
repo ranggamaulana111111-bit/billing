@@ -391,6 +391,17 @@ textarea.form-control {
     #sidebar.sidebar-mobile-open {
         transform: translateX(0);
     }
+    /* Di HP paksa tampil teks meski ada class collapsed */
+    #sidebar.sidebar-collapsed ul li a {
+        font-size: 13.5px !important;
+        color: rgba(255,255,255,0.55) !important;
+        text-indent: 0 !important;
+        line-height: normal !important;
+    }
+    #sidebar.sidebar-collapsed ul li a span {
+        display: inline !important;
+        font-size: inherit !important;
+    }
     /* Menu vertikal dari atas, bukan melayang di tengah */
     #sidebar .sidebar-menu {
         display: flex !important;
