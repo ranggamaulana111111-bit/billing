@@ -303,23 +303,20 @@ textarea.form-control {
 #sidebar.sidebar-collapsed ul p {
     display: none !important; /* hide section titles sepenuhnya saat collapsed */
 }
-#sidebar.sidebar-collapsed ul li a {
+#sidebar ul li a {
     display: flex !important;
     flex-direction: row !important;
     align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 8px !important;
+}
+#sidebar.sidebar-collapsed ul li a {
     justify-content: center !important;
     padding: 10px 0 !important;
     margin: 2px 8px !important;
     gap: 0 !important;
     overflow: hidden !important;
     white-space: nowrap !important;
-    font-size: 0 !important;
-    line-height: 0 !important;
-    color: transparent !important;
-    text-indent: -9999px !important;
-}
-#sidebar.sidebar-collapsed ul li a * {
-    text-indent: 0 !important;
 }
 #sidebar.sidebar-collapsed ul li a span,
 #sidebar.sidebar-collapsed ul li a .ms-auto,
