@@ -392,7 +392,8 @@ textarea.form-control {
 .top-navbar {
     display: flex;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: space-between;
+    gap: 16px;
     padding: 10px 44px;
     background:
         radial-gradient(circle at 90% 20%, rgba(96,165,250,0.18), transparent 40%),
@@ -406,6 +407,23 @@ textarea.form-control {
     display: flex;
     align-items: center;
     gap: 16px;
+    flex-shrink: 0;
+}
+.top-navbar-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    flex: 1;
+    color: rgba(255,255,255,0.92);
+    font-weight: 600;
+}
+.top-navbar-title code {
+    font-size: 0.78rem;
+    color: rgba(255,255,255,0.75);
+    background: rgba(255,255,255,0.08);
+    padding: 2px 6px;
+    border-radius: 4px;
 }
 .top-navbar-user {
     display: flex;
@@ -5388,5 +5406,65 @@ body:has(.auth-shell) {
     background:rgba(255,255,255,.22) !important;
 }
 .mon-card-head small { color:rgba(255,255,255,.7) !important; }
+
+/* --------------------------------------------
+   NOC COMPACT MODE — perkecil font seluruh halaman NOC
+   (menu, submenu, dan konten), hanya untuk role 'noc'
+   -------------------------------------------- */
+html.noc-role {
+    font-size: 87.5%; /* 16px → 14px: mengecilkan semua ukuran berbasis rem */
+}
+html.noc-role body {
+    font-size: 14px;
+}
+
+/* Sidebar NOC — menu utama */
+html.noc-role #sidebar ul li a {
+    font-size: 11.5px;
+}
+html.noc-role #sidebar ul li a i {
+    font-size: 12px;
+}
+html.noc-role #sidebar ul p {
+    font-size: 8.5px;
+}
+html.noc-role #sidebar ul li.active > a::after {
+    height: 17px;
+}
+
+/* Sidebar NOC — submenu */
+html.noc-role #sidebar ul.nav li a {
+    font-size: 0.76rem;
+}
+html.noc-role #sidebar ul.nav li a i {
+    font-size: 11px;
+}
+
+/* Header brand NOC */
+html.noc-role #sidebar .sidebar-header h4 {
+    font-size: 1rem !important;
+}
+html.noc-role #sidebar .sidebar-header small {
+    font-size: 7px !important;
+}
+
+/* Footer & top navbar NOC */
+html.noc-role .sidebar-footer .dev-credit {
+    font-size: 8px;
+}
+html.noc-role .top-navbar-name {
+    font-size: 12px;
+}
+html.noc-role .top-navbar-role {
+    font-size: 9px;
+}
+html.noc-role .top-navbar-logout {
+    font-size: 13px;
+}
+
+/* Pertahankan compactness saat sidebar dicolaps */
+html.noc-role #sidebar.sidebar-collapsed ul p {
+    font-size: 7px;
+}
 
 

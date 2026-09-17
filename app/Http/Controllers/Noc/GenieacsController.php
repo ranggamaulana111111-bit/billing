@@ -8,6 +8,7 @@ use App\Modules\GenieACS\Contracts\IGenieACSClient;
 use App\Modules\GenieACS\Exceptions\GenieACSAuthenticationException;
 use App\Modules\GenieACS\Exceptions\GenieACSConnectionException;
 use App\Modules\GenieACS\Repositories\GenieACSRepository;
+use App\Modules\GenieACS\Services\AcsCatalogService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -18,16 +19,28 @@ class GenieacsController extends Controller
     public function __construct(
         private IGenieACSClient $client,
         private GenieACSRepository $repo,
+        private AcsCatalogService $catalog,
     ) {}
 
     /**
-     * GenieACS Dashboard — overview stats.
+     * GenieACS Overview — ACS Config & Monitoring.
      */
     public function dashboard(): View
     {
-        $stats = $this->getDashboardStats();
+        try {
+            $devices = $this->catalog->fetchDevices([], 0, 0);
+            $rows = $this->catalog->enrichMany($devices, $this->catalog->context());
+            $overview = $this->catalog->overviewStats($rows);
+            $connected = true;
+            $error = null;
+        } catch (\Throwable $e) {
+            Log::warning('GenieACS overview failed', ['error' => $e->getMessage()]);
+            $overview = $this->catalog->emptyOverview();
+            $connected = false;
+            $error = $e->getMessage();
+        }
 
-        return view('noc.genieacs.dashboard', compact('stats'));
+        return view('noc.genieacs.dashboard', compact('overview', 'connected', 'error'));
     }
 
     /**
@@ -39,11 +52,21 @@ class GenieacsController extends Controller
         $limit = min((int) $request->input('limit', 50), 200);
         $skip = max((int) $request->input('skip', 0), 0);
 
-        $result = $this->repo->getDevices($filters, $limit, $skip);
-        $devices = is_array($result) ? $result : [];
-        $total = $this->repo->countDevices($filters);
+        try {
+            $devices = $this->catalog->fetchDevices($filters, $limit, $skip);
+            $rows = $this->catalog->enrichMany($devices, $this->catalog->context());
+            $total = $this->catalog->countDevices($filters);
+            $connected = true;
+            $error = null;
+        } catch (\Throwable $e) {
+            Log::warning('GenieACS device list failed', ['error' => $e->getMessage()]);
+            $rows = [];
+            $total = 0;
+            $connected = false;
+            $error = $e->getMessage();
+        }
 
-        return view('noc.genieacs.devices', compact('devices', 'total', 'filters', 'limit', 'skip'));
+        return view('noc.genieacs.devices', compact('rows', 'total', 'filters', 'limit', 'skip', 'connected', 'error'));
     }
 
     /**
@@ -53,6 +76,37 @@ class GenieacsController extends Controller
     {
         $device = $this->repo->getDevice($deviceId);
 
+        // GenieACS _id dapat mengandung "%2D" untuk hyphen di ProductClass (mis. H1s%2D3).
+        // URL yang datang sudah di-decode Laravel menjadi "-" sehingga query exact _id gagal.
+        // Fallback: cari via serial (segmen terakhir _id) menggunakan findBySerial.
+        if (! $device) {
+            $decoded = urldecode($deviceId);
+            if ($decoded !== $deviceId) {
+                $device = $this->repo->getDevice($decoded);
+            }
+        }
+        if (! $device) {
+            $serial = null;
+            // _id format OUI-ProductClass-Serial, serial adalah setelah hyphen terakhir
+            if (str_contains($deviceId, '-')) {
+                $parts = explode('-', $deviceId);
+                $serial = end($parts);
+            }
+            if ($serial) {
+                try {
+                    $found = $this->client->findBySerial($serial);
+                    if ($found && isset($found['_id'])) {
+                        $device = $this->repo->getDevice($found['_id']);
+                        if ($device) {
+                            $deviceId = $found['_id'];
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    Log::warning('GenieACS device fallback findBySerial failed', ['deviceId' => $deviceId, 'serial' => $serial, 'error' => $e->getMessage()]);
+                }
+            }
+        }
+
         if (! $device) {
             return view('noc.genieacs.device-detail', [
                 'device' => null,
@@ -61,10 +115,29 @@ class GenieacsController extends Controller
             ]);
         }
 
+        $summary = null;
+        $ping = null;
+        $writable = [];
+
+        try {
+            $summary = $this->catalog->summarize($device);
+
+            try {
+                $summary = array_merge($summary, $this->catalog->enrich($device, $this->catalog->context()));
+            } catch (\Throwable $e) {
+                Log::warning('GenieACS device enrich failed', ['device' => $deviceId, 'error' => $e->getMessage()]);
+            }
+
+            $ping = $this->pingDevice($summary['wan_ip']);
+            $writable = $this->catalog->writableLeaves($device);
+        } catch (\Throwable $e) {
+            Log::warning('GenieACS device summary failed', ['device' => $deviceId, 'error' => $e->getMessage()]);
+        }
+
         $tasks = $this->repo->getTasks($deviceId);
         $faults = $this->repo->getFaultsByDevice($deviceId);
 
-        return view('noc.genieacs.device-detail', compact('device', 'deviceId', 'tasks', 'faults'));
+        return view('noc.genieacs.device-detail', compact('device', 'deviceId', 'tasks', 'faults', 'summary', 'ping', 'writable'));
     }
 
     /**
@@ -139,6 +212,168 @@ class GenieacsController extends Controller
     // ── AJAX Actions ───────────────────────────────────────
 
     /**
+     * Simpan konfigurasi WAN/LAN/WLAN ke ONT via setParameterValues.
+     * Hanya menerima path yang benar-benar writable pada device tsb.
+     */
+    public function setParams(Request $request, string $deviceId): JsonResponse
+    {
+        $request->validate([
+            'parameters' => ['required', 'array', 'min:1'],
+            'parameters.*.path' => ['required', 'string'],
+            'parameters.*.value' => ['nullable', 'string'],
+        ]);
+
+        $device = $this->repo->getDevice($deviceId);
+
+        if (! $device) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Device tidak ditemukan atau GenieACS tidak terjangkau.',
+            ], 422);
+        }
+
+        $allowed = $this->catalog->writableLeaves($device);
+
+        $parameterValues = [];
+
+        foreach ($request->input('parameters') as $item) {
+            $path = (string) $item['path'];
+
+            if (! isset($allowed[$path])) {
+                continue;
+            }
+
+            $value = trim((string) ($item['value'] ?? ''));
+            $type = $allowed[$path];
+            $parameterValues[] = [$path, $this->castValue($value, $type), $type];
+        }
+
+        if ($parameterValues === []) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tidak ada parameter yang boleh diubah.',
+            ], 422);
+        }
+
+        try {
+            $result = $this->repo->setParameterValues($deviceId, $parameterValues);
+
+            // Paksa sesi inform segera sehingga task setParameterValues langsung
+            // dieksekusi CPE. Dijalankan afterResponse agar notifikasi sukses
+            // langsung kembali ke browser tanpa menunggu device merespon
+            // Connection Request (yang bisa 5-30 detik / timeout jika offline).
+            $repo = $this->repo;
+            app()->terminating(function () use ($repo, $deviceId) {
+                try {
+                    $repo->connectionRequest($deviceId, 5);
+                } catch (\Throwable $e) {
+                    Log::warning('GenieACS connection request after setParameterValues', ['device' => $deviceId, 'error' => $e->getMessage()]);
+                }
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Task setParameterValues dikirim ('.count($parameterValues).' parameter), perangkat di-refresh via Connection Request.',
+                'data' => $result,
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('GenieACS setParameterValues failed', ['device' => $deviceId, 'error' => $e->getMessage()]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal kirim konfigurasi: '.$e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * @param  'xsd:string'|'xsd:boolean'|'xsd:unsignedInt'|'xsd:int'|string  $type
+     */
+    private function castValue(string $value, string $type): string
+    {
+        $lower = mb_strtolower($type);
+
+        return match (true) {
+            str_contains($lower, 'boolean') => in_array(mb_strtolower($value), ['1', 'true', 'on', 'yes'], true)
+                ? 'true'
+                : 'false',
+            str_contains($lower, 'int') => (string) (int) $value,
+            default => $value,
+        };
+    }
+
+    /**
+     * Tambah tag ke device (disimpan ke `_tags` device GenieACS).
+     */
+    public function addTag(Request $request, string $deviceId): JsonResponse
+    {
+        $request->validate([
+            'name' => ['required', 'string', 'max:40'],
+        ]);
+
+        $device = $this->repo->getDevice($deviceId);
+
+        if (! $device) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Device tidak ditemukan atau GenieACS tidak terjangkau.',
+            ], 422);
+        }
+
+        $name = trim((string) $request->input('name'));
+        if ($name === '') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Nama tag tidak boleh kosong.',
+            ], 422);
+        }
+
+        $tags = is_array($device['_tags'] ?? null) ? $device['_tags'] : [];
+        $tags[$name] = '1';
+
+        try {
+            $this->repo->updateTags($deviceId, $tags);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Tag "'.$name.'" ditambahkan ke device.',
+                'data' => $tags,
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('GenieACS update tags failed', ['device' => $deviceId, 'error' => $e->getMessage()]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal simpan tag: '.$e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Ukur latency device via TCP ke port TR069 (7547) lalu fallback 80.
+     */
+    private function pingDevice(?string $ip): ?int
+    {
+        if (! is_string($ip) || $ip === '' || filter_var($ip, FILTER_VALIDATE_IP) === false) {
+            return null;
+        }
+
+        foreach ([7547, 80] as $port) {
+            $start = microtime(true);
+            $conn = @fsockopen($ip, $port, $errno, $errstr, 1.5);
+
+            if (is_resource($conn)) {
+                $elapsed = (microtime(true) - $start) * 1000;
+                fclose($conn);
+
+                return (int) round($elapsed);
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Test GenieACS connection (AJAX).
      */
     public function testConnection(): JsonResponse
@@ -193,6 +428,27 @@ class GenieacsController extends Controller
     }
 
     /**
+     * Trigger a connection request (summon) to a device (AJAX POST).
+     */
+    public function summon(string $deviceId): JsonResponse
+    {
+        try {
+            $result = $this->repo->connectionRequest($deviceId);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Summon (connection request) dikirim ke '.$deviceId,
+                'data' => $result,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal summon: '.$e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * Factory reset a device (AJAX POST).
      */
     public function factoryReset(string $deviceId): JsonResponse
@@ -236,56 +492,78 @@ class GenieacsController extends Controller
         }
     }
 
-    // ── Helpers ────────────────────────────────────────────
+    /**
+     * Delete CWMP object instance (AJAX POST) — hapus WANConnection dll.
+     */
+    public function deleteObject(Request $request, string $deviceId): JsonResponse
+    {
+        $request->validate([
+            'object' => ['required', 'string', 'max:255'],
+        ]);
+
+        $objectName = trim((string) $request->input('object'));
+
+        try {
+            $result = $this->repo->deleteObject($deviceId, $objectName);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Delete object "'.$objectName.'" dikirim ke '.$deviceId,
+                'data' => $result,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal hapus object: '.$e->getMessage(),
+            ], 500);
+        }
+    }
 
     /**
-     * Compute dashboard stats by querying GenieACS.
+     * Download / upgrade firmware (AJAX POST).
      */
-    private function getDashboardStats(): array
+    public function download(Request $request, string $deviceId): JsonResponse
     {
-        $stats = [
-            'total_devices' => 0,
-            'online_devices' => 0,
-            'offline_devices' => 0,
-            'fault_count' => 0,
-            'preset_count' => 0,
-            'connected' => false,
-            'error' => null,
-        ];
+        $request->validate([
+            'file' => ['required', 'string', 'max:255'],
+        ]);
+
+        $file = trim((string) $request->input('file'));
 
         try {
-            $allDevices = $this->client->devices([], ['InternetGatewayDevice.DeviceInfo.ModelName']);
-            $stats['total_devices'] = count($allDevices);
-            $stats['connected'] = true;
+            $result = $this->repo->downloadFirmware($deviceId, $file);
 
-            $now = time();
-            foreach ($allDevices as $device) {
-                $lastInform = $device['_lastInform'] ?? null;
-                if ($lastInform && ($now - strtotime($lastInform)) < 600) {
-                    $stats['online_devices']++;
-                } else {
-                    $stats['offline_devices']++;
-                }
-            }
+            return response()->json([
+                'success' => true,
+                'message' => 'Upgrade firmware "'.$file.'" dikirim ke '.$deviceId,
+                'data' => $result,
+            ]);
         } catch (\Exception $e) {
-            Log::warning('GenieACS dashboard: failed to fetch devices', ['error' => $e->getMessage()]);
-            $stats['error'] = $e->getMessage();
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal upgrade firmware: '.$e->getMessage(),
+            ], 500);
         }
+    }
 
+    /**
+     * Delete device from GenieACS (AJAX DELETE).
+     */
+    public function destroy(string $deviceId): JsonResponse
+    {
         try {
-            $faults = $this->client->faults([], 100);
-            $stats['fault_count'] = count($faults);
-        } catch (\Exception $e) {
-            Log::warning('GenieACS dashboard: failed to fetch faults', ['error' => $e->getMessage()]);
-        }
+            $result = $this->repo->deleteDevice($deviceId);
 
-        try {
-            $presets = $this->client->presets();
-            $stats['preset_count'] = count($presets);
+            return response()->json([
+                'success' => true,
+                'message' => 'Device '.$deviceId.' dihapus dari GenieACS.',
+                'data' => $result,
+            ]);
         } catch (\Exception $e) {
-            Log::warning('GenieACS dashboard: failed to fetch presets', ['error' => $e->getMessage()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal hapus device: '.$e->getMessage(),
+            ], 500);
         }
-
-        return $stats;
     }
 }

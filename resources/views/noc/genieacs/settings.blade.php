@@ -9,7 +9,10 @@
         <p class="section-subtitle mb-0 mt-1">Konfigurasi koneksi ke server GenieACS NBI</p>
     </div>
     <div class="page-actions mt-2 mt-md-0 d-flex gap-2">
-        <a href="{{ route('noc.genieacs.settings') }}" class="btn btn-outline-secondary px-3 py-2" id="btnRefresh">
+        <button type="button" class="btn btn-outline-secondary btn-sm px-2 py-1" onclick="history.back()">
+            <i class="fa-solid fa-arrow-left me-1"></i>Kembali
+        </button>
+        <a href="{{ route('noc.genieacs.settings') }}" class="btn btn-light btn-sm px-2 py-1" id="btnRefresh">
             <i class="fa-solid fa-rotate me-1"></i>Refresh
         </a>
     </div>
@@ -17,37 +20,37 @@
 
 <div class="row">
     <div class="col-lg-6">
-        <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header bg-transparent border-0 py-3">
-                <h6 class="mb-0 fw-bold"><i class="fa-solid fa-plug me-2"></i>Connection Configuration</h6>
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header bg-transparent border-0 py-2">
+                <h6 class="mb-0 fw-bold" style="font-size:0.9rem;"><i class="fa-solid fa-plug me-2"></i>Connection Configuration</h6>
             </div>
-            <div class="card-body">
+            <div class="card-body py-3">
                 <form id="formGenieacsSettings">
                     @csrf
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold" style="font-size:0.78rem;">Base URL (NBI)</label>
-                        <input type="text" class="form-control" name="base_url" value="{{ $baseUrl }}" placeholder="http://192.168.1.10:7557" style="font-size:0.85rem;">
-                        <small class="text-muted">Format: <code>http://hostname:7557</code></small>
+                    <div class="mb-2">
+                        <label class="form-label fw-semibold mb-1" style="font-size:0.72rem;">Base URL (NBI)</label>
+                        <input type="text" class="form-control form-control-sm" name="base_url" value="{{ $baseUrl }}" placeholder="http://192.168.1.10:7557" style="font-size:0.8rem;">
+                        <small class="text-muted" style="font-size:0.7rem;">Format: <code>http://hostname:7557</code></small>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label fw-semibold mb-1" style="font-size:0.72rem;">Username</label>
+                        <input type="text" class="form-control form-control-sm" name="username" value="{{ $username }}" placeholder="admin" style="font-size:0.8rem;">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label fw-semibold mb-1" style="font-size:0.72rem;">Password</label>
+                        <input type="password" class="form-control form-control-sm" name="password" placeholder="{{ $hasPassword ? '•••••••• (terisi)' : 'Kosongkan jika tidak diubah' }}" style="font-size:0.8rem;">
+                        <small class="text-muted" style="font-size:0.7rem;">{{ $hasPassword ? 'Password sudah dikonfigurasi. Kosongkan field ini jika tidak ingin mengubah.' : 'Masukkan password GenieACS NBI.' }}</small>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-semibold" style="font-size:0.78rem;">Username</label>
-                        <input type="text" class="form-control" name="username" value="{{ $username }}" placeholder="admin" style="font-size:0.85rem;">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold" style="font-size:0.78rem;">Password</label>
-                        <input type="password" class="form-control" name="password" placeholder="{{ $hasPassword ? '•••••••• (terisi)' : 'Kosongkan jika tidak diubah' }}" style="font-size:0.85rem;">
-                        <small class="text-muted">{{ $hasPassword ? 'Password sudah dikonfigurasi. Kosongkan field ini jika tidak ingin mengubah.' : 'Masukkan password GenieACS NBI.' }}</small>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold" style="font-size:0.78rem;">Timeout (seconds)</label>
-                        <input type="text" class="form-control" value="{{ $timeout }}" readonly style="font-size:0.85rem;background:rgba(0,0,0,0.1);">
-                        <small class="text-muted">Dari <code>.env</code> (<code>GENIEACS_TIMEOUT</code>)</small>
+                        <label class="form-label fw-semibold mb-1" style="font-size:0.72rem;">Timeout (seconds)</label>
+                        <input type="text" class="form-control form-control-sm" value="{{ $timeout }}" readonly style="font-size:0.8rem;background:rgba(0,0,0,0.1);">
+                        <small class="text-muted" style="font-size:0.7rem;">Dari <code>.env</code> (<code>GENIEACS_TIMEOUT</code>)</small>
                     </div>
                     <div class="d-flex align-items-center gap-2">
-                        <button type="submit" class="btn btn-primary px-4 py-2" id="btnSaveSettings">
+                        <button type="submit" class="btn btn-primary btn-sm px-3" id="btnSaveSettings">
                             <i class="fa-solid fa-floppy-disk me-1"></i>Simpan
                         </button>
-                        <span id="saveStatus" class="text-muted" style="font-size:0.85rem;"></span>
+                        <span id="saveStatus" class="text-muted" style="font-size:0.8rem;"></span>
                     </div>
                 </form>
             </div>
@@ -55,26 +58,26 @@
     </div>
 
     <div class="col-lg-6">
-        <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header bg-transparent border-0 py-3">
-                <h6 class="mb-0 fw-bold"><i class="fa-solid fa-vial me-2"></i>Test Connection</h6>
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header bg-transparent border-0 py-2">
+                <h6 class="mb-0 fw-bold" style="font-size:0.9rem;"><i class="fa-solid fa-vial me-2"></i>Test Connection</h6>
             </div>
-            <div class="card-body">
-                <p style="font-size:0.85rem;color:rgba(255,255,255,0.6);">
+            <div class="card-body py-3">
+                <p style="font-size:0.78rem;color:rgba(255,255,255,0.6);">
                     Klik tombol di bawah untuk menguji koneksi ke GenieACS NBI server.
                 </p>
-                <button type="button" class="btn btn-primary px-4 py-2" id="btnTestConnection">
+                <button type="button" class="btn btn-primary btn-sm px-3" id="btnTestConnection">
                     <i class="fa-solid fa-plug-circle-bolt me-1"></i>Test Connection
                 </button>
-                <div id="testResult" class="mt-3" style="display:none;"></div>
+                <div id="testResult" class="mt-2" style="display:none;"></div>
             </div>
         </div>
 
         <div class="card border-0 shadow-sm">
-            <div class="card-header bg-transparent border-0 py-3">
-                <h6 class="mb-0 fw-bold"><i class="fa-solid fa-book me-2"></i>Quick Reference</h6>
+            <div class="card-header bg-transparent border-0 py-2">
+                <h6 class="mb-0 fw-bold" style="font-size:0.9rem;"><i class="fa-solid fa-book me-2"></i>Quick Reference</h6>
             </div>
-            <div class="card-body" style="font-size:0.82rem;">
+            <div class="card-body py-3" style="font-size:0.75rem;">
                 <table class="table table-sm table-borderless mb-0">
                     <tbody>
                         <tr>
@@ -165,7 +168,7 @@ document.getElementById('btnTestConnection').addEventListener('click', async fun
     btn.disabled = true;
     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i>Testing...';
     resultDiv.style.display = 'block';
-    resultDiv.innerHTML = '<div class="alert alert-info" style="font-size:0.85rem;"><i class="fa-solid fa-spinner fa-spin me-1"></i>Menghubungi GenieACS NBI...</div>';
+    resultDiv.innerHTML = '<div class="alert alert-info" style="font-size:0.78rem;"><i class="fa-solid fa-spinner fa-spin me-1"></i>Menghubungi GenieACS NBI...</div>';
 
     try {
         const res = await fetch('{{ route("noc.genieacs.test-connection") }}', {
@@ -179,21 +182,21 @@ document.getElementById('btnTestConnection').addEventListener('click', async fun
 
         if (data.success) {
             resultDiv.innerHTML = `
-                <div class="alert alert-success" style="font-size:0.85rem;">
+                <div class="alert alert-success" style="font-size:0.78rem;">
                     <i class="fa-solid fa-circle-check me-1"></i>
                     <strong>Koneksi berhasil!</strong> ${data.message}
                     ${data.data ? '<br><small class="text-muted">Response: ' + JSON.stringify(data.data).substring(0, 200) + '</small>' : ''}
                 </div>`;
         } else {
             resultDiv.innerHTML = `
-                <div class="alert alert-danger" style="font-size:0.85rem;">
+                <div class="alert alert-danger" style="font-size:0.78rem;">
                     <i class="fa-solid fa-circle-xmark me-1"></i>
                     <strong>Gagal!</strong> ${data.message}
                 </div>`;
         }
     } catch (e) {
         resultDiv.innerHTML = `
-            <div class="alert alert-danger" style="font-size:0.85rem;">
+            <div class="alert alert-danger" style="font-size:0.78rem;">
                 <i class="fa-solid fa-circle-xmark me-1"></i>
                 <strong>Error:</strong> ${e.message}
             </div>`;

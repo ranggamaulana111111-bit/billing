@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="{{ auth()->check() && auth()->user()->role === 'noc' ? 'noc-role' : '' }}">
 <head>
     @php
         try {
@@ -14,6 +14,7 @@
     <meta name="description" content="@yield('meta_description', $metaBrand . ' — Sistem billing ISP untuk manajemen pelanggan, tagihan, pembayaran online, voucher WiFi, monitoring MikroTik, dan manajemen OLT. Solusi operasional ISP yang rapi dan terintegrasi.')">
     <meta name="keywords" content="@yield('meta_keywords', 'billing ISP, ' . $metaCompany . ', tagihan internet, pembayaran online, voucher WiFi, MikroTik, OLT, ISP management, billing system')">
     <meta name="robots" content="index, follow">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="google-site-verification" content="8psHkpnmvIBG7wwjyZBspYTvVtRchzNfJBSdwNSwCo0" />
     <meta name="language" content="Indonesian">
 
@@ -534,12 +535,12 @@
                         <a href="{{ route('noc.traffic_eng.dashboard') }}"><i class="fa-solid fa-chart-line"></i><span>Traffic Engineering</span></a>
                     </li>
 
-                    <li class="{{ request()->routeIs('noc.linux-server') || request()->routeIs('noc.dns') || request()->routeIs('noc.speedtest') ? 'active' : '' }}">
+                    <li class="{{ request()->routeIs('noc.linux-server') || request()->routeIs('noc.dns') || request()->routeIs('noc.speedtest') || request()->routeIs('noc.genieacs*') ? 'active' : '' }}">
                         <a href="#nocServerMenu" data-bs-toggle="collapse">
                             <i class="fa-solid fa-server"></i><span>Server</span>
                             <i class="fa-solid fa-chevron-down ms-auto" style="font-size:0.6rem;"></i>
                         </a>
-                        <div id="nocServerMenu" class="collapse {{ request()->routeIs('noc.linux-server') || request()->routeIs('noc.dns') || request()->routeIs('noc.speedtest') ? 'show' : '' }}">
+                        <div id="nocServerMenu" class="collapse {{ request()->routeIs('noc.linux-server') || request()->routeIs('noc.dns') || request()->routeIs('noc.speedtest') || request()->routeIs('noc.genieacs*') ? 'show' : '' }}">
                             <ul class="nav flex-column ms-3 mt-1" style="font-size:0.85rem;">
                                 <li class="nav-item">
                                     <a class="nav-link {{ request()->routeIs('noc.linux-server') ? 'active py-1' : 'py-1' }}" href="{{ route('noc.linux-server') }}">
@@ -554,6 +555,11 @@
                                 <li class="nav-item">
                                     <a class="nav-link {{ request()->routeIs('noc.speedtest') ? 'active py-1' : 'py-1' }}" href="{{ route('noc.speedtest') }}">
                                         <i class="fa-solid fa-gauge-simple me-1"></i> Speedtest Server
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link {{ request()->routeIs('noc.genieacs*') ? 'active py-1' : 'py-1' }}" href="{{ route('noc.genieacs.dashboard') }}">
+                                        <i class="fa-solid fa-satellite-dish me-1"></i> GenieAcs
                                     </a>
                                 </li>
                             </ul>
@@ -580,6 +586,9 @@
         <div class="content-area">
             @auth
             <div class="top-navbar">
+                <div class="top-navbar-title">
+                    @yield('navbar_title')
+                </div>
                 <div class="top-navbar-right">
                     <div class="top-navbar-user">
                         <div class="top-navbar-avatar">

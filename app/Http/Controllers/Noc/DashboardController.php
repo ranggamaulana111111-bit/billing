@@ -9,31 +9,89 @@ use App\Models\MikrotikRouter;
 use App\Models\NetworkMetric;
 use App\Models\Olt;
 use App\Models\Onu;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
     public function index()
     {
-        $routers = MikrotikRouter::where('is_active', true)->orderBy('name')->get();
+        $tenantKey = (string) (Auth::user()?->tenant_id ?? 'global');
+
+        $snapshot = Cache::remember('noc_dashboard_'.$tenantKey, 60, function () {
+            $routers = MikrotikRouter::where('is_active', true)->orderBy('name')->get();
+            $olts = Olt::orderBy('name')->get();
+
+            $onu = Onu::fromOlt()
+                ->selectRaw('count(*) as total, sum(case when status = ? then 1 else 0 end) as online', ['online'])
+                ->first();
+
+            $customerTypes = Customer::selectRaw('type, count(*) as total')
+                ->groupBy('type')
+                ->pluck('total', 'type');
+
+            $metrics = collect();
+            if ($routers->isNotEmpty()) {
+                $baseline = NetworkMetric::query()
+                    ->select('mikrotik_router_id', DB::raw('MAX(collected_at) as collected_at'))
+                    ->whereIn('mikrotik_router_id', $routers->pluck('id')->all())
+                    ->groupBy('mikrotik_router_id');
+
+                $latestMetrics = NetworkMetric::query()
+                    ->joinSub($baseline, 'latest', function ($join) {
+                        $join->on('network_metrics.mikrotik_router_id', '=', 'latest.mikrotik_router_id')
+                            ->on('network_metrics.collected_at', '=', 'latest.collected_at');
+                    })
+                    ->get();
+
+                $routerById = $routers->keyBy('id');
+
+                $metrics = $latestMetrics->map(fn ($m) => (object) [
+                    'router' => ($routerById->get($m->mikrotik_router_id)?->name) ?? '#'.$m->mikrotik_router_id,
+                    'cpu_load' => $m->cpu_load,
+                    'memory_usage_pct' => $m->memory_usage_pct,
+                    'bandwidth_download' => $m->bandwidth_download,
+                    'bandwidth_upload' => $m->bandwidth_upload,
+                    'latency_idle' => $m->latency_idle,
+                    'packet_loss' => $m->packet_loss,
+                    'collected_at' => $m->collected_at,
+                ]);
+            }
+
+            return [
+                'routers' => $routers,
+                'olts' => $olts,
+                'onu' => $onu,
+                'customerTypes' => $customerTypes,
+                'metrics' => $metrics,
+            ];
+        });
+
+        $routers = $snapshot['routers'];
+        $olts = $snapshot['olts'];
+        $metrics = $snapshot['metrics'];
+
         $routerOnline = $routers->where('status', 'online')->count();
         $routerOffline = $routers->where('status', '!=', 'online')->count();
 
-        $olts = Olt::orderBy('name')->get();
         $oltOnline = $olts->where('connection_status', 'online')->count();
         $oltOffline = $olts->where('connection_status', 'offline')->count();
         $oltOther = max($olts->count() - $oltOnline - $oltOffline, 0);
 
-        $onuTotal = Onu::fromOlt()->count();
-        $onuOnline = Onu::fromOlt()->where('status', 'online')->count();
+        $onuTotal = (int) ($snapshot['onu']->total ?? 0);
+        $onuOnline = (int) ($snapshot['onu']->online ?? 0);
         $onuOffline = max($onuTotal - $onuOnline, 0);
 
-        $customerPpp = Customer::where('type', 'ppp')->count();
-        $customerHotspot = Customer::where('type', 'hotspot')->count();
+        $customerPpp = (int) ($snapshot['customerTypes']['ppp'] ?? 0);
+        $customerHotspot = (int) ($snapshot['customerTypes']['hotspot'] ?? 0);
 
-        $incidentActive = Incident::active()->count();
-        $incidentBreached = Incident::where('sla_status', 'breached')
-            ->whereNotIn('status', ['resolved', 'closed'])
-            ->count();
+        $incidentStats = Incident::query()
+            ->whereIn('status', ['open', 'investigating'])
+            ->selectRaw('count(*) as active, sum(case when sla_status = ? then 1 else 0 end) as breached', ['breached'])
+            ->first();
+        $incidentActive = (int) ($incidentStats->active ?? 0);
+        $incidentBreached = (int) ($incidentStats->breached ?? 0);
         $recentIncidents = Incident::with('assignee')
             ->orderByDesc('detected_at')
             ->take(8)
@@ -41,25 +99,6 @@ class DashboardController extends Controller
 
         $pppOnline = $routers->sum(fn ($r) => (int) ($r->user_stats['pppoe_online'] ?? 0));
         $hotspotOnline = $routers->sum(fn ($r) => (int) ($r->user_stats['hotspot_online'] ?? 0));
-
-        $metrics = collect();
-        foreach ($routers as $router) {
-            $m = NetworkMetric::forRouter($router->id)->latest('collected_at')->first();
-            if (! $m) {
-                continue;
-            }
-
-            $metrics->push((object) [
-                'router' => $router->name,
-                'cpu_load' => $m->cpu_load,
-                'memory_usage_pct' => $m->memory_usage_pct,
-                'bandwidth_download' => $m->bandwidth_download,
-                'bandwidth_upload' => $m->bandwidth_upload,
-                'latency_idle' => $m->latency_idle,
-                'packet_loss' => $m->packet_loss,
-                'collected_at' => $m->collected_at,
-            ]);
-        }
 
         $totalBwDl = $metrics->sum('bandwidth_download');
         $totalBwUl = $metrics->sum('bandwidth_upload');

@@ -63,7 +63,7 @@ interface IGenieACSClient
     /**
      * Trigger a CWMP connection request to a device.
      */
-    public function connectionRequest(string $deviceId): array;
+    public function connectionRequest(string $deviceId, int $timeout = 0): array;
 
     /**
      * Send a reboot task to a device.
@@ -86,6 +86,11 @@ interface IGenieACSClient
     public function refreshObject(string $deviceId, string $objectName): array;
 
     /**
+     * Delete a CWMP object instance from the device.
+     */
+    public function deleteObject(string $deviceId, string $objectName): array;
+
+    /**
      * Set parameter values on a device via CWMP.
      *
      * @param  array<array{0: string, 1: mixed, 2?: string}>  $parameterValues
@@ -99,4 +104,16 @@ interface IGenieACSClient
      * @param  string[]  $parameterNames  CWMP parameter paths to read
      */
     public function getParameterValues(string $deviceId, array $parameterNames): array;
+
+    /**
+     * Update device tags (merged into `_tags` map).
+     *
+     * @param  array<string, mixed>  $tags
+     */
+    public function updateTags(string $deviceId, array $tags): array;
+
+    /**
+     * Delete a device from GenieACS.
+     */
+    public function deleteDevice(string $deviceId): array;
 }

@@ -387,18 +387,24 @@ Route::middleware(['auth', 'teknisi'])->group(function () {
         Route::get('/noc/features/map/onu-table/export', [FeaturesController::class, 'onuTableExport'])->name('noc.features.map.onu-table.export');
     });
 
-    // ── GENIEACS (hidden per request, MikroTik-related) ──
-    // Route::get('/noc/genieacs', [GenieacsController::class, 'dashboard'])->name('noc.genieacs');
-    // Route::get('/noc/genieacs/devices', [GenieacsController::class, 'devices'])->name('noc.genieacs.devices');
-    // Route::get('/noc/genieacs/devices/{deviceId}', [GenieacsController::class, 'deviceDetail'])->name('noc.genieacs.device-detail');
-    // Route::get('/noc/genieacs/presets', [GenieacsController::class, 'presets'])->name('noc.genieacs.presets');
-    // Route::get('/noc/genieacs/faults', [GenieacsController::class, 'faults'])->name('noc.genieacs.faults');
+    // ── GENIEACS (NOC) ──
+    Route::get('/noc/genieacs', [GenieacsController::class, 'dashboard'])->name('noc.genieacs.dashboard');
+    Route::get('/noc/genieacs/devices', [GenieacsController::class, 'devices'])->name('noc.genieacs.devices');
+    Route::get('/noc/genieacs/devices/{deviceId}', [GenieacsController::class, 'deviceDetail'])->name('noc.genieacs.device-detail');
+    Route::get('/noc/genieacs/presets', [GenieacsController::class, 'presets'])->name('noc.genieacs.presets');
+    Route::get('/noc/genieacs/faults', [GenieacsController::class, 'faults'])->name('noc.genieacs.faults');
     Route::get('/noc/genieacs/settings', [GenieacsController::class, 'settings'])->name('noc.genieacs.settings');
     Route::post('/noc/genieacs/settings', [GenieacsController::class, 'saveSettings'])->name('noc.genieacs.save-settings');
     Route::post('/noc/genieacs/test-connection', [GenieacsController::class, 'testConnection'])->name('noc.genieacs.test-connection');
-    // Route::post('/noc/genieacs/{deviceId}/reboot', [GenieacsController::class, 'reboot'])->name('noc.genieacs.reboot');
-    // Route::post('/noc/genieacs/{deviceId}/factory-reset', [GenieacsController::class, 'factoryReset'])->name('noc.genieacs.factory-reset');
-    // Route::post('/noc/genieacs/{deviceId}/refresh', [GenieacsController::class, 'refreshObject'])->name('noc.genieacs.refresh');
+    Route::post('/noc/genieacs/{deviceId}/reboot', [GenieacsController::class, 'reboot'])->name('noc.genieacs.reboot');
+    Route::post('/noc/genieacs/{deviceId}/summon', [GenieacsController::class, 'summon'])->name('noc.genieacs.summon');
+    Route::post('/noc/genieacs/{deviceId}/factory-reset', [GenieacsController::class, 'factoryReset'])->name('noc.genieacs.factory-reset');
+    Route::post('/noc/genieacs/{deviceId}/refresh', [GenieacsController::class, 'refreshObject'])->name('noc.genieacs.refresh');
+    Route::post('/noc/genieacs/{deviceId}/delete-object', [GenieacsController::class, 'deleteObject'])->name('noc.genieacs.delete-object');
+    Route::post('/noc/genieacs/{deviceId}/params', [GenieacsController::class, 'setParams'])->name('noc.genieacs.set-params');
+    Route::post('/noc/genieacs/{deviceId}/tags', [GenieacsController::class, 'addTag'])->name('noc.genieacs.add-tag');
+    Route::post('/noc/genieacs/{deviceId}/download', [GenieacsController::class, 'download'])->name('noc.genieacs.download');
+    Route::delete('/noc/genieacs/{deviceId}', [GenieacsController::class, 'destroy'])->name('noc.genieacs.destroy');
     Route::get('/noc/linux-server', [NocController::class, 'linuxServer'])->name('noc.linux-server');
     Route::get('/noc/dns', [NocController::class, 'dns'])->name('noc.dns');
     Route::get('/noc/vpn', [NocController::class, 'vpn'])->name('noc.vpn');

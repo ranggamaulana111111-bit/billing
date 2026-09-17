@@ -120,9 +120,9 @@ class GenieACSClient implements IGenieACSClient
      * Performs a regex match against _deviceId.SerialNumber with a short
      * timeout so the map card stays responsive during on-demand detection.
      */
-    public function findBySerial(string $serial, int $timeout = 8): ?array
+     public function findBySerial(string $serial, int $timeout = 8): ?array
     {
-        $query = ['_deviceId.SerialNumber' => ['$regex' => '^'.preg_quote($serial, '/').'$', '$options' => 'i']];
+        $query = ['_deviceId._SerialNumber' => ['$regex' => '^'.preg_quote($serial, '/').'$', '$options' => 'i']];
         $projection = implode(',', [
             '_id', '_deviceId', '_lastInform', '_tags',
             'InternetGatewayDevice.DeviceInfo.Manufacturer',
@@ -214,8 +214,27 @@ class GenieACSClient implements IGenieACSClient
      * Sends a CWMP ConnectionRequest to the device, prompting it
      * to initiate an inform session with the ACS.
      */
-    public function connectionRequest(string $deviceId): array
+    public function connectionRequest(string $deviceId, int $timeout = 0): array
     {
+        if ($timeout > 0) {
+            $http = Http::timeout($timeout)->baseUrl($this->baseUrl);
+            if ($this->username !== '' && $this->password !== '') {
+                $http = $http->withBasicAuth($this->username, $this->password);
+            }
+            $http = $http->withHeaders([
+                'Accept' => 'application/json',
+                'Content-Type' => 'application/json',
+            ]);
+            $response = $http->post($this->deviceUrl($deviceId).'?connection_request', [
+                'name' => 'connectionRequest',
+            ]);
+            if ($response->failed()) {
+                $this->handleHttpError($response, $this->deviceUrl($deviceId).'?connection_request');
+            }
+
+            return $response->json() ?? [];
+        }
+
         return $this->sendRequest('POST', $this->deviceUrl($deviceId).'?connection_request', [
             'name' => 'connectionRequest',
         ]);
@@ -264,6 +283,17 @@ class GenieACSClient implements IGenieACSClient
     }
 
     /**
+     * Delete a CWMP object instance from the device.
+     */
+    public function deleteObject(string $deviceId, string $objectName): array
+    {
+        return $this->sendRequest('POST', $this->deviceUrl($deviceId), [
+            'name' => 'deleteObject',
+            'objectName' => $objectName,
+        ]);
+    }
+
+    /**
      * Set parameter values on a device.
      *
      * @param  array<array{0: string, 1: mixed, 2?: string}>  $parameterValues
@@ -288,6 +318,27 @@ class GenieACSClient implements IGenieACSClient
             'name' => 'getParameterValues',
             'parameterNames' => $parameterNames,
         ]);
+    }
+
+    /**
+     * Update device tags (merged into `_tags` map).
+     *
+     * @param  array<string, mixed>  $tags
+     */
+    public function updateTags(string $deviceId, array $tags): array
+    {
+        return $this->sendRequest('PUT', '/devices/'.rawurlencode($deviceId), [
+            '_tags' => (object) $tags,
+        ]);
+    }
+
+    /**
+     * Delete a device from GenieACS.
+     */
+    public function deleteDevice(string $deviceId): array
+    {
+        $result = $this->sendRequest('DELETE', '/devices/'.rawurlencode($deviceId));
+        return is_array($result) ? $result : ['deleted' => true];
     }
 
     /**

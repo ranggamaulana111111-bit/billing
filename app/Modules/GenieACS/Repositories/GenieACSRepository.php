@@ -52,6 +52,19 @@ class GenieACSRepository
     }
 
     /**
+     * Get a filtered, paginated list of devices with a specific CWMP projection.
+     *
+     * @param  array<string, string>  $filters
+     * @param  string[]  $projection  CWMP parameter paths to include
+     */
+    public function projectedDevices(array $filters = [], array $projection = [], int $limit = 50, int $skip = 0): array
+    {
+        $query = $this->buildDeviceQuery($filters);
+
+        return $this->client->devices($query, $projection, $limit, $skip);
+    }
+
+    /**
      * Count devices matching the given filters.
      *
      * @param  array<string, string>  $filters
@@ -127,6 +140,14 @@ class GenieACSRepository
     }
 
     /**
+     * Trigger a CWMP connection request (summon) to a device.
+     */
+    public function connectionRequest(string $deviceId, int $timeout = 0): array
+    {
+        return $this->client->connectionRequest($deviceId, $timeout);
+    }
+
+    /**
      * Send a factory reset task to a device.
      */
     public function factoryResetDevice(string $deviceId): array
@@ -140,6 +161,14 @@ class GenieACSRepository
     public function refreshObject(string $deviceId, string $objectName): array
     {
         return $this->client->refreshObject($deviceId, $objectName);
+    }
+
+    /**
+     * Delete a CWMP object instance from the device.
+     */
+    public function deleteObject(string $deviceId, string $objectName): array
+    {
+        return $this->client->deleteObject($deviceId, $objectName);
     }
 
     /**
@@ -163,11 +192,29 @@ class GenieACSRepository
     }
 
     /**
+     * Update device tags (merged into `_tags` map).
+     *
+     * @param  array<string, mixed>  $tags
+     */
+    public function updateTags(string $deviceId, array $tags): array
+    {
+        return $this->client->updateTags($deviceId, $tags);
+    }
+
+    /**
      * Send a firmware download task to a device.
      */
     public function downloadFirmware(string $deviceId, string $fileName): array
     {
         return $this->client->downloadFirmware($deviceId, $fileName);
+    }
+
+    /**
+     * Delete a device from GenieACS.
+     */
+    public function deleteDevice(string $deviceId): array
+    {
+        return $this->client->deleteDevice($deviceId);
     }
 
     // ── Query Builders ─────────────────────────────────────
