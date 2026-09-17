@@ -581,11 +581,15 @@
             </div>
             <div class="sidebar-resizer" id="sidebarResizer" title="Geser untuk mengubah lebar sidebar"></div>
         </nav>
+        <div class="sidebar-overlay" id="sidebarOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:1040;"></div>
         @endif
 
         <div class="content-area">
             @auth
             <div class="top-navbar">
+                <button class="sidebar-mobile-toggle d-lg-none" id="sidebarMobileToggle" type="button" aria-label="Toggle sidebar" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:7px 10px;color:#fff;flex-shrink:0;">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
                 <div class="top-navbar-title">
                     @yield('navbar_title')
                 </div>
@@ -615,6 +619,22 @@
     </div>
 
     <script>
+    // Mobile sidebar toggle
+    (function(){
+        var sidebar=document.getElementById('sidebar');
+        var toggle=document.getElementById('sidebarMobileToggle');
+        var overlay=document.getElementById('sidebarOverlay');
+        function openMobile(){ if(sidebar) sidebar.classList.add('sidebar-mobile-open'); if(overlay) overlay.classList.add('show'); overlay.style.display='block'; document.body.style.overflow='hidden'; }
+        function closeMobile(){ if(sidebar) sidebar.classList.remove('sidebar-mobile-open'); if(overlay) overlay.classList.remove('show'); if(overlay) overlay.style.display='none'; document.body.style.overflow=''; }
+        if(toggle) toggle.addEventListener('click', function(e){ e.preventDefault(); if(sidebar.classList.contains('sidebar-mobile-open')) closeMobile(); else openMobile(); });
+        if(overlay) overlay.addEventListener('click', closeMobile);
+        // close on nav click (mobile)
+        document.addEventListener('click', function(e){
+            var a=e.target.closest('#sidebar a');
+            if(a && window.innerWidth < 992) closeMobile();
+        });
+        window.addEventListener('resize', function(){ if(window.innerWidth >= 992) closeMobile(); });
+    })();
     (function() {
         var sidebar = document.getElementById('sidebar');
         var resizer = document.getElementById('sidebarResizer');

@@ -339,6 +339,24 @@ textarea.form-control {
     transform: rotate(180deg);
 }
 
+@media (max-width: 991.98px) {
+    #sidebar {
+        position: fixed;
+        left: 0;
+        top: 0;
+        height: 100vh;
+        height: 100dvh;
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+        z-index: 1050;
+        box-shadow: 0 0 30px rgba(0,0,0,0.35);
+    }
+    #sidebar.sidebar-mobile-open {
+        transform: translateX(0);
+    }
+    .sidebar-overlay.show { display: block !important; }
+    .content-area { margin-left: 0 !important; }
+}
 @media (max-width: 768px) {
     .sidebar-toggle { display: none; }
 }
