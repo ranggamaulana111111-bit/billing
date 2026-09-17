@@ -109,11 +109,9 @@
     #btnKembali:hover, #btnUpgrade:hover { background:#6c757d !important; color:#fff !important; border-color:#6c757d !important; }
     #btnRefreshAll:hover { background:var(--primary) !important; color:#fff !important; border-color:var(--primary) !important; }
     @media (max-width: 575.98px) {
-        .page-header .page-actions { flex-wrap: nowrap !important; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 4px; gap: 6px !important; }
-        .page-header .page-actions::-webkit-scrollbar { height: 4px; }
-        .page-header .page-actions::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 2px; }
-        .page-header .page-actions .btn { flex: 0 0 auto; white-space: nowrap; padding: 4px 10px !important; font-size: 0.7rem !important; }
-        .top-navbar-title code { font-size: 0.65rem !important; max-width: 140px; overflow: hidden; text-overflow: ellipsis; }
+        .page-header .page-actions { display: grid !important; grid-template-columns: 1fr 1fr; gap: 6px !important; }
+        .page-header .page-actions .btn { width: 100%; justify-content: center; white-space: nowrap; padding: 6px 8px !important; font-size: 0.7rem !important; }
+        .top-navbar-title code { font-size: 0.65rem !important; max-width: 110px; overflow: hidden; text-overflow: ellipsis; }
     }
 </style>
 @endpush
@@ -959,7 +957,7 @@
         $tagList = is_array($device['_tags'] ?? null) ? $device['_tags'] : [];
     @endphp
 
-    <div class="col-6 col-md-4">
+    <div class="col-md-4">
         <div class="card border-0 shadow-sm h-100" style="border-radius:12px;">
             <div class="card-header bg-transparent border-0 px-2 pt-2 pb-0">
                 <h6 class="fw-bold mb-0" style="font-size:0.74rem;"><i class="fa-solid fa-circle-info me-1" style="color:var(--primary);"></i>Informasi</h6>
@@ -1006,7 +1004,7 @@
         </div>
     </div>
 
-    <div class="col-6 col-md-4">
+    <div class="col-md-4">
         <div class="card border-0 shadow-sm h-100" style="border-radius:12px;">
             <div class="card-header bg-transparent border-0 px-2 pt-2 pb-0">
                 <h6 class="fw-bold mb-0" style="font-size:0.74rem;"><i class="fa-solid fa-link me-1" style="color:var(--primary);"></i>Koneksi</h6>
@@ -1054,7 +1052,7 @@
         </div>
     </div>
 
-    <div class="col-6 col-md-4">
+    <div class="col-md-4">
         <div class="card border-0 shadow-sm h-100" style="border-radius:12px;">
             <div class="card-header bg-transparent border-0 px-2 pt-2 pb-0">
                 <h6 class="fw-bold mb-0" style="font-size:0.74rem;"><i class="fa-solid fa-wave-square me-1" style="color:var(--primary);"></i>Optik</h6>
