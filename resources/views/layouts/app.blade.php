@@ -684,10 +684,18 @@
 
         var saved = parseInt(localStorage.getItem('sidebar_width'), 10);
         if (!isNaN(saved) && saved >= MIN && saved <= MAX) {
-            applyWidth(saved);
-            setCollapsed(saved <= SNAP);
+            // Paksa expanded di load pertama agar teks tidak hilang (hanya icon)
+            if (saved <= SNAP) {
+                applyWidth(DEFAULT);
+                setCollapsed(false);
+                localStorage.setItem('sidebar_width', DEFAULT);
+            } else {
+                applyWidth(saved);
+                setCollapsed(saved <= SNAP);
+            }
         } else {
             applyWidth(DEFAULT);
+            setCollapsed(false);
         }
 
         function onStart(e) {
