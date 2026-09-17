@@ -108,6 +108,13 @@
     #btnKembali, #btnUpgrade, #btnRefreshAll { background:#fff !important; }
     #btnKembali:hover, #btnUpgrade:hover { background:#6c757d !important; color:#fff !important; border-color:#6c757d !important; }
     #btnRefreshAll:hover { background:var(--primary) !important; color:#fff !important; border-color:var(--primary) !important; }
+    @media (max-width: 575.98px) {
+        .page-header .page-actions { flex-wrap: nowrap !important; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 4px; gap: 6px !important; }
+        .page-header .page-actions::-webkit-scrollbar { height: 4px; }
+        .page-header .page-actions::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 2px; }
+        .page-header .page-actions .btn { flex: 0 0 auto; white-space: nowrap; padding: 4px 10px !important; font-size: 0.7rem !important; }
+        .top-navbar-title code { font-size: 0.65rem !important; max-width: 140px; overflow: hidden; text-overflow: ellipsis; }
+    }
 </style>
 @endpush
 
