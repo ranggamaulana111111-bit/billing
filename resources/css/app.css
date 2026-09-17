@@ -283,47 +283,53 @@ textarea.form-control {
     transition: transform 0.3s var(--ease-out);
 }
 
-/* --- Collapsed Sidebar --- */
+/* --- Collapsed Sidebar — RADIKAL FIX: hanya ikon, tidak ada teks bocor --- */
 #sidebar.sidebar-collapsed {
-    min-width: 70px;
-    max-width: 70px;
+    min-width: 64px !important;
+    max-width: 64px !important;
+    width: 64px !important;
 }
 #sidebar.sidebar-collapsed .sidebar-header {
-    padding: 16px 12px;
+    padding: 16px 8px;
     justify-content: center;
 }
 #sidebar.sidebar-collapsed .sidebar-header > div {
-    display: none;
+    display: none !important;
 }
 #sidebar.sidebar-collapsed .sidebar-header img {
-    height: 40px;
-    width: 40px;
+    height: 36px;
+    width: 36px;
 }
 #sidebar.sidebar-collapsed ul p {
-    text-align: center;
-    padding: 12px 4px 4px;
-    font-size: 7px;
-    letter-spacing: 0.08em;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    display: none !important; /* hide section titles sepenuhnya saat collapsed */
 }
 #sidebar.sidebar-collapsed ul li a {
     display: flex !important;
     flex-direction: row !important;
     align-items: center !important;
     justify-content: center !important;
-    padding: 11px 8px;
-    margin: 2px 8px;
+    padding: 10px 0 !important;
+    margin: 2px 8px !important;
     gap: 0 !important;
+    overflow: hidden !important;
+    white-space: nowrap !important;
+    font-size: 0 !important; /* FORCE HIDE semua teks label */
+    color: transparent !important;
 }
 #sidebar.sidebar-collapsed ul li a span,
 #sidebar.sidebar-collapsed ul li a .ms-auto,
 #sidebar.sidebar-collapsed ul p span,
-#sidebar.sidebar-collapsed .nav-link span {
+#sidebar.sidebar-collapsed .nav-link span,
+#sidebar.sidebar-collapsed ul li a::after {
     display: none !important;
 }
-/* Sembunyikan submenu sepenuhnya saat collapsed agar tidak merusak lebar */
+/* Submenu wrapper: row, hidden, no wrap */
+#sidebar.sidebar-collapsed .sidebar-menu ul,
+#sidebar.sidebar-collapsed .sidebar-menu .components {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 2px !important;
+}
 #sidebar.sidebar-collapsed .collapse,
 #sidebar.sidebar-collapsed .collapse.show,
 #sidebar.sidebar-collapsed .collapsing {
