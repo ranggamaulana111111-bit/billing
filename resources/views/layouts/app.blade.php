@@ -650,6 +650,21 @@
         });
         window.addEventListener('resize', function(){ if(window.innerWidth >= 992) closeMobile(); });
     })();
+    // Prevent submenu opening when sidebar is collapsed (icon-only)
+    document.addEventListener('click', function(e){
+        var toggle=e.target.closest('#sidebar.sidebar-collapsed a[data-bs-toggle="collapse"]');
+        if(toggle){
+            e.preventDefault();
+            e.stopPropagation();
+            // Optionally: expand sidebar instead of opening submenu
+            var sb=document.getElementById('sidebar');
+            if(sb) {
+                sb.classList.remove('sidebar-collapsed');
+                localStorage.setItem('sidebar_width','270');
+                sb.style.setProperty('--sidebar-width','270px');
+            }
+        }
+    }, true);
     (function() {
         var sidebar = document.getElementById('sidebar');
         var resizer = document.getElementById('sidebarResizer');
