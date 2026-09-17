@@ -69,8 +69,7 @@
     .acs-table-wrap::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 3px; }
     .acs-table { width: 100%; table-layout: auto; min-width: 720px; font-size: 0.78rem; white-space: nowrap; }
     .acs-table thead th, .acs-table tbody td { white-space: nowrap; }
-    .acs-table .col-aksi { position: sticky; right: 0; background: #fff; box-shadow: -4px 0 8px rgba(0,0,0,0.04); min-width: 140px; }
-    .acs-table thead th.col-aksi { background: rgba(245,158,11,0.10); }
+    .acs-table .col-aksi { min-width: 150px; background: #fff; }
     .acs-layout { display: flex; align-items: stretch; }
     .acs-layout .acs-main { flex: 1 1 auto; min-width: 0; }
     .acs-layout .acs-side { flex: 0 0 auto; border-left: 1px solid var(--bs-border-color); }
