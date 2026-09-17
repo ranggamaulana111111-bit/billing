@@ -959,7 +959,7 @@
         $tagList = is_array($device['_tags'] ?? null) ? $device['_tags'] : [];
     @endphp
 
-    <div class="col-md-4">
+    <div class="col-6 col-md-4">
         <div class="card border-0 shadow-sm h-100" style="border-radius:12px;">
             <div class="card-header bg-transparent border-0 px-2 pt-2 pb-0">
                 <h6 class="fw-bold mb-0" style="font-size:0.74rem;"><i class="fa-solid fa-circle-info me-1" style="color:var(--primary);"></i>Informasi</h6>
@@ -1006,7 +1006,7 @@
         </div>
     </div>
 
-    <div class="col-md-4">
+    <div class="col-6 col-md-4">
         <div class="card border-0 shadow-sm h-100" style="border-radius:12px;">
             <div class="card-header bg-transparent border-0 px-2 pt-2 pb-0">
                 <h6 class="fw-bold mb-0" style="font-size:0.74rem;"><i class="fa-solid fa-link me-1" style="color:var(--primary);"></i>Koneksi</h6>
@@ -1054,7 +1054,7 @@
         </div>
     </div>
 
-    <div class="col-md-4">
+    <div class="col-6 col-md-4">
         <div class="card border-0 shadow-sm h-100" style="border-radius:12px;">
             <div class="card-header bg-transparent border-0 px-2 pt-2 pb-0">
                 <h6 class="fw-bold mb-0" style="font-size:0.74rem;"><i class="fa-solid fa-wave-square me-1" style="color:var(--primary);"></i>Optik</h6>
