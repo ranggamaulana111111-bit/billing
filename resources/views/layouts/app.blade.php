@@ -49,6 +49,16 @@
     @endif
 
     @stack('styles')
+    <style>
+    @media (max-width: 991.98px){
+        #sidebar{position:fixed!important;left:0;top:0;height:100vh!important;height:100dvh!important;width:280px!important;min-width:280px!important;max-width:85vw!important;transform:translateX(-100%)!important;z-index:1050!important;box-shadow:0 0 30px rgba(0,0,0,.35)!important}
+        #sidebar.sidebar-mobile-open{transform:translateX(0)!important}
+        .sidebar-overlay.show{display:block!important}
+        .sidebar-resizer{display:none!important}
+        #content{padding:16px 12px 24px!important}
+        .top-navbar{padding:8px 12px!important}
+    }
+    </style>
 </head>
 <body>
     <div class="wrapper">
