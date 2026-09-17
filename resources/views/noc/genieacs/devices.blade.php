@@ -70,16 +70,23 @@
         .acs-layout { flex-direction: column; }
         .acs-layout .acs-side { border-left: none; border-top: 1px solid var(--bs-border-color); }
     }
+    @media (max-width: 575.98px) {
+        .acs-table { font-size: 0.72rem; min-width: 520px; }
+        .acs-table thead th, .acs-table tbody td { padding: 0 8px !important; height: 32px; }
+        .page-header h2 { font-size: 0.95rem; }
+        .acs-nav-btn { padding: 4px 10px; font-size: 0.7rem; }
+        .acs-card { border-radius: 12px !important; }
+    }
 </style>
 @endpush
 
 @section('content')
-<div class="page-header d-flex flex-wrap justify-content-between align-items-center">
-    <div>
+<div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <div class="flex-grow-1" style="min-width:200px;">
         <h2 class="mb-0"><i class="fa-solid fa-hard-drive me-2" style="color:var(--primary);"></i>ACS Config &amp; Monitoring</h2>
         <p class="section-subtitle mb-0 mt-1">{{ $total }} perangkat terdaftar di GenieACS</p>
     </div>
-    <div class="page-actions mt-2 mt-md-0 d-flex gap-2">
+    <div class="page-actions mt-2 mt-md-0 d-flex flex-wrap gap-2">
         <a href="{{ route('noc.genieacs.dashboard') }}" class="btn btn-outline-secondary acs-nav-btn"><i class="fa-solid fa-gauge-high me-1"></i>Overview</a>
         <a href="{{ route('noc.genieacs.devices') }}" class="btn btn-primary shadow-sm acs-nav-btn"><i class="fa-solid fa-hard-drive me-1"></i>Device</a>
         <a href="{{ route('noc.genieacs.settings') }}" class="btn btn-outline-secondary acs-nav-btn"><i class="fa-solid fa-gear me-1"></i>Settings</a>
@@ -111,17 +118,17 @@
     <div class="card-body p-0">
         <div class="acs-layout">
             <div class="acs-main">
-                <div class="table-responsive">
+                <div class="table-responsive" style="overflow-x:auto; -webkit-overflow-scrolling:touch;">
                     <table class="table table-hover align-middle mb-0 acs-table">
                         <thead>
                             <tr>
                                 <th class="ps-3">SN</th>
-                                <th>MAC</th>
-                                <th>Type</th>
-                                <th>Mode</th>
+                                <th class="d-none d-md-table-cell">MAC</th>
+                                <th class="d-none d-sm-table-cell">Type</th>
+                                <th class="d-none d-sm-table-cell">Mode</th>
                                 <th>IP PPPoE</th>
-                                <th>IP WAN/TR069</th>
-                                <th class="pe-3">SSID</th>
+                                <th class="d-none d-md-table-cell">IP WAN/TR069</th>
+                                <th class="pe-3 d-none d-lg-table-cell">SSID</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -135,9 +142,9 @@
                                         {{ Str::limit($row['serial'] ?? 'Belum diisi', 24) }}
                                     </a>
                                 </td>
-                                <td class="acs-monospace">{{ Str::limit($row['mac'] ?? 'Belum diisi', 20) }}</td>
-                                <td>{{ $row['manufacturer'] ?: 'Belum diisi' }}</td>
-                                <td>
+                                <td class="acs-monospace d-none d-md-table-cell">{{ Str::limit($row['mac'] ?? 'Belum diisi', 20) }}</td>
+                                <td class="d-none d-sm-table-cell">{{ $row['manufacturer'] ?: 'Belum diisi' }}</td>
+                                <td class="d-none d-sm-table-cell">
                                     @if(filled($row['access_type'] ?? null))
                                         <span class="badge bg-info-subtle text-info border border-info-subtle" style="font-size:0.68rem;">{{ $row['access_type'] }}</span>
                                     @else
@@ -153,7 +160,7 @@
                                     <span class="text-muted">Belum diisi</span>
                                     @endif
                                 </td>
-                                <td class="acs-monospace">
+                                <td class="acs-monospace d-none d-md-table-cell">
                                     @if(filled($row['wan_ip'] ?? null))
                                     <a href="http://{{ $row['wan_ip'] }}" target="_blank" rel="noopener" class="acs-ip-link" title="Buka http://{{ $row['wan_ip'] }}">
                                         {{ $row['wan_ip'] }}
@@ -162,7 +169,7 @@
                                     <span class="text-muted">Belum diisi</span>
                                     @endif
                                 </td>
-                                <td class="pe-3">
+                                <td class="pe-3 d-none d-lg-table-cell">
                                     @if(filled($row['ssid'] ?? null))
                                         <span><i class="fa-solid fa-wifi me-1" style="color:var(--success);"></i>{{ Str::limit($row['ssid'], 20) }}</span>
                                     @else
