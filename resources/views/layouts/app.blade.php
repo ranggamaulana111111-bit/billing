@@ -51,8 +51,13 @@
     @stack('styles')
     <style>
     @media (max-width: 991.98px){
-        #sidebar{position:fixed!important;left:0;top:0;height:100vh!important;height:100dvh!important;width:280px!important;min-width:280px!important;max-width:85vw!important;transform:translateX(-100%)!important;z-index:1050!important;box-shadow:0 0 30px rgba(0,0,0,.35)!important}
+        #sidebar{position:fixed!important;left:0;top:0;height:100vh!important;height:100dvh!important;width:280px!important;min-width:280px!important;max-width:85vw!important;transform:translateX(-100%)!important;z-index:1050!important;box-shadow:0 0 30px rgba(0,0,0,.35)!important;display:flex!important;flex-direction:column!important}
         #sidebar.sidebar-mobile-open{transform:translateX(0)!important}
+        #sidebar .sidebar-menu{display:flex!important;flex-direction:column!important;align-items:stretch!important;justify-content:flex-start!important;gap:2px!important;padding-top:8px!important}
+        #sidebar .sidebar-menu ul,#sidebar .sidebar-menu .components{display:flex!important;flex-direction:column!important;gap:2px!important}
+        #sidebar.sidebar-collapsed{min-width:280px!important;max-width:85vw!important;width:280px!important}
+        #sidebar.sidebar-collapsed ul li a{justify-content:flex-start!important;padding:10px 22px!important;width:100%!important}
+        #sidebar.sidebar-collapsed ul li a span{display:block!important;opacity:1!important;width:auto!important}
         .sidebar-overlay.show{display:block!important}
         .sidebar-resizer{display:none!important}
         #content{padding:16px 12px 24px!important}
