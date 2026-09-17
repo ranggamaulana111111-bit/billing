@@ -63,6 +63,14 @@
         backdrop-filter: blur(4px) !important;
     }
     .acs-card::before, .acs-card:hover::before { opacity: 0 !important; }
+    /* Wrapper scroll horizontal - Aksi tetap sejajar */
+    .acs-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
+    .acs-table-wrap::-webkit-scrollbar { height: 6px; }
+    .acs-table-wrap::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 3px; }
+    .acs-table { width: 100%; table-layout: auto; min-width: 720px; font-size: 0.78rem; white-space: nowrap; }
+    .acs-table thead th, .acs-table tbody td { white-space: nowrap; }
+    .acs-table .col-aksi { position: sticky; right: 0; background: #fff; box-shadow: -4px 0 8px rgba(0,0,0,0.04); min-width: 140px; }
+    .acs-table thead th.col-aksi { background: rgba(245,158,11,0.10); }
     .acs-layout { display: flex; align-items: stretch; }
     .acs-layout .acs-main { flex: 1 1 auto; min-width: 0; }
     .acs-layout .acs-side { flex: 0 0 auto; border-left: 1px solid var(--bs-border-color); }
@@ -71,7 +79,7 @@
         .acs-layout .acs-side { border-left: none; border-top: 1px solid var(--bs-border-color); }
     }
     @media (max-width: 575.98px) {
-        .acs-table { font-size: 0.72rem; min-width: 520px; }
+        .acs-table { font-size: 0.72rem; min-width: 620px; }
         .acs-table thead th, .acs-table tbody td { padding: 0 8px !important; height: 32px; }
         .page-header h2 { font-size: 0.95rem; }
         .acs-nav-btn { padding: 4px 10px; font-size: 0.7rem; }
@@ -116,96 +124,71 @@
 @else
 <div class="card shadow-sm border-0 acs-card overflow-hidden" style="border-radius:16px;">
     <div class="card-body p-0">
-        <div class="acs-layout">
-            <div class="acs-main">
-                <div class="table-responsive" style="overflow-x:auto; -webkit-overflow-scrolling:touch;">
-                    <table class="table table-hover align-middle mb-0 acs-table">
-                        <thead>
-                            <tr>
-                                <th class="ps-3">SN</th>
-                                <th class="d-none d-md-table-cell">MAC</th>
-                                <th class="d-none d-sm-table-cell">Type</th>
-                                <th class="d-none d-sm-table-cell">Mode</th>
-                                <th>IP PPPoE</th>
-                                <th class="d-none d-md-table-cell">IP WAN/TR069</th>
-                                <th class="pe-3 d-none d-lg-table-cell">SSID</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($rows as $row)
-                            @php
-                                $deviceId = $row['device_id'];
-                            @endphp
-                            <tr>
-                                <td class="ps-3">
-                                    <a href="{{ route('noc.genieacs.device-detail', $deviceId) }}" class="text-decoration-none fw-semibold acs-monospace" style="color:var(--primary);" title="{{ $row['serial'] ?? '' }}">
-                                        {{ Str::limit($row['serial'] ?? 'Belum diisi', 24) }}
-                                    </a>
-                                </td>
-                                <td class="acs-monospace d-none d-md-table-cell">{{ Str::limit($row['mac'] ?? 'Belum diisi', 20) }}</td>
-                                <td class="d-none d-sm-table-cell">{{ $row['manufacturer'] ?: 'Belum diisi' }}</td>
-                                <td class="d-none d-sm-table-cell">
-                                    @if(filled($row['access_type'] ?? null))
-                                        <span class="badge bg-info-subtle text-info border border-info-subtle" style="font-size:0.68rem;">{{ $row['access_type'] }}</span>
-                                    @else
-                                        <span class="text-muted">Belum diisi</span>
-                                    @endif
-                                </td>
-                                <td class="acs-monospace">
-                                    @if(filled($row['pppoe_ip'] ?? null))
-                                    <a href="http://{{ $row['pppoe_ip'] }}" target="_blank" rel="noopener" class="acs-ip-link" title="Buka http://{{ $row['pppoe_ip'] }}">
-                                        {{ $row['pppoe_ip'] }}
-                                    </a>
-                                    @else
-                                    <span class="text-muted">Belum diisi</span>
-                                    @endif
-                                </td>
-                                <td class="acs-monospace d-none d-md-table-cell">
-                                    @if(filled($row['wan_ip'] ?? null))
-                                    <a href="http://{{ $row['wan_ip'] }}" target="_blank" rel="noopener" class="acs-ip-link" title="Buka http://{{ $row['wan_ip'] }}">
-                                        {{ $row['wan_ip'] }}
-                                    </a>
-                                    @else
-                                    <span class="text-muted">Belum diisi</span>
-                                    @endif
-                                </td>
-                                <td class="pe-3 d-none d-lg-table-cell">
-                                    @if(filled($row['ssid'] ?? null))
-                                        <span><i class="fa-solid fa-wifi me-1" style="color:var(--success);"></i>{{ Str::limit($row['ssid'], 20) }}</span>
-                                    @else
-                                        <span class="text-muted">Belum diisi</span>
-                                    @endif
-                                </td>
-                            </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div class="acs-side">
-                <div class="card shadow-none border-0 h-100 acs-card">
-                    <div class="acs-aksi-head">
-                        <i class="fa-solid fa-bolt me-1"></i>Aksi
-                    </div>
-                    <div class="card-body p-0">
-                        @foreach($rows as $row)
-                        @php
-                            $deviceId = $row['device_id'];
-                            $label = $row['serial'] ?? $deviceId;
-                        @endphp
-                        <div class="acs-aksi-row">
-                            <a href="{{ route('noc.genieacs.device-detail', $deviceId) }}" class="btn btn-primary acs-btn-xs" title="Detail"><i class="fa-solid fa-circle-info me-1"></i>Detail</a>
-                            <button type="button" class="btn btn-warning acs-btn-xs text-dark btn-summon" title="Summon"
-                                data-url="{{ route('noc.genieacs.summon', $deviceId) }}"
-                                data-label="{{ $label }}"><i class="fa-solid fa-bolt me-1"></i>Summon</button>
-                        </div>
-                        @endforeach
-                    </div>
-                </div>
-            </div>
+        <!-- Satu tabel utuh + wrapper scroll - Aksi tetap sejajar -->
+        <div class="acs-table-wrap">
+            <table class="table table-hover align-middle mb-0 acs-table">
+                <thead>
+                    <tr>
+                        <th class="ps-3" style="min-width:140px;">SN</th>
+                        <th style="min-width:130px;">MAC</th>
+                        <th style="min-width:80px;">Type</th>
+                        <th style="min-width:90px;">Mode</th>
+                        <th style="min-width:120px;">IP PPPoE</th>
+                        <th style="min-width:120px;">IP WAN/TR069</th>
+                        <th style="min-width:120px;">SSID</th>
+                        <th class="text-center col-aksi" style="min-width:150px;"><i class="fa-solid fa-bolt me-1"></i>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($rows as $row)
+                    @php $deviceId = $row['device_id']; $label = $row['serial'] ?? $deviceId; @endphp
+                    <tr>
+                        <td class="ps-3">
+                            <a href="{{ route('noc.genieacs.device-detail', $deviceId) }}" class="text-decoration-none fw-semibold acs-monospace" style="color:var(--primary);" title="{{ $row['serial'] ?? '' }}">
+                                {{ Str::limit($row['serial'] ?? 'Belum diisi', 24) }}
+                            </a>
+                        </td>
+                        <td class="acs-monospace">{{ Str::limit($row['mac'] ?? 'Belum diisi', 20) }}</td>
+                        <td>{{ $row['manufacturer'] ?: 'Belum diisi' }}</td>
+                        <td>
+                            @if(filled($row['access_type'] ?? null))
+                                <span class="badge bg-info-subtle text-info border border-info-subtle" style="font-size:0.68rem;">{{ $row['access_type'] }}</span>
+                            @else
+                                <span class="text-muted">Belum diisi</span>
+                            @endif
+                        </td>
+                        <td class="acs-monospace">
+                            @if(filled($row['pppoe_ip'] ?? null))
+                            <a href="http://{{ $row['pppoe_ip'] }}" target="_blank" rel="noopener" class="acs-ip-link" title="Buka http://{{ $row['pppoe_ip'] }}">{{ $row['pppoe_ip'] }}</a>
+                            @else
+                            <span class="text-muted">Belum diisi</span>
+                            @endif
+                        </td>
+                        <td class="acs-monospace">
+                            @if(filled($row['wan_ip'] ?? null))
+                            <a href="http://{{ $row['wan_ip'] }}" target="_blank" rel="noopener" class="acs-ip-link" title="Buka http://{{ $row['wan_ip'] }}">{{ $row['wan_ip'] }}</a>
+                            @else
+                            <span class="text-muted">Belum diisi</span>
+                            @endif
+                        </td>
+                        <td>
+                            @if(filled($row['ssid'] ?? null))
+                                <span><i class="fa-solid fa-wifi me-1" style="color:var(--success);"></i>{{ Str::limit($row['ssid'], 20) }}</span>
+                            @else
+                                <span class="text-muted">Belum diisi</span>
+                            @endif
+                        </td>
+                        <td class="text-center col-aksi">
+                            <div class="d-inline-flex gap-1 flex-nowrap">
+                                <a href="{{ route('noc.genieacs.device-detail', $deviceId) }}" class="btn btn-primary acs-btn-xs" title="Detail"><i class="fa-solid fa-circle-info me-1"></i>Detail</a>
+                                <button type="button" class="btn btn-warning acs-btn-xs text-dark btn-summon" title="Summon" data-url="{{ route('noc.genieacs.summon', $deviceId) }}" data-label="{{ $label }}"><i class="fa-solid fa-bolt me-1"></i>Summon</button>
+                            </div>
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
         </div>
-
         {{-- Pagination / Navigation --}}
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 px-3 py-3" style="font-size:0.85rem;border-top:1px solid var(--border-subtle);">
             <div class="d-flex align-items-center gap-2 flex-wrap">
